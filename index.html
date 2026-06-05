@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0066)file:///C:/Users/USER/Downloads/farmacia_gestao_financeira_14.html -->
+<!-- saved from url=(0063)file:///C:/Users/USER/Downloads/farmacia_gestao_financeira.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1587,7 +1587,13 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <div class="field"><label>Vencimento</label><input type="date" id="s-date"></div>
         <div class="field"><label>Observação</label><input type="text" id="s-note" placeholder="Detalhes..."></div>
       </div>
-      <div class="form-footer"><button class="btn" style="color:var(--red);border-color:var(--red-border);background:var(--red-dim)" onclick="addSaida()"><i class="ti ti-plus"></i> Registrar saída</button></div>
+      <div class="form-footer" style="display:flex;align-items:center;gap:16px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)">
+          <input type="checkbox" id="s-pago" style="width:16px;height:16px;cursor:pointer">
+          ✅ Já paguei (à vista)
+        </label>
+        <button class="btn" style="color:var(--red);border-color:var(--red-border);background:var(--red-dim)" onclick="addSaida()">+ Registrar saída</button>
+      </div>
     </div>
     <div id="s-month-pills" class="month-pills"><button class="mpill active" onclick="setSMonth(&#39;all&#39;)">Todos</button><button class="mpill" onclick="setSMonth(&#39;2026-07&#39;)">Jul/26</button><button class="mpill current" onclick="setSMonth(&#39;2026-06&#39;)">Jun/26</button><button class="mpill" onclick="setSMonth(&#39;2026-05&#39;)">Mai/26</button></div>
     <div class="metrics" id="s-metrics">
@@ -1604,7 +1610,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <button class="btn" style="color:var(--red);border-color:var(--red-border)" onclick="limparSecao(&#39;saidas&#39;)" title="Limpar todos os registros"><i class="ti ti-trash" style="font-size:14px"></i> Limpar</button>
     </div>
     <div class="table-wrap"><table class="data-table" data-resizable="1">
-      <thead><tr><th style="width:160px" class="resizable-th">Descrição<div class="col-resize-handle"></div></th><th style="width: 232px; min-width: 232px;" class="resizable-th">Categoria<div class="col-resize-handle"></div></th><th style="width:90px" class="resizable-th">Vencimento<div class="col-resize-handle"></div></th><th style="width: 197px; text-align: right; min-width: 197px;" class="resizable-th">Valor<div class="col-resize-handle"></div></th><th class="resizable-th" style="width: 180px; min-width: 180px;">Observação<div class="col-resize-handle"></div></th><th style="width:95px" class="resizable-th">Status<div class="col-resize-handle"></div></th><th style="width:110px;text-align:center" class="resizable-th">Ações<div class="col-resize-handle"></div></th></tr></thead>
+      <thead><tr><th style="width:160px" class="resizable-th">Descrição<div class="col-resize-handle"></div></th><th style="width:90px" class="resizable-th">Categoria<div class="col-resize-handle"></div></th><th style="width:90px" class="resizable-th">Vencimento<div class="col-resize-handle"></div></th><th style="width:110px;text-align:right" class="resizable-th">Valor<div class="col-resize-handle"></div></th><th class="resizable-th">Observação<div class="col-resize-handle"></div></th><th style="width:95px" class="resizable-th">Status<div class="col-resize-handle"></div></th><th style="width:110px;text-align:center" class="resizable-th">Ações<div class="col-resize-handle"></div></th></tr></thead>
       <tbody id="s-tbody"><tr>
     <td><strong>Boleto: Comercial Ibiapina — NF-55-2816115</strong></td>
     <td><span class="badge" style="color:var(--red)">Fornecedores</span></td>
@@ -3211,16 +3217,18 @@ function renderEntradas(){
 
 // SAÍDAS ─────────────────────────────────────────────
 function addSaida(auto){
-  let desc,cat,val,date,note,boletoId;
-  if(auto){({desc,cat,val,date,note,boletoId}=auto);}
+  let desc,cat,val,date,note,boletoId,paid;
+  if(auto){({desc,cat,val,date,note,boletoId,paid}=auto);}
   else{
     desc=document.getElementById('s-desc').value.trim();cat=document.getElementById('s-cat').value;
     val=parseFloat(document.getElementById('s-val').value);date=document.getElementById('s-date').value;note=document.getElementById('s-note').value.trim();
+    paid=document.getElementById('s-pago').checked;
     if(!desc||!date||isNaN(val)||val<=0){alert('Preencha descrição, valor e data.');return;}
   }
-  D.saidas.unshift({id:Date.now(),desc,cat,val,date,note,boletoId:boletoId||null});
+  D.saidas.unshift({id:Date.now(),desc,cat,val,date,note,boletoId:boletoId||null,paid:paid||false,paidDate:paid?date:null});
   if(!auto)sMonth=date.substring(0,7);
-  save();if(!auto){['s-desc','s-val','s-note'].forEach(id=>document.getElementById(id).value='');document.getElementById('s-date').value=today();}renderAll();
+  save();if(!auto){['s-desc','s-val','s-note'].forEach(id=>document.getElementById(id).value='');document.getElementById('s-date').value=today();document.getElementById('s-pago').checked=false;}renderAll();
+  if(!auto)showToast(paid?'✅ Saída registrada como paga!':'+ Saída registrada!',paid?'green':'red');
 }
 function paySaida(id){
   const s=D.saidas.find(x=>x.id===id);if(!s)return;
