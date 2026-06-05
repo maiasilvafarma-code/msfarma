@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0065)file:///C:/Users/USER/Downloads/farmacia_gestao_financeira_7.html -->
+<!-- saved from url=(0066)file:///C:/Users/USER/Downloads/farmacia_gestao_financeira_10.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -4032,7 +4032,7 @@ function renderFornecedores(){
   const mapa={};
   D.boletos.forEach(b=>{
     const key=b.sup;
-    if(!mapa[key])mapa[key]={nome:b.sup,pendente:0,pago:0,qtdPend:0,qtdPago:0,proximoVenc:'',boletos:[]};
+    if(!mapa[key])mapa[key]={nome:b.sup,pendente:0,pago:0,qtdPend:0,qtdPago:0,proximoVenc:'',boletos:[],manual:false};
     if(b.paid){mapa[key].pago+=b.val;mapa[key].qtdPago++;}
     else{
       mapa[key].pendente+=b.val;mapa[key].qtdPend++;
@@ -4040,6 +4040,13 @@ function renderFornecedores(){
     }
     mapa[key].boletos.push(b);
   });
+
+  // Adiciona fornecedores cadastrados manualmente sem boletos
+  if(D.fornecedores){
+    D.fornecedores.forEach(function(f){
+      if(!mapa[f.nome])mapa[f.nome]={nome:f.nome,pendente:0,pago:0,qtdPend:0,qtdPago:0,proximoVenc:'',boletos:[],manual:true,classe:f.classe,obs:f.obs};
+    });
+  }
 
   let lista=Object.values(mapa);
   if(q)lista=lista.filter(f=>f.nome.toLowerCase().includes(q));
@@ -5902,12 +5909,14 @@ function salvarNovoFornecedor(){
   const classe=document.getElementById('nf2-classe').value;
   const media=parseFloat(document.getElementById('nf2-media').value)||0;
   const obs=document.getElementById('nf2-obs').value.trim();
+  if(!D.fornecedores)D.fornecedores=[];
+  // Evita duplicata
+  if(D.fornecedores.find(function(f){return f.nome.toLowerCase()===nome.toLowerCase();})){
+    showToast('Fornecedor já cadastrado!','yellow');return;
+  }
+  D.fornecedores.push({id:Date.now(),nome,min,max,classe,media,obs});
   FORNECEDORES_PRAZOS[nome]={prazos:[min,max],melhor:max,minimo:min,obs:obs};
-  ABC_FORNECEDORES.push({nome,classe,valorMes:media,pct:0,prazo:max,cor:classe==='A'?'var(--red)':classe==='B'?'var(--yellow)':'var(--green)'});
-  const extra=JSON.parse(localStorage.getItem('farmacia-fornecedores-extra')||'[]');
-  extra.push({nome,min,max,classe,media,obs});
-  localStorage.setItem('farmacia-fornecedores-extra',JSON.stringify(extra));
-  closeModal();renderFornecedores();
+  save();closeModal();renderFornecedores();
   showToast('✓ '+nome+' adicionado!','green');
 }
 
