@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0065)file:///C:/Users/USER/Downloads/farmacia_gestao_financeira_6.html -->
+<!-- saved from url=(0066)file:///C:/Users/USER/Downloads/farmacia_gestao_financeira_11.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1578,8 +1578,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div class="form-card">
       <div class="form-title">+ Nova saída</div>
       <div class="fg fg-5">
-        <div class="field"><label>Descrição</label><input type="text" id="s-desc" placeholder="Ex: Conta de energia"></div>
-        <div class="field"><label>Categoria</label><select id="s-cat"><option>Fornecedores</option><option>Aluguel</option><option>Energia elétrica</option><option>Água</option><option>Salários</option><option>Impostos/Taxas</option><option>Sistema/Software</option><option>Manutenção</option><option>Transporte</option><option>Marketing</option><option>Outros</option></select></div>
+        <div class="field" style="position:relative"><label>Descrição</label>
+          <input type="text" id="s-desc" placeholder="Ex: Compra — Casapharma" autocomplete="off" oninput="sugereDescSaida(this)" onblur="setTimeout(function(){var l=document.getElementById(&#39;s-desc-list&#39;);if(l)l.style.display=&#39;none&#39;;},200)">
+          <div id="s-desc-list" style="display:none;position:absolute;z-index:999;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);max-height:180px;overflow-y:auto;width:100%;box-shadow:0 4px 12px rgba(0,0,0,.3);top:100%"></div>
+        </div>
+        <div class="field"><label>Categoria</label><select id="s-cat"><option>Compras/Mercadorias</option><option>Fornecedores</option><option>Aluguel</option><option>Energia elétrica</option><option>Água</option><option>Salários</option><option>Impostos/Taxas</option><option>Juros/Taxas Financeiras</option><option>Sistema/Software</option><option>Manutenção</option><option>Transporte</option><option>Marketing</option><option>Outros</option></select></div>
         <div class="field"><label>Valor (R$)</label><input type="number" id="s-val" step="0.01" min="0" placeholder="0,00"></div>
         <div class="field"><label>Vencimento</label><input type="date" id="s-date"></div>
         <div class="field"><label>Observação</label><input type="text" id="s-note" placeholder="Detalhes..."></div>
@@ -4029,7 +4032,7 @@ function renderFornecedores(){
   const mapa={};
   D.boletos.forEach(b=>{
     const key=b.sup;
-    if(!mapa[key])mapa[key]={nome:b.sup,pendente:0,pago:0,qtdPend:0,qtdPago:0,proximoVenc:'',boletos:[]};
+    if(!mapa[key])mapa[key]={nome:b.sup,pendente:0,pago:0,qtdPend:0,qtdPago:0,proximoVenc:'',boletos:[],manual:false};
     if(b.paid){mapa[key].pago+=b.val;mapa[key].qtdPago++;}
     else{
       mapa[key].pendente+=b.val;mapa[key].qtdPend++;
@@ -4037,6 +4040,13 @@ function renderFornecedores(){
     }
     mapa[key].boletos.push(b);
   });
+
+  // Adiciona fornecedores cadastrados manualmente sem boletos
+  if(D.fornecedores){
+    D.fornecedores.forEach(function(f){
+      if(!mapa[f.nome])mapa[f.nome]={nome:f.nome,pendente:0,pago:0,qtdPend:0,qtdPago:0,proximoVenc:'',boletos:[],manual:true,classe:f.classe,obs:f.obs};
+    });
+  }
 
   let lista=Object.values(mapa);
   if(q)lista=lista.filter(f=>f.nome.toLowerCase().includes(q));
@@ -5716,6 +5726,37 @@ function delEntregaDia(id){
   renderEntregas();showToast('Removido.','green');
 }
 
+
+function selSugestao(i){var d=document.getElementById('s-desc');if(d)d.value=window['_sg'+i];var l=document.getElementById('s-desc-list');if(l)l.style.display='none';}
+function sugereDescSaida(input){
+  const val=input.value.toLowerCase();
+  const list=document.getElementById('s-desc-list');
+  if(!list)return;
+  if(val.length<2){list.style.display='none';return;}
+
+  // Coleta sugestões: fornecedores cadastrados + saídas anteriores
+  const sugestoes=new Set();
+
+  // Fornecedores cadastrados
+  (D.fornecedores||[]).forEach(function(f){
+    if(f.nome&&f.nome.toLowerCase().includes(val))
+      sugestoes.add('Compra — '+f.nome);
+  });
+
+  // Últimas saídas (descrições únicas)
+  D.saidas.forEach(function(s){
+    if(s.desc&&s.desc.toLowerCase().includes(val))
+      sugestoes.add(s.desc);
+  });
+
+  const arr=[...sugestoes].slice(0,8);
+  if(!arr.length){list.style.display='none';return;}
+  list.innerHTML=arr.map(function(s,i){
+    window['_sg'+i]=s;
+    return '<div onclick="selSugestao('+i+')" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">'+s+'</div>';
+  }).join('');
+}
+
 // CAIXA DIÁRIO ───────────────────────────────────────
 const CX_KEY='farmacia-caixa-v1';
 function loadCaixa(){try{return JSON.parse(localStorage.getItem(CX_KEY)||'[]');}catch(e){return[];}}
@@ -5868,12 +5909,14 @@ function salvarNovoFornecedor(){
   const classe=document.getElementById('nf2-classe').value;
   const media=parseFloat(document.getElementById('nf2-media').value)||0;
   const obs=document.getElementById('nf2-obs').value.trim();
+  if(!D.fornecedores)D.fornecedores=[];
+  // Evita duplicata
+  if(D.fornecedores.find(function(f){return f.nome.toLowerCase()===nome.toLowerCase();})){
+    showToast('Fornecedor já cadastrado!','yellow');return;
+  }
+  D.fornecedores.push({id:Date.now(),nome,min,max,classe,media,obs});
   FORNECEDORES_PRAZOS[nome]={prazos:[min,max],melhor:max,minimo:min,obs:obs};
-  ABC_FORNECEDORES.push({nome,classe,valorMes:media,pct:0,prazo:max,cor:classe==='A'?'var(--red)':classe==='B'?'var(--yellow)':'var(--green)'});
-  const extra=JSON.parse(localStorage.getItem('farmacia-fornecedores-extra')||'[]');
-  extra.push({nome,min,max,classe,media,obs});
-  localStorage.setItem('farmacia-fornecedores-extra',JSON.stringify(extra));
-  closeModal();renderFornecedores();
+  save();closeModal();renderFornecedores();
   showToast('✓ '+nome+' adicionado!','green');
 }
 
