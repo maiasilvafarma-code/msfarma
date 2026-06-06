@@ -315,6 +315,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
           <div style="border-top:1px solid var(--border);margin:4px 0"></div>
           <button class="drop-item" onclick="openNewForm();closeActions()"><i class="ti ti-plus" style="font-size:14px;color:var(--green)"></i> Nova NF manual</button>
           <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+          <button class="drop-item" onclick="restaurarBackup();closeActions()">📂 Restaurar backup</button>
           <button class="drop-item" onclick="confirmarReset();closeActions()" style="color:var(--red)"><i class="ti ti-refresh" style="font-size:14px;color:var(--red)"></i> Zerar e recomeçar</button>
         </div>
       </div>
@@ -8570,6 +8571,33 @@ window.backupManual = function() { backupDownload(true); };
 // ============================================================
 //  FIM BACKUP AUTOMÁTICO
 // ============================================================
+  // ============================================================
+// SISTEMA DE RESTAURACAO DE BACKUP
+// ============================================================
+window.restaurarBackup = function() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var dados = JSON.parse(ev.target.result);
+        if (!dados || typeof dados !== 'object') { alert('Arquivo invalido!'); return; }
+        var ok = window.confirm('RESTAURAR BACKUP - MS FARMA\n\nArquivo: ' + file.name + '\n\nATENCAO: Os dados atuais serao substituidos.\n\nDeseja continuar?');
+        if (!ok) return;
+        Object.keys(dados).forEach(function(k) { localStorage.setItem(k, typeof dados[k] === 'string' ? dados[k] : JSON.stringify(dados[k])); });
+        alert('Backup restaurado! A pagina sera recarregada.');
+        location.reload();
+      } catch(err) { alert('Erro ao ler o arquivo de backup.'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+// FIM SISTEMA DE RESTAURACAO
 </script>
 
 
