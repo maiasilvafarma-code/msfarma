@@ -168,9 +168,88 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   canvas{max-width:100%}
   .print-header{display:block!important}
 }
+  /* ===== SISTEMA DE PIN — MS FARMA ===== */
+#pin-overlay {
+  position: fixed; inset: 0; z-index: 99999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+}
+#pin-overlay.hidden { display: none; }
+.pin-box {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--rl);
+  padding: 40px 48px;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+}
+.pin-logo { font-size: 2.4rem; margin-bottom: 8px; }
+.pin-title { font-size: 1.1rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.pin-subtitle { font-size: 0.78rem; color: var(--text2); margin-bottom: 28px; }
+.pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border2); background: transparent; transition: background 0.15s, border-color 0.15s; }
+.pin-dot.filled { background: var(--green); border-color: var(--green); }
+.pin-dot.error { background: var(--red); border-color: var(--red); animation: pin-shake 0.4s ease; }
+@keyframes pin-shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+.pin-numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.pin-btn { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--r); color: var(--text); font-size: 1.2rem; font-weight: 600; padding: 16px; cursor: pointer; transition: background 0.12s, transform 0.08s; user-select: none; }
+.pin-btn:hover { background: var(--surface2); }
+.pin-btn:active { transform: scale(0.94); background: var(--border2); }
+.pin-btn.del { font-size: 1rem; color: var(--text2); }
+.pin-btn.vazio { background: transparent; border-color: transparent; cursor: default; }
+.pin-msg { font-size: 0.78rem; min-height: 20px; margin-bottom: 12px; transition: color 0.2s; }
+.pin-msg.erro { color: var(--red); }
+.pin-msg.ok   { color: var(--green); }
+.pin-msg.aviso { color: var(--yellow); }
+.pin-link { background: none; border: none; color: var(--text3); font-size: 0.72rem; cursor: pointer; text-decoration: underline; margin-top: 8px; display: block; }
+.pin-link:hover { color: var(--text2); }
+.pin-bloqueio { font-size: 0.78rem; color: var(--yellow); margin-top: 10px; }
+/* ===== FIM PIN ===== */
 </style>
 </head>
 <body>
+  <!-- ===== OVERLAY DE PIN ===== -->
+<div id="pin-overlay">
+  <div class="pin-box">
+    <div class="pin-logo">💊</div>
+    <div class="pin-title">MS Farma — Gestão Financeira</div>
+    <div class="pin-subtitle" id="pin-subtitle">Digite seu PIN de acesso</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+      <div class="pin-dot" id="pd5"></div>
+    </div>
+    <div class="pin-msg" id="pin-msg"></div>
+    <div class="pin-numpad" id="pin-numpad">
+      <button class="pin-btn" onclick="pinDigito('1')">1</button>
+      <button class="pin-btn" onclick="pinDigito('2')">2</button>
+      <button class="pin-btn" onclick="pinDigito('3')">3</button>
+      <button class="pin-btn" onclick="pinDigito('4')">4</button>
+      <button class="pin-btn" onclick="pinDigito('5')">5</button>
+      <button class="pin-btn" onclick="pinDigito('6')">6</button>
+      <button class="pin-btn" onclick="pinDigito('7')">7</button>
+      <button class="pin-btn" onclick="pinDigito('8')">8</button>
+      <button class="pin-btn" onclick="pinDigito('9')">9</button>
+      <button class="pin-btn vazio" disabled></button>
+      <button class="pin-btn" onclick="pinDigito('0')">0</button>
+      <button class="pin-btn del" onclick="pinApagar()">⌫</button>
+    </div>
+    <div class="pin-bloqueio" id="pin-bloqueio"></div>
+    <button class="pin-link" id="pin-reset-btn" onclick="pinEsqueciClick()">Esqueci meu PIN</button>
+  </div>
+</div>
+<!-- ===== FIM OVERLAY DE PIN ===== -->
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -8242,6 +8321,179 @@ function executarReset(){
 }
 // INIT ───────────────────────────────────────────────
 load();
+  // ============================================================
+//  SISTEMA DE PIN — MS FARMA
+// ============================================================
+const PIN_KEY = 'msfarma-pin-hash';
+const PIN_TENTATIVAS_KEY = 'msfarma-pin-tentativas';
+const PIN_BLOQUEIO_KEY = 'msfarma-pin-bloqueio';
+const PIN_COMPRIMENTO = 6;
+let _pinBuffer = '';
+let _pinModo = 'verificar';
+let _pinPrimeiro = '';
+let _pinTentativas = 0;
+let _pinBloqueioTimer = null;
+
+async function sha256(texto) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function pinInit() {
+  const hashSalvo = localStorage.getItem(PIN_KEY);
+  const bloqueioAte = parseInt(localStorage.getItem(PIN_BLOQUEIO_KEY) || '0');
+  if (Date.now() < bloqueioAte) pinIniciarContagemBloqueio(bloqueioAte);
+  if (!hashSalvo) {
+    _pinModo = 'criar';
+    document.getElementById('pin-subtitle').textContent = 'Crie um PIN de 6 dígitos para proteger o sistema';
+    document.getElementById('pin-reset-btn').style.display = 'none';
+  } else {
+    _pinModo = 'verificar';
+    document.getElementById('pin-subtitle').textContent = 'Digite seu PIN de acesso';
+  }
+  pinAtualizarDots();
+  pinCapturarTeclado();
+}
+
+function pinDigito(d) {
+  const bloqueioAte = parseInt(localStorage.getItem(PIN_BLOQUEIO_KEY) || '0');
+  if (Date.now() < bloqueioAte) return;
+  if (_pinBuffer.length >= PIN_COMPRIMENTO) return;
+  _pinBuffer += d;
+  pinAtualizarDots();
+  if (_pinBuffer.length === PIN_COMPRIMENTO) setTimeout(pinProcessar, 120);
+}
+
+function pinApagar() {
+  _pinBuffer = _pinBuffer.slice(0, -1);
+  pinAtualizarDots();
+}
+
+function pinAtualizarDots(estado) {
+  for (let i = 0; i < PIN_COMPRIMENTO; i++) {
+    const dot = document.getElementById('pd' + i);
+    dot.className = 'pin-dot';
+    if (i < _pinBuffer.length) dot.classList.add('filled');
+    if (estado === 'erro') dot.classList.add('error');
+  }
+}
+
+function pinMsg(texto, tipo) {
+  const el = document.getElementById('pin-msg');
+  el.textContent = texto;
+  el.className = 'pin-msg ' + (tipo || '');
+}
+
+async function pinProcessar() {
+  const pin = _pinBuffer;
+  _pinBuffer = '';
+  if (_pinModo === 'criar') {
+    _pinPrimeiro = pin;
+    _pinModo = 'confirmar';
+    document.getElementById('pin-subtitle').textContent = 'Confirme seu PIN';
+    pinMsg('Digite novamente para confirmar', 'aviso');
+    pinAtualizarDots();
+    return;
+  }
+  if (_pinModo === 'confirmar') {
+    if (pin !== _pinPrimeiro) {
+      pinMsg('PINs diferentes. Tente novamente.', 'erro');
+      pinAtualizarDots('erro');
+      setTimeout(() => {
+        _pinModo = 'criar';
+        _pinPrimeiro = '';
+        document.getElementById('pin-subtitle').textContent = 'Crie um PIN de 6 dígitos';
+        pinMsg('', '');
+        pinAtualizarDots();
+      }, 1500);
+      return;
+    }
+    const hash = await sha256(pin);
+    localStorage.setItem(PIN_KEY, hash);
+    pinMsg('PIN criado com sucesso!', 'ok');
+    setTimeout(pinDesbloquear, 700);
+    return;
+  }
+  if (_pinModo === 'verificar') {
+    const hashSalvo = localStorage.getItem(PIN_KEY);
+    const hashDigitado = await sha256(pin);
+    if (hashDigitado === hashSalvo) {
+      localStorage.removeItem(PIN_TENTATIVAS_KEY);
+      localStorage.removeItem(PIN_BLOQUEIO_KEY);
+      pinMsg('Bem-vinda! ❤️', 'ok');
+      setTimeout(pinDesbloquear, 500);
+    } else {
+      _pinTentativas++;
+      localStorage.setItem(PIN_TENTATIVAS_KEY, _pinTentativas);
+      pinAtualizarDots('erro');
+      if (_pinTentativas >= 3) {
+        const bloqueioAte = Date.now() + 30000;
+        localStorage.setItem(PIN_BLOQUEIO_KEY, bloqueioAte);
+        _pinTentativas = 0;
+        localStorage.removeItem(PIN_TENTATIVAS_KEY);
+        pinMsg('3 tentativas erradas. Bloqueado por 30s.', 'erro');
+        pinIniciarContagemBloqueio(bloqueioAte);
+      } else {
+        const restam = 3 - _pinTentativas;
+        pinMsg('PIN incorreto. ' + restam + ' tentativa(s) restante(s).', 'erro');
+        setTimeout(() => { pinMsg('', ''); pinAtualizarDots(); }, 1500);
+      }
+    }
+  }
+}
+
+function pinIniciarContagemBloqueio(bloqueioAte) {
+  if (_pinBloqueioTimer) clearInterval(_pinBloqueioTimer);
+  const el = document.getElementById('pin-bloqueio');
+  _pinBloqueioTimer = setInterval(() => {
+    const restam = Math.ceil((bloqueioAte - Date.now()) / 1000);
+    if (restam <= 0) {
+      clearInterval(_pinBloqueioTimer);
+      el.textContent = '';
+      pinMsg('', '');
+      pinAtualizarDots();
+    } else {
+      el.textContent = '⏳ Aguarde ' + restam + 's para tentar novamente';
+    }
+  }, 500);
+}
+
+function pinDesbloquear() {
+  document.getElementById('pin-overlay').classList.add('hidden');
+}
+
+function pinEsqueciClick() {
+  const confirmado = window.confirm('⚠️ Deseja criar um novo PIN?\n\nSeus dados financeiros NÃO serão apagados.');
+  if (!confirmado) return;
+  localStorage.removeItem(PIN_KEY);
+  localStorage.removeItem(PIN_TENTATIVAS_KEY);
+  localStorage.removeItem(PIN_BLOQUEIO_KEY);
+  _pinBuffer = '';
+  _pinPrimeiro = '';
+  _pinModo = 'criar';
+  document.getElementById('pin-subtitle').textContent = 'Crie um novo PIN de 6 dígitos';
+  document.getElementById('pin-reset-btn').style.display = 'none';
+  document.getElementById('pin-bloqueio').textContent = '';
+  pinMsg('', '');
+  pinAtualizarDots();
+}
+
+function pinCapturarTeclado() {
+  document.addEventListener('keydown', function pinKeyHandler(e) {
+    const overlay = document.getElementById('pin-overlay');
+    if (overlay.classList.contains('hidden')) {
+      document.removeEventListener('keydown', pinKeyHandler);
+      return;
+    }
+    if (e.key >= '0' && e.key <= '9') pinDigito(e.key);
+    if (e.key === 'Backspace') pinApagar();
+  });
+}
+
+window.addEventListener('DOMContentLoaded', pinInit);
+// ============================================================
+//  FIM SISTEMA DE PIN
+// ============================================================
 </script>
 
 
