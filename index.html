@@ -8460,6 +8460,7 @@ function pinIniciarContagemBloqueio(bloqueioAte) {
 
 function pinDesbloquear() {
   document.getElementById('pin-overlay').classList.add('hidden');
+  backupVerificarAutomatico();
 }
 
 function pinEsqueciClick() {
@@ -8565,7 +8566,6 @@ function backupVerificarAutomatico() {
 }
 
 window.backupManual = function() { backupDownload(true); };
-window.addEventListener('DOMContentLoaded', backupVerificarAutomatico);
 // ============================================================
 //  FIM BACKUP AUTOMÁTICO
 // ============================================================
