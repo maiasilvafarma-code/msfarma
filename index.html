@@ -8494,6 +8494,81 @@ window.addEventListener('DOMContentLoaded', pinInit);
 // ============================================================
 //  FIM SISTEMA DE PIN
 // ============================================================
+  // ============================================================
+//  BACKUP AUTOMÁTICO — MS FARMA
+// ============================================================
+const BACKUP_KEY = 'msfarma-ultimo-backup';
+const BACKUP_INTERVALO_DIAS = 7;
+
+function backupGerarNome() {
+  const d = new Date();
+  const data = d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+  return 'msfarma-backup-' + data + '.json';
+}
+
+function backupColetar() {
+  const chaves = [
+    'farmacia-fin-v2',
+    'farmacia-folha-v1',
+    'farmacia-fornecedores-extra',
+    'ms-farma-clean-v5'
+  ];
+  const dados = { _backup_data: new Date().toISOString(), _versao: '1.0' };
+  chaves.forEach(k => {
+    const val = localStorage.getItem(k);
+    if (val) {
+      try { dados[k] = JSON.parse(val); }
+      catch(e) { dados[k] = val; }
+    }
+  });
+  return dados;
+}
+
+function backupDownload(mostrarAlerta) {
+  const dados = backupColetar();
+  const json = JSON.stringify(dados, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = backupGerarNome();
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  localStorage.setItem(BACKUP_KEY, Date.now().toString());
+  if (mostrarAlerta) {
+    if (typeof showToast === 'function') {
+      showToast('✅ Backup salvo com sucesso!', 'green');
+    } else {
+      alert('✅ Backup salvo! Guarde o arquivo em local seguro.');
+    }
+  }
+}
+
+function backupVerificarAutomatico() {
+  const ultimo = parseInt(localStorage.getItem(BACKUP_KEY) || '0');
+  const diasPassados = (Date.now() - ultimo) / (1000 * 60 * 60 * 24);
+  if (diasPassados >= BACKUP_INTERVALO_DIAS) {
+    setTimeout(() => {
+      const fazer = window.confirm(
+        '💾 BACKUP AUTOMÁTICO — MS FARMA\n\n' +
+        'Já faz ' + Math.floor(diasPassados) + ' dia(s) sem backup.\n\n' +
+        'Deseja baixar o backup agora?\n' +
+        '(Recomendado — protege seus dados financeiros)'
+      );
+      if (fazer) backupDownload(true);
+    }, 3000);
+  }
+}
+
+window.backupManual = function() { backupDownload(true); };
+window.addEventListener('DOMContentLoaded', backupVerificarAutomatico);
+// ============================================================
+//  FIM BACKUP AUTOMÁTICO
+// ============================================================
 </script>
 
 
