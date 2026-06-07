@@ -8611,6 +8611,22 @@ window.restaurarBackup = function() {
   input.click();
 };
 // FIM SISTEMA DE RESTAURACAO
+  // ============================================================
+// CONFIRMACAO E DATA BACKUP - MS FARMA
+// ============================================================
+var BACKUP_KEY_DATA = 'msfarma-backup-data';
+window.backupRegistrarData = function() { localStorage.setItem(BACKUP_KEY_DATA, new Date().toISOString()); };
+window.backupUltimaData = function() {
+  var d = localStorage.getItem(BACKUP_KEY_DATA);
+  if (!d) return 'Nunca realizado';
+  var dt = new Date(d);
+  return dt.toLocaleDateString('pt-BR') + ' as ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+};
+  var _bkOrig = window.backupDownload;
+window.backupDownload = function(m) { window.backupRegistrarData(); if (_bkOrig) _bkOrig(m); };
+window.confirmarApagar = function(msg, cb) { var ok = window.confirm('Tem certeza?\n\n' + (msg || 'Esta acao nao pode ser desfeita.')); if (ok && cb) cb(); return ok; };
+// FIM CONFIRMACAO E DATA BACKUP
+// ============================================================
 </script>
 
 
