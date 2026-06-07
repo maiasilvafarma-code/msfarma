@@ -8681,21 +8681,27 @@ function empRenderKpis() {
 function empRenderContent() {
   var el = document.getElementById('emp-content');
   if (!el) return;
-  var html = emprestimosData.map(function(e) {
-    var cards = '';
-    for (var i = 1; i <= e.parcelas; i++) {
-      var paga = e.pagas.indexOf(i) >= 0;
-      var bgColor = paga ? '#1a2e1a' : '#2a1a1a';
-      var bdColor = paga ? '#3ecf72' : '#f87171';
+  var html = '';
+  emprestimosData.forEach(function(emp) {
+    html += '<div style="margin-bottom:24px;">';
+    html += '<div style="font-weight:600;font-size:14px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.1);">Emprestimo: ' + emp.nome + '</div>';
+    for (var i = 1; i <= emp.total; i++) {
+      var paga = i <= emp.pagas;
+      var bgColor = paga ? '#1a2e1a' : '#2e1a1a';
+      var borderColor = paga ? '#3ecf72' : '#f87171';
       var statusText = paga ? '[PAGA]' : '[PENDENTE]';
-      var valorFmt = 'R$ ' + e.valor.toFixed(2).replace('.', ',');
-      var onclick2 = paga ? '' : ('onclick="empPagarParcela(\'' + e.id + '\',' + i + ')"');
-      cards += '<div ' + onclick2 + ' style="border:1px solid ' + bdColor + ';border-radius:8px;padding:10px 14px;margin-bottom:6px;font-size:13px;background:' + bgColor + ';cursor:' + (paga ? 'default' : 'pointer') + '">Parcela ' + i + ' ' + statusText + ' - ' + valorFmt + '</div>';
+      var valorFmt = 'R$ ' + emp.valor.toFixed(2).replace('.', ',');
+      html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
+      html += '<div style="flex:1;border:1px solid ' + borderColor + ';border-radius:8px;padding:10px 14px;font-size:13px;background:' + bgColor + ';color:var(--text);">';
+      html += 'Parcela ' + i + ' ' + statusText + ' - ' + valorFmt;
+      html += '</div>';
+      if (!paga) {
+        html += '<button onclick="empPagarParcela(\''  + emp.id + '\', ' + i + ')" style="background:#3ecf72;color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Pagar</button>';
+      }
+      html += '</div>';
     }
-    return '<div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">' +
-      '<div style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">Emprestimo: ' + e.nome + '</div>' +
-      cards + '</div>';
-  }).join('');
+    html += '</div>';
+  });
   el.innerHTML = html;
 }
 
