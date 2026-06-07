@@ -8614,7 +8614,7 @@ window.restaurarBackup = function() {
   // ============================================================
 // CONFIRMACAO E DATA BACKUP - MS FARMA
 // ============================================================
-var BACKUP_KEY_DATA = 'msfarma-backup-data';
+var BACKUP_KEY_DATA = 'msfarma-ultimo-backup';
 window.backupRegistrarData = function() { localStorage.setItem(BACKUP_KEY_DATA, new Date().toISOString()); };
 window.backupUltimaData = function() {
   var d = localStorage.getItem(BACKUP_KEY_DATA);
