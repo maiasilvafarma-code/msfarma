@@ -2753,7 +2753,7 @@ function goTab(t){
   const sec=document.getElementById('sec-'+t);
   if(sec)sec.classList.add('active');
   const allTabs=document.querySelectorAll('.main-tab');
-  const tabs=['nf','boletos','entradas','saidas','relatorio','analise','fornecedores','folha','cartoes','estrategia','produtos','saude','caixa','emprestimos'];
+  const tabs=['nf','boletos','entradas','saidas','relatorio','analise','fornecedores','folha','cartoes','estrategia','produtos','saude','caixa','entregas','pronampe','emprestimos'];
   const idx=tabs.indexOf(t);
   if(idx>=0&&allTabs[idx])allTabs[idx].classList.add('active');
   if(t==='dashboard'){renderDashboard();}
