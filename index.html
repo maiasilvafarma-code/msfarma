@@ -8684,13 +8684,15 @@ function empRenderContent() {
     var cards = '';
     for (var i = 1; i <= e.parcelas; i++) {
       var paga = e.pagas.indexOf(i) >= 0;
-      var cls = paga ? 'background:#1a2e1a;border-color:#3ecf72;cursor:default' : 'background:#2a1a1a;border-color:#f87171;cursor:pointer';
-      var label = paga ? '✅ Parcela ' + i + ' — Paga' : '⏳ Parcela ' + i + ' — Pendente';
-      var onclick = paga ? '' : 'onclick="empPagarParcela('' + e.id + '',' + i + ')"';
-      cards += '<div ' + onclick + ' style="border:1px solid;border-radius:8px;padding:10px 14px;margin-bottom:6px;font-size:13px;' + cls + '">' + label + ' — R$ ' + e.valor.toFixed(2).replace('.', ',') + '</div>';
+      var bgColor = paga ? '#1a2e1a' : '#2a1a1a';
+      var bdColor = paga ? '#3ecf72' : '#f87171';
+      var statusText = paga ? '[PAGA]' : '[PENDENTE]';
+      var valorFmt = 'R$ ' + e.valor.toFixed(2).replace('.', ',');
+      var onclick2 = paga ? '' : ('onclick="empPagarParcela(\'' + e.id + '\',' + i + ')"');
+      cards += '<div ' + onclick2 + ' style="border:1px solid ' + bdColor + ';border-radius:8px;padding:10px 14px;margin-bottom:6px;font-size:13px;background:' + bgColor + ';cursor:' + (paga ? 'default' : 'pointer') + '">Parcela ' + i + ' ' + statusText + ' - ' + valorFmt + '</div>';
     }
     return '<div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">' +
-      '<div style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">🏦 ' + e.nome + '</div>' +
+      '<div style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">Emprestimo: ' + e.nome + '</div>' +
       cards + '</div>';
   }).join('');
   el.innerHTML = html;
