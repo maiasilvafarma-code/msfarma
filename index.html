@@ -8685,8 +8685,8 @@ function empRenderContent() {
   emprestimosData.forEach(function(emp) {
     html += '<div style="margin-bottom:24px;">';
     html += '<div style="font-weight:600;font-size:14px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.1);">Emprestimo: ' + emp.nome + '</div>';
-    for (var i = 1; i <= emp.total; i++) {
-      var paga = i <= emp.pagas;
+    for (var i = 1; i <= emp.parcelas; i++) {
+      var paga = emp.pagas.indexOf(i) > -1;
       var bgColor = paga ? '#1a2e1a' : '#2e1a1a';
       var borderColor = paga ? '#3ecf72' : '#f87171';
       var statusText = paga ? '[PAGA]' : '[PENDENTE]';
