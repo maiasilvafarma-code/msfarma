@@ -2472,6 +2472,16 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     </div>
 
     <div id="saude-content"></div>
+
+      <!-- EMPRESTIMOS MS FARMA -->
+      <div class="section" id="sec-emprestimos">
+        <div class="sec-title">
+          <i class="ti ti-building-bank" style="font-size:20px;color:#60a5fa"></i> Empréstimos — MS Farma
+        </div>
+        <div class="metrics" id="emp-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.25rem"></div>
+        <div id="emp-content"></div>
+      </div>
+
   </div>
 
   <!-- CAIXA DIÁRIO -->
@@ -2742,13 +2752,14 @@ function goTab(t){
   const sec=document.getElementById('sec-'+t);
   if(sec)sec.classList.add('active');
   const allTabs=document.querySelectorAll('.main-tab');
-  const tabs=['nf','boletos','entradas','saidas','relatorio','analise','fornecedores','folha','cartoes','estrategia','produtos','saude','caixa'];
+  const tabs=['nf','boletos','entradas','saidas','relatorio','analise','fornecedores','folha','cartoes','estrategia','produtos','saude','caixa','emprestimos'];
   const idx=tabs.indexOf(t);
   if(idx>=0&&allTabs[idx])allTabs[idx].classList.add('active');
   if(t==='dashboard'){renderDashboard();}
   if(t==='relatorio')renderRelatorio();
   if(t==='analise')renderAnalise&&renderAnalise();
   if(t==='saude')renderSaude&&renderSaude();
+  if(t==='emprestimos')renderEmprestimos&&renderEmprestimos();
   if(t==='entregas'){renderEntregas&&renderEntregas();}
   if(t==='pronampe'){renderPRONAMPE&&renderPRONAMPE();}
   if(t==='caixa'){renderCaixa&&renderCaixa();const cx=document.getElementById('cx-data');if(cx)cx.value=today();}
@@ -8627,6 +8638,82 @@ window.backupUltimaData = function() {
 window.backupDownload = function(m) { window.backupRegistrarData(); if (_bkOrig) _bkOrig(m); };
 window.confirmarApagar = function(msg, cb) { var ok = window.confirm('Tem certeza?\n\n' + (msg || 'Esta acao nao pode ser desfeita.')); if (ok && cb) cb(); return ok; };
 // FIM CONFIRMACAO E DATA BACKUP
+// ============================================================
+// ============================================================
+// EMPRESTIMOS MS FARMA
+// ============================================================
+var emprestimosData = [
+  { id: 'ind', nome: 'Santander Individual', parcelas: 9, valor: 2925.00, diaVenc: 10, pagas: [1,2,3,4,5] },
+  { id: 'grp', nome: 'Santander Grupo', parcelas: 9, valor: 607.00, diaVenc: 10, pagas: [1,2,3,4,5] }
+];
+
+function empRenderKpis() {
+  var totalDevedor = 0, totalPago = 0, totalMensal = 0;
+  var hoje = new Date();
+  var proximoVenc = null;
+  emprestimosData.forEach(function(e) {
+    var pendentes = e.parcelas - e.pagas.length;
+    totalDevedor += pendentes * e.valor;
+    totalPago += e.pagas.length * e.valor;
+    totalMensal += e.valor;
+    if (pendentes > 0) {
+      var proxParcela = e.pagas.length + 1;
+      var venc = new Date(hoje.getFullYear(), hoje.getMonth(), e.diaVenc);
+      if (venc < hoje) venc.setMonth(venc.getMonth() + 1);
+      if (!proximoVenc || venc < proximoVenc) proximoVenc = venc;
+    }
+  });
+  var kpisEl = document.getElementById('emp-kpis');
+  if (!kpisEl) return;
+  var fmt = function(v) { return 'R$ ' + v.toFixed(2).replace('.', ',').replace(/B(?=(d{3})+(?!d))/g, '.'); };
+  var proxStr = proximoVenc ? proximoVenc.toLocaleDateString('pt-BR') : 'Quitado';
+  kpisEl.innerHTML = [
+    ['Saldo Devedor', fmt(totalDevedor), '#f87171'],
+    ['Total Pago', fmt(totalPago), '#3ecf72'],
+    ['Parcela Mensal', fmt(totalMensal), '#60a5fa'],
+    ['Próximo Venc.', proxStr, '#fbbf24']
+  ].map(function(k) {
+    return '<div class="mcard"><div class="mcard-label">' + k[0] + '</div><div class="mcard-value" style="color:' + k[2] + '">' + k[1] + '</div></div>';
+  }).join('');
+}
+
+function empRenderContent() {
+  var el = document.getElementById('emp-content');
+  if (!el) return;
+  var html = emprestimosData.map(function(e) {
+    var cards = '';
+    for (var i = 1; i <= e.parcelas; i++) {
+      var paga = e.pagas.indexOf(i) >= 0;
+      var cls = paga ? 'background:#1a2e1a;border-color:#3ecf72;cursor:default' : 'background:#2a1a1a;border-color:#f87171;cursor:pointer';
+      var label = paga ? '✅ Parcela ' + i + ' — Paga' : '⏳ Parcela ' + i + ' — Pendente';
+      var onclick = paga ? '' : 'onclick="empPagarParcela('' + e.id + '',' + i + ')"';
+      cards += '<div ' + onclick + ' style="border:1px solid;border-radius:8px;padding:10px 14px;margin-bottom:6px;font-size:13px;' + cls + '">' + label + ' — R$ ' + e.valor.toFixed(2).replace('.', ',') + '</div>';
+    }
+    return '<div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">' +
+      '<div style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">🏦 ' + e.nome + '</div>' +
+      cards + '</div>';
+  }).join('');
+  el.innerHTML = html;
+}
+
+function empPagarParcela(id, parcela) {
+  if (!window.confirmarApagar('Marcar parcela ' + parcela + ' como PAGA?', function() {
+    emprestimosData.forEach(function(e) {
+      if (e.id === id && e.pagas.indexOf(parcela) < 0) {
+        e.pagas.push(parcela);
+        e.pagas.sort(function(a,b){return a-b;});
+      }
+    });
+    empRenderKpis();
+    empRenderContent();
+  })) { return; }
+}
+
+function renderEmprestimos() {
+  empRenderKpis();
+  empRenderContent();
+}
+// FIM EMPRESTIMOS MS FARMA
 // ============================================================
 </script>
 
