@@ -6911,7 +6911,7 @@ function renderFolha(){
         +'<td style="font-weight:600">'+f.nome+'</td>'
         +'<td style="color:var(--text2);font-size:12px">'+f.cargo+'</td>'
         +'<td><span class="badge '+(f.tipo==='CLT'?'b-paid':f.tipo==='Pró-labore'?'b-ok':'')+'">'+f.tipo+'</span></td>'
-        +'<td style="text-align:right;font-weight:600">'+(f.tipo==='Informal'?'R$'+f.salarioBase.toFixed(2)+'/dia'+(f.feriadoVal?'  (feriado: R$'+f.feriadoVal.toFixed(2)+')':''):fmtCur(Math.round((f.salarioBase*(1+(f.periculosidade||0)/100)+(f.vt||0)+(f.va||0)-(f.inssAliq||0))*100)/100))+'</td>'
+        +'<td style="text-align:right;font-weight:600">'+(f.tipo==='Informal'?'R$'+f.salarioBase.toFixed(2)+'/dia'+(f.feriadoVal?'  (feriado: R$'+f.feriadoVal.toFixed(2)+')':''):fmtCur(Math.round((f.salarioBase*(1+(f.periculosidade||0)/100)+(f.feriadoVal||0)+(f.vt||0)+(f.va||0)-(f.inssAliq||0))*100)/100))+'</td>'
         +'<td style="text-align:center;color:var(--yellow)">'+(f.periculosidade>0?f.periculosidade+'%':'—')+'</td>'
         +'<td style="text-align:center;color:var(--text2)">'+(f.inssAliq>0?f.inssAliq>0?fmtCur(f.inssAliq):'-':'—')+'</td>'
         +'<td style="text-align:center">'
