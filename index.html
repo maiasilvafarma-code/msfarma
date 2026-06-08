@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="./index_files/tabler-icons.min.css" translate="no">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="./index_files/pdf.min.js.download" translate="no"></script>
-<script src="./index_files/xlsx.full.min.js.download" translate="no"></script>
+<script src="./index_files/xlsx.full.min.js.download" translate="noh"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -7024,6 +7024,9 @@ function processarFuncMes(funcId,mes,callback){
             💰 Salário base: <strong>${f.tipo==='Informal'?'R$'+f.salarioBase.toFixed(2)+'/dia':fmtCur(f.salarioBase)}</strong>
             ${f.periculosidade>0?' · Periculosidade: <strong>'+f.periculosidade+'%</strong>':''}
             ${f.inssAliq>0?' · INSS: <strong>'+f.inssAliq+'%</strong>':''}
+                          ${f.vt>0?' · VT: <strong>'+fmtCur(f.vt)+'</strong>':''}
+                ${f.va>0?' · VA: <strong>'+fmtCur(f.va)+'</strong>':''}
+                              <br><span style="color:var(--green);font-weight:600">💰 Total proventos base: ${fmtCur(Math.round(f.salarioBase*(1+(f.periculosidade||0)/100)*100)/100)}</span>
           </div>
           ${extrasHtml}
         </div>
@@ -7159,6 +7162,7 @@ function openAddFunc(){
           <div class="fg fg-2" style="margin-bottom:10px">
             <div class="field"><label>CPF</label><input type="text" id="fn-cpf" placeholder="000.000.000-00"></div>
             <div class="field"><label>VT mensal (R$)</label><input type="number" id="fn-vt" value="0" step="0.01" min="0"></div>
+                        <div class="field"><label>VA mensal (R$)</label><input type="number" id="fn-va" value="0" step="0.01" min="0"></div>
           </div>
           <div class="field">
             <label>📝 Observações e anotações</label>
@@ -7191,9 +7195,10 @@ function saveFunc(){
   const admissao=document.getElementById('fn-adm')?.value||'';
   const cpf=document.getElementById('fn-cpf').value.trim();
   const vt=parseFloat(document.getElementById('fn-vt').value)||0;
+      const va=parseFloat(document.getElementById('fn-va').value)||0;
   if(!nome||!salarioBase){showToast('Preencha nome e salário.','yellow');return;}
   const obsFunc=document.getElementById('fn-obs')?.value.trim()||'';
-  folha.push({id:Date.now(),nome,cargo,tipo,salarioBase,feriadoVal:dom,obs:obsFunc,periculosidade:peric,inssAliq,admissao,cpf,vt,va:0,ativo:true});
+  folha.push({id:Date.now(),nome,cargo,tipo,salarioBase,feriadoVal:dom,obs:obsFunc,periculosidade:peric,inssAliq,admissao,cpf,vt,va,ativo:true});
   saveFolha();closeModal();renderFolha();
   showToast('✓ '+nome+' adicionado(a)!','green');
 }
@@ -7229,6 +7234,7 @@ function editFunc(id){
           <div class="fg fg-2" style="margin-bottom:10px">
             <div class="field"><label>CPF</label><input type="text" id="ef-cpf" value="${f.cpf||''}"></div>
             <div class="field"><label>VT mensal (R$)</label><input type="number" id="ef-vt" value="${f.vt||0}" step="0.01"></div>
+                        <div class="field"><label>VA mensal (R$)</label><input type="number" id="ef-va" value="${f.va||0}" step="0.01"></div>
           </div>
           <div class="field">
             <label>📝 Observações e anotações</label>
@@ -7256,6 +7262,7 @@ function updateFunc(id){
   f.admissao=document.getElementById('ef-adm').value||'';
   f.cpf=document.getElementById('ef-cpf').value.trim();
   f.vt=parseFloat(document.getElementById('ef-vt').value)||0;
+      f.va=parseFloat(document.getElementById('ef-va').value)||0;
   f.obs=document.getElementById('ef-obs')?.value.trim()||'';
   saveFolha();closeModal();renderFolha();
   showToast('✓ '+f.nome+' atualizado!','green');
