@@ -60,6 +60,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .search-input-wrap input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-dim)}
 .search-input-wrap input::placeholder{color:var(--text3)}
 .status-select{height:38px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0 12px;font-size:13px;color:var(--text);font-family:var(--font);outline:none;cursor:pointer;min-width:160px}
+.qf-btn{height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0 14px;font-size:12px;color:var(--text);cursor:pointer;transition:.2s;white-space:nowrap}
+.qf-btn:hover{background:var(--surface3);border-color:var(--green)}
+.qf-btn.active{background:var(--green);color:#000;border-color:var(--green);font-weight:600}
 .status-select:focus{border-color:var(--green)}
 /* TABLE */
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
@@ -1690,6 +1693,13 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <button class="btn" style="color:var(--yellow);border-color:var(--yellow-border,#fac775)" onclick="limparZerados(&#39;saidas&#39;)" title="Apaga todos os itens com valor R$0,00"><i class="ti ti-currency-off" style="font-size:14px"></i> Apagar zerados</button>
       <button class="btn" onclick="deduplicar(&#39;saidas&#39;)" title="Remove itens repetidos"><i class="ti ti-copy-off" style="font-size:14px"></i> Duplicatas</button>
       <button class="btn" style="color:var(--red);border-color:var(--red-border)" onclick="limparSecao(&#39;saidas&#39;)" title="Limpar todos os registros"><i class="ti ti-trash" style="font-size:14px"></i> Limpar</button>
+    </div>
+    <div class="quick-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <button class="qf-btn active" onclick="setSaidasGrupo('')" id="qf-todos">Todos</button>
+      <button class="qf-btn" onclick="setSaidasGrupo('fornecedores')" id="qf-fornecedores">Fornecedores</button>
+      <button class="qf-btn" onclick="setSaidasGrupo('fixas')" id="qf-fixas">Contas Fixas</button>
+      <button class="qf-btn" onclick="setSaidasGrupo('folha')" id="qf-folha">Folha/Impostos</button>
+      <button class="qf-btn" onclick="setSaidasGrupo('outros')" id="qf-outros">Outros</button>
     </div>
     <div class="table-wrap"><table class="data-table" style="table-layout: auto;">
       <thead><tr><th style="width: 160px; position: relative; user-select: none;">Descrição<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 90px; position: relative; user-select: none;">Categoria<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 90px; position: relative; user-select: none;">Vencimento<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 110px; text-align: right; position: relative; user-select: none;">Valor<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 180px; position: relative; user-select: none;">Observação<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 95px; position: relative; user-select: none;">Status<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 110px; text-align: center; position: relative; user-select: none;">Ações<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th></tr></thead>
@@ -3339,7 +3349,8 @@ function renderSaidas(){
   let list=q?[...D.saidas]:sMonth==='all'?[...D.saidas]:D.saidas.filter(x=>x.date&&x.date.startsWith(sMonth));
   if(q)list=list.filter(x=>(x.desc||'').toLowerCase().includes(q)||(x.cat||'').toLowerCase().includes(q)||(x.note||'').toLowerCase().includes(q));
   if(cf)list=list.filter(x=>x.cat===cf);
-  const total=list.reduce((s,x)=>s+x.val,0);
+  if(window.saidasGrupo){const _gmap={'fornecedores':['Fornecedores'],'fixas':['Aluguel','Energia elétrica','Água'],'folha':['Salários','Impostos/Taxas'],'outros':['Outros','Juros/Taxas Financeiras','Compras/Mercadorias']};const _gcats=_gmap[window.saidasGrupo]||[];list=list.filter(x=>_gcats.includes(x.cat));}
+    const total=list.reduce((s,x)=>s+x.val,0);
   document.getElementById('s-metrics').innerHTML=`
     <div class="mcard"><div class="mcard-label">Total saídas</div><div class="mcard-value red">${fmtCur(total)}</div></div>
     <div class="mcard"><div class="mcard-label">Registros</div><div class="mcard-value">${list.length}</div></div>
@@ -8724,6 +8735,23 @@ function renderEmprestimos() {
 }
 // FIM EMPRESTIMOS MS FARMA
 // ============================================================
+
+// Quick filter groups for Saidas
+window.saidasGrupo = '';
+function setSaidasGrupo(grupo) {
+  window.saidasGrupo = grupo;
+  // Update active button
+  document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
+  const btnMap = {'':'qf-todos','fornecedores':'qf-fornecedores','fixas':'qf-fixas','folha':'qf-folha','outros':'qf-outros'};
+  const btn = document.getElementById(btnMap[grupo]);
+  if (btn) btn.classList.add('active');
+  // Reset category select
+  const sel = document.getElementById('s-cat-sel');
+  if (sel) sel.value = '';
+  renderSaidas();
+}
+// Override renderSaidas filter to apply group filter
+const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : null;
 </script>
 
 
