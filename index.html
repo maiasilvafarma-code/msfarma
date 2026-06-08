@@ -6721,6 +6721,10 @@ function calcFolhaFunc(f,extras){
       totalDesc+=inssVal;
     }
 
+    if(f.feriadoVal>0){proventos.push({desc:'Valor Feriado',val:f.feriadoVal});totalProv+=f.feriadoVal;}
+    if(f.vt>0){proventos.push({desc:'Vale Transporte',val:f.vt});totalProv+=f.vt;}
+    if(f.va>0){proventos.push({desc:'Vale Alimentação',val:f.va});totalProv+=f.va;}
+
     if(extras.faltas>0){
       var faltaVal=(salBase/30)*extras.faltas;
       descontos.push({desc:'Faltas/Atrasos ('+extras.faltas+' dia(s))',val:faltaVal});
