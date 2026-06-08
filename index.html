@@ -2969,7 +2969,9 @@ function confirmarPagBoleto(id){
     val:total,
     date:data,
     note:(atraso>0?atraso+' dias atraso — ':'')+( juros>0?'Juros: '+fmtCur(juros)+' — ':'')+( obs||'Pago via boleto'),
-    boletoId:id
+    boletoId:id,
+    paid:true,
+    paidDate:data
   });
 
   // Alerta se teve juros
