@@ -270,7 +270,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     🔔 Alertas
   </button>
   <div class="main-tabs">
-    <button class="main-tab" onclick="goTab(&#39;nf&#39;)">📄 Notas fiscais <span class="tab-count green" id="tc-nf">38</span></button>
+    <button class="main-tab" onclick="goTab(&#39;nf&#39;)">📄 Notas Fiscais de Entrada <span class="tab-count green" id="tc-nf">38</span></button>
     <button class="main-tab" onclick="goTab(&#39;boletos&#39;)">📋 Boletos <span class="tab-count" id="tc-boletos" style="background: var(--yellow-dim); color: var(--yellow);">⚠ 107</span></button>
     <button class="main-tab" onclick="goTab(&#39;entradas&#39;)">📈 Entradas <span class="tab-count green" id="tc-entradas">67</span></button>
     <button class="main-tab" onclick="goTab(&#39;saidas&#39;)">📉 Saídas <span class="tab-count" id="tc-saidas">39</span></button>
@@ -350,10 +350,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div class="mcard"><div class="mcard-label">Total NFs</div><div class="mcard-value">38</div></div></div>
     <div class="search-bar">
       <div class="search-input-wrap"><i class="ti ti-search"></i><input type="text" id="nf-search" placeholder="Buscar número, fornecedor..." oninput="renderNF()"></div>
-      <select class="status-select" id="nf-status" onchange="renderNF()"><option value="">Todos os status</option><option value="Pendente">Pendente</option><option value="Pago">Pago</option><option value="Vencida">Vencida</option></select>
+      <select class="status-select" id="nf-status" onchange="renderNF()"><option value="">Todos os status</option><option value="aberta">Em aberto</option><option value="fechada">Fechada</option></select>
     </div>
     <div class="table-wrap"><table class="data-table" style="table-layout: auto;">
-      <thead><tr><th class="col-num" style="position: relative; user-select: none;">Número<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-sup" style="position: relative; user-select: none;">Fornecedor<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-date" style="position: relative; user-select: none;">Emissão ↓<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-date" style="position: relative; user-select: none;">Vencimento<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-val" style="position: relative; user-select: none;">Valor<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-status" style="position: relative; user-select: none;">Status<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-act" style="position: relative; user-select: none;">Ações<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th></tr></thead>
+      <thead><tr><th class="col-num" style="position: relative; user-select: none;">Nº Nota<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-sup" style="position: relative; user-select: none;">Fornecedor<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-date" style="position: relative; user-select: none;">Emissão ↓<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-date" style="position: relative; user-select: none;">Entrada<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-date" style="position: relative; user-select: none;">Fechamento<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-val" style="position: relative; user-select: none;">Valor<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="col-act" style="position: relative; user-select: none;">Ações<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th></tr></thead>
       <tbody id="nf-tbody"><tr>
       <td><strong style="color:var(--green)">NF-55-1841</strong> <span style="font-size:10px;background:var(--blue-dim);color:var(--blue);padding:1px 6px;border-radius:3px;font-weight:600;margin-left:4px">XML</span></td>
       <td title="NUTRY DISTRIBUIDORA">NUTRY DISTRIBUIDORA</td>
@@ -2747,6 +2747,13 @@ function monthLabel(ym){if(ym==='all')return'Todos';const[y,m]=ym.split('-');con
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
 function fmtCur(v){return'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
+function fecharNF(id){
+  const n=D.nf.find(x=>x.id===id);if(!n)return;
+  const hoje=today();
+  n.fechamento=hoje;
+  save();_clearCache();renderNF();setTimeout(applyResizableToAllTables,100);
+  showToast('✓ Nota '+n.num+' fechada em '+fmtDate(hoje)+'!','green');
+}
 function statusNF(n){
   if(n.paid)return'Pago';
   if(n.due&&daysDiff(n.due)<0)return'Vencida';
@@ -2848,30 +2855,27 @@ function renderNF(){
   const q=(document.getElementById('nf-search').value||'').toLowerCase();
   const sf=document.getElementById('nf-status').value;
   if(q)list=list.filter(x=>x.num.toLowerCase().includes(q)||x.sup.toLowerCase().includes(q));
-  if(sf)list=list.filter(x=>statusNF(x)===sf);
+  if(sf==='fechada')list=list.filter(x=>x.fechamento);
+  else if(sf==='aberta')list=list.filter(x=>!x.fechamento);
   // metrics
   const total=list.reduce((s,x)=>s+x.val,0);
-  const pend=list.filter(x=>statusNF(x)==='Pendente');
-  const venc=list.filter(x=>statusNF(x)==='Vencida');
-  const pago=list.filter(x=>statusNF(x)==='Pago');
+  const abertas=list.filter(x=>!x.fechamento);
+  const fechadas=list.filter(x=>x.fechamento);
   document.getElementById('nf-metrics').innerHTML=`
     <div class="mcard"><div class="mcard-label">Total notas</div><div class="mcard-value green">${fmtCur(total)}</div></div>
-    <div class="mcard"><div class="mcard-label">Pendentes</div><div class="mcard-value yellow">${pend.length}</div></div>
-    <div class="mcard"><div class="mcard-label">Vencidas</div><div class="mcard-value red">${venc.length}</div></div>
-    <div class="mcard"><div class="mcard-label">Pagas</div><div class="mcard-value green">${pago.length}</div></div>
+    <div class="mcard"><div class="mcard-label">Em aberto</div><div class="mcard-value yellow">${abertas.length}</div></div>
+    <div class="mcard"><div class="mcard-label">Fechadas</div><div class="mcard-value green">${fechadas.length}</div></div>
     <div class="mcard"><div class="mcard-label">Total NFs</div><div class="mcard-value">${list.length}</div></div>`;
   const tbody=document.getElementById('nf-tbody');
   if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="7"><i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;}
   tbody.innerHTML=list.map(n=>{
-    const st=statusNF(n);
-    const stClass=st==='Pago'?'b-paid':st==='Vencida'?'b-overdue':'b-pending';
     return`<tr>
       <td><strong style="color:var(--green)">${n.num}</strong>${n.chave?` <span style="font-size:10px;background:var(--blue-dim);color:var(--blue);padding:1px 6px;border-radius:3px;font-weight:600;margin-left:4px">XML</span>`:''}</td>
       <td title="${n.sup}">${n.sup}</td>
       <td>${fmtDate(n.emi)}</td>
-      <td>${n.due?fmtDate(n.due):'—'}</td>
+      <td>${n.entrada?fmtDate(n.entrada):'—'}</td>
+      <td>${n.fechamento?`<span class="badge b-paid">${fmtDate(n.fechamento)}</span>`:`<button class="btn-icon" onclick="fecharNF(${n.id})" title="Registrar fechamento" style="color:var(--yellow);font-size:12px">📅 Fechar</button>`}</td>
       <td style="text-align:right;font-weight:600">${fmtCur(n.val)}</td>
-      <td><span class="badge ${stClass}">${st}</span></td>
       <td style="text-align:center">
         <div style="display:flex;gap:4px;justify-content:center">
           <button class="btn-icon" onclick="editNF(${n.id})" title="Editar NF" style="color:var(--blue)">✏️</button>
@@ -3692,7 +3696,7 @@ function openImport(){
           <div style="margin-top:14px;padding:12px;background:var(--surface2);border-radius:var(--r)">
             <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">O que será importado:</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;color:var(--text2)">
-              <div><i class="ti ti-file-text" style="font-size:13px;color:var(--green)"></i> Notas fiscais</div>
+              <div><i class="ti ti-file-text" style="font-size:13px;color:var(--green)"></i> Notas Fiscais de Entrada</div>
               <div><i class="ti ti-file-invoice" style="font-size:13px;color:var(--yellow)"></i> Boletos</div>
               <div><i class="ti ti-trending-up" style="font-size:13px;color:var(--green)"></i> Entradas</div>
               <div><i class="ti ti-trending-down" style="font-size:13px;color:var(--red)"></i> Saídas</div>
@@ -4570,10 +4574,13 @@ function editNF(id){
             <div class="field"><label>Número</label><input type="text" id="en-num" value="${n.num||''}"></div>
             <div class="field"><label>Fornecedor</label><input type="text" id="en-sup" value="${n.sup||''}"></div>
           </div>
-          <div class="fg fg-3">
+          <div class="fg fg-2">
             <div class="field"><label>Valor (R$)</label><input type="number" id="en-val" value="${n.val}" step="0.01" min="0"></div>
             <div class="field"><label>Emissão</label><input type="date" id="en-emi" value="${n.emi||''}"></div>
-            <div class="field"><label>Vencimento</label><input type="date" id="en-due" value="${n.due||''}"></div>
+          </div>
+          <div class="fg fg-2">
+            <div class="field"><label>Entrada</label><input type="date" id="en-entrada" value="${n.entrada||''}"></div>
+            <div class="field"><label>Fechamento</label><input type="date" id="en-fechamento" value="${n.fechamento||''}"></div>
           </div>
         </div>
         <div class="modal-foot">
@@ -4588,7 +4595,8 @@ function saveEditNF(id){
   n.sup=document.getElementById('en-sup').value.trim()||n.sup;
   n.val=parseFloat(document.getElementById('en-val').value)||n.val;
   n.emi=document.getElementById('en-emi').value||n.emi;
-  n.due=document.getElementById('en-due').value||n.due;
+  n.entrada=document.getElementById('en-entrada').value||n.entrada||'';
+  n.fechamento=document.getElementById('en-fechamento').value||n.fechamento||'';
   save();_clearCache();renderNF();setTimeout(applyResizableToAllTables,100);closeModal();showToast('✓ NF atualizada!','green');}
 
 function editBoleto(id){
@@ -7629,6 +7637,10 @@ function importXML(files){
         const dhEmi=g('dhEmi')||g('dEmi')||'';
         const emi=dhEmi?dhEmi.substring(0,10):today();
 
+        // Data entrada (dhSaiEnt)
+        const dhSaiEnt=g('dhSaiEnt')||g('dSaiEnt')||'';
+        const entrada=dhSaiEnt?dhSaiEnt.substring(0,10):'';
+
         // Chave de acesso
         const chave=(g('Id')||g('chNFe')||'').replace('NFe','');
 
@@ -7674,7 +7686,7 @@ function importXML(files){
         // Registra a NF
         if(D.nf.find(x=>x.num===num&&x.sup===sup)){dupNF++;}
         else{
-          D.nf.unshift({id:Date.now()+Math.random(),num,sup,val,emi,due,paid:false,chave});
+          D.nf.unshift({id:Date.now()+Math.random(),num,sup,val,emi,entrada,due,paid:false,chave});
           okNF++;
         }
       }catch(ex){err++;}
