@@ -6965,14 +6965,17 @@ function processarFolhaMes(mes){
   const ids=[...checks].map(function(c){return parseInt(c.value);});
   if(!ids.length){showToast('Selecione ao menos um funcionário.','yellow');return;}
   closeModal();
-  // Open first func modal
-  let idx=0;
-  function next(){
-    if(idx>=ids.length){renderFolha();showToast('✓ Folha de '+monthLabel(mes)+' processada!','green');return;}
-    processarFuncMes(ids[idx],mes,next);
-    idx++;
-  }
-  next();
+  window._folhaMesQueue=ids.slice();
+  window._folhaMes=mes;
+  window._avancarFolhaMes=function(){
+    if(!window._folhaMesQueue||!window._folhaMesQueue.length){
+      window._folhaMesQueue=null;window._avancarFolhaMes=null;
+      renderFolha();showToast('✓ Folha de '+monthLabel(mes)+' processada!','green');return;
+    }
+    const nextId=window._folhaMesQueue.shift();
+    processarFuncMes(nextId,mes);
+  };
+  window._avancarFolhaMes();
 }
 
 function processarFuncMes(funcId,mes,callback){
@@ -7038,14 +7041,14 @@ function processarFuncMes(funcId,mes,callback){
           ${extrasHtml}
         </div>
         <div class="modal-foot">
-          <button class="btn" onclick="${callback?'closeModal();('+callback+')()':'closeModal()'}">Pular</button>
-          <button class="btn btn-green" onclick="salvarFuncMes(${funcId},'${mes}',${callback?true:false})">✓ Calcular e salvar</button>
+          <button class="btn" onclick="closeModal();if(window._avancarFolhaMes)window._avancarFolhaMes();">Pular</button>
+          <button class="btn btn-green" onclick="salvarFuncMes(${funcId},'${mes}')">✓ Calcular e salvar</button>
         </div>
       </div>
     </div>`;
 }
 
-function salvarFuncMes(funcId,mes,hasCallback){
+function salvarFuncMes(funcId,mes){
   loadFolha();
   const f=folha.find(function(x){return x.id===funcId;});
   if(!f)return;
@@ -7085,6 +7088,7 @@ function salvarFuncMes(funcId,mes,hasCallback){
 
   saveFolhaHist(hist);
   closeModal();
+  if(window._avancarFolhaMes)window._avancarFolhaMes();
   renderFolha();
   showToast('✓ '+f.nome+' — Líquido: '+fmtCur(calc.liquido),'green');
 }
