@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #65 - corrige parser PDF INFARMA + fix sintaxe JS -->
+<!-- Deploy #66 - corrige JS quebrado: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -5743,7 +5743,10 @@ function parsearTXTEntregas(text){
 
   var totE=dias.reduce(function(s,d){return s+d.totalEntregas;},0);
   var totV=dias.reduce(function(s,d){return s+d.valorVenda;},0);
-  showToast('✓ '+dias.length+' dias importados · '+totE+' entregas · '+fmtCur(totV),'green')function parsearTextoEntregas(text,filename){
+  showToast('✓ '+dias.length+' dias importados · '+totE+' entregas · '+fmtCur(totV),'green');
+}
+
+function parsearTextoEntregas(text,filename){
   const entregas=loadEntregas();
   let totalAdded=0;
   const pV=function(s){return parseFloat(String(s||'').replace(/\./g,'').replace(',','.'))||0;};
