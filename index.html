@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #64 - corrige parser PDF INFARMA (texto contínuo sem quebras de linha) -->
+<!-- Deploy #65 - corrige parser PDF INFARMA + fix sintaxe JS -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -5748,10 +5748,8 @@ function parsearTXTEntregas(text){
   let totalAdded=0;
   const pV=function(s){return parseFloat(String(s||'').replace(/\./g,'').replace(',','.'))||0;};
 
-  // Junta tudo em texto único (PDF.js extrai cada página como uma linha)
   const fullText=text.replace(/\n/g,' ');
 
-  // Extrai período do cabeçalho: "Periodo: 01/05/26   a 31/05/26"
   const perMatch=fullText.match(/Periodo:\s*(\d{2}\/\d{2}\/\d{2})\s+a\s+(\d{2}\/\d{2}\/\d{2})/i);
   let periodoLabel='Resumo do Mês';
   let periodoDate=new Date().toISOString().split('T')[0];
@@ -5762,12 +5760,10 @@ function parsearTXTEntregas(text){
     periodoLabel=dp1[0]+'/'+dp1[1]+'/20'+dp1[2]+' a '+dp2[0]+'/'+dp2[1]+'/20'+dp2[2];
   }
 
-  // Detecta entregadores com regex global (sem ^ - texto é contínuo)
   const reEnt=/(\d{3})\s+([A-Z][A-Z\s]+?)\s+(\d{2}\/\d{2}\/\d{2})\s+(\d{2}h\d{2}m)/g;
   const reTotal=/Total:\s+(\d+)\s+Viagens?\s+(\d+h\d+m)\s+(\d+)\s+(\d+h\d+m)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/gi;
   const reTotGer=/TOTAL GER[^:]*:\s*(\d+)\s+Viagens?(\d+h\d+m)\s+(\d+)\s+(\d+h\d+m)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/i;
 
-  // Coleta entregadores na ordem em que aparecem
   const entMap={};
   const entOrder=[];
   let m;
@@ -5781,12 +5777,10 @@ function parsearTXTEntregas(text){
     }
   }
 
-  // Coleta os totais de cada entregador (na mesma ordem)
   const totais=[];
   reTotal.lastIndex=0;
   while((m=reTotal.exec(fullText))!==null){totais.push(m);}
 
-  // Associa totais aos entregadores pela ordem
   entOrder.forEach(function(cod,i){
     if(totais[i]){
       entMap[cod].totalViagens=parseInt(totais[i][1]);
@@ -5804,7 +5798,6 @@ function parsearTXTEntregas(text){
     return;
   }
 
-  // Total geral
   let totVg=0,totEnt=0,totVal=0,totRec=0,totTr=0;
   const tgm=reTotGer.exec(fullText);
   if(tgm){
@@ -5818,7 +5811,6 @@ function parsearTXTEntregas(text){
     totTr=entList.reduce(function(s,e){return s+e.troco;},0);
   }
 
-  // Remove registro anterior do mesmo período se existir
   const idx=entregas.findIndex(function(e){return e.data===periodoDate;});
   if(idx>=0)entregas.splice(idx,1);
 
@@ -5834,9 +5826,6 @@ function parsearTXTEntregas(text){
   saveEntregas(entregas);
   renderEntregas();
   showToast('✓ Importado: '+entList.length+' entregador(es) · '+totEnt+' entregas · '+fmtCur(totVal),'green');
-}
-
-);
 }
 
 function renderEntregas(){
