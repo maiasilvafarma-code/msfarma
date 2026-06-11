@@ -1703,6 +1703,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <button class="qf-btn" onclick="setSaidasGrupo('fixas')" id="qf-fixas">Contas Fixas</button>
       <button class="qf-btn" onclick="setSaidasGrupo('folha')" id="qf-folha">Folha/Impostos</button>
       <button class="qf-btn" onclick="setSaidasGrupo('outros')" id="qf-outros">Outros</button>
+      <div id="fixas-mes-toolbar" style="display:none;margin-top:8px;padding:8px 0 4px 0;border-top:1px solid #333;">
+        <button onclick="avancarMesFixas()" style="background:#1a6b3c;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:13px;cursor:pointer;font-weight:600;">📅 Avançar para próximo mês</button>
+        <span id="fixas-mes-info" style="margin-left:12px;font-size:12px;color:#aaa;"></span>
+      </div>
     </div>
     <div class="table-wrap"><table class="data-table" style="table-layout: auto;">
       <thead><tr><th style="width: 140px; position: relative; user-select: none;">Descrição<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 90px; position: relative; user-select: none;">Categoria<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 90px; position: relative; user-select: none;">Vencimento<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 110px; text-align: right; position: relative; user-select: none;">Valor<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 130px; position: relative; user-select: none;">Observação<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th style="width: 95px; position: relative; user-select: none;">Status<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th><th class="sticky-col" style="width: 130px; text-align: center; position: relative; user-select: none;">Ações<div class="col-resize-handle" style="position: absolute; right: 0px; top: 0px; height: 100%; width: 8px; cursor: col-resize; z-index: 10;"></div></th></tr></thead>
@@ -3350,7 +3354,35 @@ function paySaida(id){
   showToast(s.paid?'✓ Saída marcada como paga!':'Pagamento desfeito.','green');
 }
 function delSaida(id){if(!confirm('Remover?'))return;D.saidas=D.saidas.filter(x=>x.id!==id);save();renderAll();}
-function setSMonth(m){sMonth=m;renderSaidas();setTimeout(applyResizableToAllTables,100);}
+
+    function avancarMesFixas() {
+      const CATS_FIXAS = ['Aluguel','Energia elétrica','Água','Internet/Telefone','Sistema/Software','Contador','Rastreador','Plano de Saúde','Tráfego Pago'];
+      const saidas = data.saidas || [];
+      const fixas = saidas.filter(s => CATS_FIXAS.includes(s.cat));
+      if (fixas.length === 0) { alert('Nenhuma conta fixa encontrada.'); return; }
+      const pendentes = fixas.filter(s => !s.paid);
+      if (pendentes.length > 0) {
+        if (!confirm('Ainda há ' + pendentes.length + ' conta(s) fixa(s) pendente(s).\nDeseja avançar o mês mesmo assim?')) return;
+      } else {
+        if (!confirm('Avançar ' + fixas.length + ' conta(s) fixa(s) para o próximo mês?\nAs datas serão atualizadas e o status voltará para Pendente.')) return;
+      }
+      fixas.forEach(s => {
+        const parts = s.date.split('-');
+        let y = parseInt(parts[0]), mo = parseInt(parts[1]), d = parseInt(parts[2]);
+        mo += 1;
+        if (mo > 12) { mo = 1; y += 1; }
+        const maxDay = new Date(y, mo, 0).getDate();
+        if (d > maxDay) d = maxDay;
+        s.date = y + '-' + String(mo).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+        s.paid = false;
+        s.paidDate = null;
+      });
+      save();
+      renderSaidas();
+      setSaidasGrupo('fixas');
+      alert('\u2705 Contas fixas avançadas para o próximo mês!');
+    }
+    function setSMonth(m){sMonth=m;renderSaidas();setTimeout(applyResizableToAllTables,100);}
 function renderSaidas(){
   const months=getMonths(D.saidas,'date');
   renderPills('s-month-pills',months,sMonth,'setSMonth');
@@ -8768,6 +8800,16 @@ function setSaidasGrupo(grupo) {
   const sel = document.getElementById('s-cat-sel');
   if (sel) sel.value = '';
   renderSaidas();
+  const tb = document.getElementById('fixas-mes-toolbar');
+  if (tb) tb.style.display = (window.sGrupo === 'fixas') ? 'block' : 'none';
+  if (window.sGrupo === 'fixas') {
+    const CATS_FIXAS = ['Aluguel','Energia elétrica','Água','Internet/Telefone','Sistema/Software','Contador','Rastreador','Plano de Saúde','Tráfego Pago'];
+    const saidas = data.saidas || [];
+    const fixas = saidas.filter(s => CATS_FIXAS.includes(s.cat));
+    const pagas = fixas.filter(s => s.paid).length;
+    const info = document.getElementById('fixas-mes-info');
+    if (info) info.textContent = pagas + '/' + fixas.length + ' contas pagas';
+  }
 }
 // Override renderSaidas filter to apply group filter
 const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : null;
