@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #63 - corrige carregamento PDF.js via CDN para importação INFARMA -->
+<!-- Deploy #64 - corrige parser PDF INFARMA (texto contínuo sem quebras de linha) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -5743,111 +5743,100 @@ function parsearTXTEntregas(text){
 
   var totE=dias.reduce(function(s,d){return s+d.totalEntregas;},0);
   var totV=dias.reduce(function(s,d){return s+d.valorVenda;},0);
-  showToast('✓ '+dias.length+' dias importados · '+totE+' entregas · '+fmtCur(totV),'green');
-}
-
-function parsearTextoEntregas(text,filename){
+  showToast('✓ '+dias.length+' dias importados · '+totE+' entregas · '+fmtCur(totV),'green')function parsearTextoEntregas(text,filename){
   const entregas=loadEntregas();
   let totalAdded=0;
   const pV=function(s){return parseFloat(String(s||'').replace(/\./g,'').replace(',','.'))||0;};
 
-  // Agrupa linhas por data (detecta múltiplos dias no PDF)
-  const diasMap={};
+  // Junta tudo em texto único (PDF.js extrai cada página como uma linha)
+  const fullText=text.replace(/\n/g,' ');
 
-  text.split(/\n|\r/).forEach(function(line){
-    line=line.trim();
-    if(!line)return;
+  // Extrai período do cabeçalho: "Periodo: 01/05/26   a 31/05/26"
+  const perMatch=fullText.match(/Periodo:\s*(\d{2}\/\d{2}\/\d{2})\s+a\s+(\d{2}\/\d{2}\/\d{2})/i);
+  let periodoLabel='Resumo do Mês';
+  let periodoDate=new Date().toISOString().split('T')[0];
+  if(perMatch){
+    const dp1=perMatch[1].split('/');
+    const dp2=perMatch[2].split('/');
+    periodoDate='20'+dp1[2]+'-'+dp1[1]+'-'+dp1[0];
+    periodoLabel=dp1[0]+'/'+dp1[1]+'/20'+dp1[2]+' a '+dp2[0]+'/'+dp2[1]+'/20'+dp2[2];
+  }
 
-    // Detecta linha de entregador com data: "001 GERMANO 04/06/26 10h52m..."
-    const entLine=line.match(/^(\d{3})\s+([A-Z][A-Z\s]+?)\s+(\d{2}\/\d{2}\/\d{2})\s+(\d{2}h\d{2}m)/);
-    if(entLine){
-      const rawDate=entLine[3];
-      const dp=rawDate.split('/');
-      const dateStr='20'+dp[2]+'-'+dp[1]+'-'+dp[0];
-      const label=dp[0]+'/'+dp[1]+'/20'+dp[2];
-      if(!diasMap[dateStr]){
-        diasMap[dateStr]={dateStr:dateStr,label:label,entregadores:{},totalViagens:0,totalEntregas:0,valorVenda:0,recebimento:0,troco:0};
-      }
-      const cod=entLine[1];
-      const nome=entLine[2].trim();
-      if(!diasMap[dateStr].entregadores[cod]){
-        diasMap[dateStr].entregadores[cod]={cod:cod,nome:nome,totalViagens:0,totalTempo:'',totalEntregas:0,valorVenda:0,recebimento:0,troco:0};
-      }
-      diasMap[dateStr]._lastEnt=cod;
-      diasMap[dateStr]._lastDate=dateStr;
+  // Detecta entregadores com regex global (sem ^ - texto é contínuo)
+  const reEnt=/(\d{3})\s+([A-Z][A-Z\s]+?)\s+(\d{2}\/\d{2}\/\d{2})\s+(\d{2}h\d{2}m)/g;
+  const reTotal=/Total:\s+(\d+)\s+Viagens?\s+(\d+h\d+m)\s+(\d+)\s+(\d+h\d+m)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/gi;
+  const reTotGer=/TOTAL GER[^:]*:\s*(\d+)\s+Viagens?(\d+h\d+m)\s+(\d+)\s+(\d+h\d+m)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/i;
+
+  // Coleta entregadores na ordem em que aparecem
+  const entMap={};
+  const entOrder=[];
+  let m;
+  reEnt.lastIndex=0;
+  while((m=reEnt.exec(fullText))!==null){
+    const cod=m[1];
+    if(!entMap[cod]){
+      const nome=m[2].trim();
+      entMap[cod]={cod:cod,nome:nome,totalViagens:0,totalTempo:'',totalEntregas:0,valorVenda:0,recebimento:0,troco:0};
+      entOrder.push(cod);
     }
+  }
 
-    // Total do entregador
-    const totalEntMatch=line.match(/Total:\s+(\d+)\s+Viagen[s]?\s+(\S+)\s+(\d+)\s+\S+\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/i);
-    if(totalEntMatch){
-      // Aplica ao último dia/entregador detectado
-      const lastDate=Object.keys(diasMap).pop();
-      if(lastDate&&diasMap[lastDate]._lastEnt){
-        const ent=diasMap[lastDate].entregadores[diasMap[lastDate]._lastEnt];
-        if(ent){
-          ent.totalViagens=parseInt(totalEntMatch[1]);
-          ent.totalTempo=totalEntMatch[2];
-          ent.totalEntregas=parseInt(totalEntMatch[3]);
-          ent.valorVenda=pV(totalEntMatch[4]);
-          ent.recebimento=pV(totalEntMatch[5]);
-          ent.troco=pV(totalEntMatch[6]);
-        }
-      }
-    }
+  // Coleta os totais de cada entregador (na mesma ordem)
+  const totais=[];
+  reTotal.lastIndex=0;
+  while((m=reTotal.exec(fullText))!==null){totais.push(m);}
 
-    // Total geral do dia
-    const totalGeral=line.match(/TOTAL GER[^:]*:\s+(\d+)\s+Viagen[s]?\s+(\S+)\s+(\d+)\s+\S+\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/i);
-    if(totalGeral){
-      const lastDate=Object.keys(diasMap).pop();
-      if(lastDate){
-        diasMap[lastDate].totalViagens=parseInt(totalGeral[1]);
-        diasMap[lastDate].totalEntregas=parseInt(totalGeral[3]);
-        diasMap[lastDate].valorVenda=pV(totalGeral[4]);
-        diasMap[lastDate].recebimento=pV(totalGeral[5]);
-        diasMap[lastDate].troco=pV(totalGeral[6]);
-      }
+  // Associa totais aos entregadores pela ordem
+  entOrder.forEach(function(cod,i){
+    if(totais[i]){
+      entMap[cod].totalViagens=parseInt(totais[i][1]);
+      entMap[cod].totalTempo=totais[i][2];
+      entMap[cod].totalEntregas=parseInt(totais[i][3]);
+      entMap[cod].valorVenda=pV(totais[i][5]);
+      entMap[cod].recebimento=pV(totais[i][6]);
+      entMap[cod].troco=pV(totais[i][7]);
     }
   });
 
-  // Salva cada dia encontrado
-  Object.values(diasMap).forEach(function(dia){
-    const entList=Object.values(dia.entregadores).filter(function(e){return e.totalViagens>0;});
-    if(!entList.length)return;
-
-    // Verifica se já existe
-    const idx=entregas.findIndex(function(e){return e.data===dia.dateStr;});
-    if(idx>=0)entregas.splice(idx,1);
-
-    // Recalcula totais se não vieram do TOTAL GER
-    if(!dia.totalViagens){
-      dia.totalViagens=entList.reduce(function(s,e){return s+e.totalViagens;},0);
-      dia.totalEntregas=entList.reduce(function(s,e){return s+e.totalEntregas;},0);
-      dia.valorVenda=entList.reduce(function(s,e){return s+e.valorVenda;},0);
-      dia.recebimento=entList.reduce(function(s,e){return s+e.recebimento;},0);
-      dia.troco=entList.reduce(function(s,e){return s+e.troco;},0);
-    }
-
-    entregas.push({
-      id:Date.now()+totalAdded,
-      data:dia.dateStr,label:dia.label,
-      entregadores:entList,
-      totalViagens:dia.totalViagens,totalEntregas:dia.totalEntregas,
-      valorVenda:dia.valorVenda,recebimento:dia.recebimento,troco:dia.troco
-    });
-    totalAdded++;
-  });
-
-  if(!totalAdded){
+  const entList=entOrder.map(function(cod){return entMap[cod];}).filter(function(e){return e.totalViagens>0;});
+  if(!entList.length){
     showToast('Nenhum dado encontrado. Verifique se é o relatório correto.','yellow');
     return;
   }
 
+  // Total geral
+  let totVg=0,totEnt=0,totVal=0,totRec=0,totTr=0;
+  const tgm=reTotGer.exec(fullText);
+  if(tgm){
+    totVg=parseInt(tgm[1]);totEnt=parseInt(tgm[3]);
+    totVal=pV(tgm[5]);totRec=pV(tgm[6]);totTr=pV(tgm[7]);
+  } else {
+    totVg=entList.reduce(function(s,e){return s+e.totalViagens;},0);
+    totEnt=entList.reduce(function(s,e){return s+e.totalEntregas;},0);
+    totVal=entList.reduce(function(s,e){return s+e.valorVenda;},0);
+    totRec=entList.reduce(function(s,e){return s+e.recebimento;},0);
+    totTr=entList.reduce(function(s,e){return s+e.troco;},0);
+  }
+
+  // Remove registro anterior do mesmo período se existir
+  const idx=entregas.findIndex(function(e){return e.data===periodoDate;});
+  if(idx>=0)entregas.splice(idx,1);
+
+  entregas.push({
+    id:Date.now(),
+    data:periodoDate,label:periodoLabel,
+    entregadores:entList,
+    totalViagens:totVg,totalEntregas:totEnt,
+    valorVenda:totVal,recebimento:totRec,troco:totTr
+  });
+  totalAdded++;
+
   saveEntregas(entregas);
   renderEntregas();
+  showToast('✓ Importado: '+entList.length+' entregador(es) · '+totEnt+' entregas · '+fmtCur(totVal),'green');
+}
 
-  const totalEnt=Object.values(diasMap).reduce(function(s,d){return s+d.totalEntregas;},0);
-  const totalVal=Object.values(diasMap).reduce(function(s,d){return s+d.valorVenda;},0);
-  showToast('✓ '+totalAdded+' dia(s) importado(s) · '+totalEnt+' entregas · '+fmtCur(totalVal),'green');
+);
 }
 
 function renderEntregas(){
