@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #76 - corrige JS quebrado: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #77 - corrige JS quebrado: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2513,7 +2513,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   
   <!-- CLIENTES -->
   <div class="section" id="sec-clientes">
-    <div class="sec-title"><span style="font-size:22px">&#128101;</span><div><div style="font-size:18px;font-weight:700">Clientes</div><div style="font-size:13px;color:var(--text2)">Ranking e hist&#243;rico &#8212; PDF Infarma</div></div><div style="margin-left:auto"><button class="btn btn-green" onclick="document.getElementById('clientes-pdf-input').click()">&#128196; Importar PDF Infarma</button></div></div>
+    <div class="sec-title"><span style="font-size:22px">&#128101;</span><div><div style="font-size:18px;font-weight:700">Clientes</div><div style="font-size:13px;color:var(--text2)">Ranking e hist&#243;rico &#8212; PDF Infarma</div></div><div style="margin-left:auto;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center"><button class="btn" onclick="exportarCliCSV()" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)">&#128190; Exportar CSV</button><button class="btn" onclick="abrirMetaMensal()" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)" id="btn-meta-cli">&#127919; Meta</button><button class="btn btn-green" onclick="document.getElementById('clientes-pdf-input').click()">&#128196; Importar PDF Infarma</button></div></div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.75rem;border-bottom:1px solid var(--border);padding-bottom:.5rem">
+      <button id="cli-tab-ranking" onclick="window._cliTab='ranking';renderClientes()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--green);color:#000;font-weight:600">&#128200; Clientes</button>
+      <button id="cli-tab-vendedores" onclick="window._cliTab='vendedores';renderVendedores()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128104;&#8205;&#128188; Vendedores</button>
+    </div>
     <div id="cli-kpis" class="metrics" style="grid-template-columns:repeat(5,1fr)"></div>
     <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
       <input id="cli-busca" type="text" placeholder="Buscar cliente..." oninput="renderClientes()" style="flex:1;min-width:200px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px">
@@ -2531,6 +2535,19 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div id="cli-inativos-vip" style="display:none"></div><div id="cli-ranking"></div>
     <div id="cli-cesta" class="chart-card" style="margin-top:1.25rem;display:none"></div>
     <div id="cli-historico" class="chart-card" style="margin-top:1.25rem;display:none"></div>
+  </div>
+    <div id="cli-vendedores" style="display:none"></div>
+  <!-- MODAL META MENSAL -->
+  <div id="meta-cli-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:var(--surface);border-radius:12px;padding:1.5rem;width:340px;max-width:95vw;border:1px solid var(--border)">
+      <div style="font-size:15px;font-weight:700;margin-bottom:1rem">&#127919; Definir Meta Mensal de Faturamento</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:.5rem">Meta de faturamento (R$):</div>
+      <input id="meta-cli-input" type="number" min="0" step="1000" placeholder="Ex: 80000" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:14px;margin-bottom:1rem">
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn" onclick="document.getElementById('meta-cli-overlay').style.display='none'" style="background:var(--surface2);color:var(--text)">Cancelar</button>
+        <button class="btn btn-green" onclick="salvarMetaCli()">Salvar</button>
+      </div>
+    </div>
   </div>
 <!-- CAIXA DIÁRIO -->
   <div class="section" id="sec-caixa">
@@ -8341,7 +8358,30 @@ if(alertDiv&&meses.length>=2&&mesSel){
     alertDiv.innerHTML=aH;
   }
 }
-// === FIM ALERTA DE RECOMPRA ===var vipDiv=document.getElementById('cli-inativos-vip');if(vipDiv){if(!listaInativos.length){vipDiv.style.display="none";}else{vipDiv.style.display="";var mesAntLabel=meses.length>=2&&mesSel&&meses.indexOf(mesSel)>0?fmt(meses[meses.indexOf(mesSel)-1]):"--";var vipH="<div class='chart-card' style='margin-bottom:1.25rem'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem'><div><div style='font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.04em'>\u26a0\ufe0f "+listaInativos.length+" Clientes para Ligar Esta Semana</div><div style='font-size:11px;color:var(--text2);margin-top:2px'>Compraram em "+mesAntLabel+" mas n\u00e3o compraram em "+fmt(mesSel)+"</div></div></div>";vipH+="<div style='overflow-x:auto'><table style='width:100%;border-collapse:collapse;font-size:12px'><thead><tr style='border-bottom:2px solid var(--border)'><th style='text-align:left;padding:5px 8px;color:var(--text2)'>#</th><th style='text-align:left;padding:5px 8px;color:var(--text2)'>Cliente</th><th style='text-align:left;padding:5px 8px;color:var(--text2)'>Telefone</th><th style='text-align:left;padding:5px 8px;color:var(--text2)'>\u00dalt. Produto</th><th style='text-align:right;padding:5px 8px;color:var(--text2)'>\u00dalt. Compra</th><th style='text-align:center;padding:5px 8px;color:var(--text2)'>Contato</th></tr></thead><tbody>";listaInativos.slice(0,50).forEach(function(c,vi){var tp=(c.topProdutos&&c.topProdutos[0])?c.topProdutos[0].descricao.substring(0,28)+"...":"\u2014";var tel=(c.telefone||"").replace(/\D/g,"");var priNome=c.nome.split(" ")[0];var topDesc=(c.topProdutos&&c.topProdutos[0])?c.topProdutos[0].descricao.split(" ").slice(0,3).join(" "):"medicamento";var waTxt=gerarMsgWhatsApp(priNome,c.topProdutos,'inativo');var waBtn=tel?"<a href='https://wa.me/55"+tel+"?text="+waTxt+"' target='_blank' style='display:inline-block;background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;text-decoration:none'>\uD83D\uDCAC WA</a>":"<span style='font-size:11px;color:var(--text2)'>sem tel.</span>";vipH+="<tr style='border-bottom:1px solid var(--border)'><td style='padding:4px 8px;color:var(--text2);font-weight:700'>"+(vi+1)+"</td><td style='padding:4px 8px;font-weight:600;cursor:pointer;text-decoration:underline dotted' onclick='abrirFichaCliente(event,window._vipList["+vi+"],window._vipLista,window._vipHist,window._vipMesSel)'>"+c.nome+"</td><td style='padding:4px 8px;color:var(--text2)'>"+(c.telefone||"--")+"</td><td style='padding:4px 8px;color:var(--text2);font-size:11px'>"+tp+"</td><td style='padding:4px 8px;text-align:right;color:var(--red);font-weight:700'>"+fmtR(c.valorUltimo)+"</td><td style='padding:4px 8px;text-align:center'>"+waBtn+"</td></tr>";});if(listaInativos.length>50)vipH+="<tr><td colspan='6' style='text-align:center;padding:.5rem;color:var(--text2);font-size:11px'>Mostrando 50 de "+listaInativos.length+"</td></tr>";vipH+="</tbody></table></div></div>";vipDiv.innerHTML=vipH;}}var rank=document.getElementById('cli-ranking');if(!rank)return;if(!lista.length){rank.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text2)">Nenhum cliente encontrado.</div>';return;}rank.innerHTML='<div class="chart-card"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:.75rem">RANKING DE CLIENTES \u2014 '+(mesSel?fmt(mesSel):'TODOS')+'</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px 8px;color:var(--text2)">#</th><th style="text-align:left;padding:6px 8px;color:var(--text2)">Cliente</th><th style="text-align:left;padding:6px 8px;color:var(--text2)">Telefone</th><th style="text-align:left;padding:6px 8px;color:var(--text2)">Top Produto</th><th style="text-align:left;padding:6px 8px;color:var(--text2)">Vendedor</th><th style="text-align:right;padding:6px 8px;color:var(--text2)">Qtde</th><th style="text-align:right;padding:6px 8px;color:var(--text2)">Total</th><th style="text-align:right;padding:6px 8px;color:var(--text2)">%</th><th style="text-align:center;padding:6px 8px;color:var(--text2)">WA</th></tr></thead><tbody>'+lista.slice(0,100).map(function(c,i){var tp=(c.topProdutos&&c.topProdutos[0])?c.topProdutos[0].descricao.substring(0,28)+'...':'\u2014';var pct=totalFat>0?((c.totalValor/totalFat)*100).toFixed(1):'0.0';var medal=i===0?'\uD83E\uDD47':i===1?'\uD83E\uDD48':i===2?'\uD83E\uDD49':'';return'<tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text2);font-weight:700">'+(medal||(i+1))+'</td><td style="padding:5px 8px;font-weight:'+(i<3?'700':'400')+'" style="cursor:pointer;text-decoration:underline dotted" onclick="abrirFichaCliente(event,c,lista,hist,mesSel)">'+c.nome+'</td><td style="padding:5px 8px;color:var(--text2)">'+c.telefone+'</td><td style="padding:5px 8px;color:var(--text2);font-size:11px">'+tp+'</td><td style="padding:5px 8px;color:var(--text2);font-size:11px">'+c.vendedor+'</td><td style="padding:5px 8px;text-align:right">'+c.totalQtd+'</td><td style="padding:5px 8px;text-align:right;color:var(--green);font-weight:600">'+fmtR(c.totalValor)+'</td><td style="padding:5px 8px;text-align:right;color:var(--text2)">'+(function(){var pN=(c.nome||'').split(' ')[0];var waTxt=gerarMsgWhatsApp(pN,c.topProdutos,'ranking');return c.telefone?'<a href="https://wa.me/55'+c.telefone+'?text='+waTxt+'" target="_blank" style="font-size:18px;text-decoration:none;display:block;text-align:center">💬</a>':'';})()+'</td>'}).join('')+'</tbody></table></div>'+(lista.length>100?'<div style="text-align:center;padding:.5rem;font-size:11px;color:var(--text2)">Mostrando 100 de '+lista.length+' clientes</div>':'')+' </div>';// === ANÁLISE DE CESTA (Passo 6) ===
+// === FIM ALERTA DE RECOMPRA ===var vipDiv=document.getElementById('cli-inativos-vip');if(vipDiv){if(!listaInativos.length){vipDiv.style.display="none";}else{vipDiv.style.display="";var mesAntLabel=meses.length>=2&&mesSel&&meses.indexOf(mesSel)>0?fmt(meses[meses.indexOf(mesSel)-1]):"--";var vipH="<div class='chart-card' style='margin-bottom:1.25rem'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem'><div><div style='font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.04em'>\u26a0\ufe0f "+listaInativos.length+" Clientes para Ligar Esta Semana</div><div style='font-size:11px;color:var(--text2);margin-top:2px'>Compraram em "+mesAntLabel+" mas n\u00e3o comprar
+// Reset tab visual para ranking
+var tR2=document.getElementById('cli-tab-ranking'),tV2=document.getElementById('cli-tab-vendedores');
+if(tR2){tR2.style.background='var(--green)';tR2.style.color='#000';tR2.style.fontWeight='600';}
+if(tV2){tV2.style.background='var(--surface2)';tV2.style.color='var(--text2)';tV2.style.fontWeight='400';}
+var vDiv2=document.getElementById('cli-vendedores');if(vDiv2)vDiv2.style.display='none';
+var rk2=document.getElementById('cli-ranking');if(rk2)rk2.style.display='';
+var pf2=document.getElementById('cli-perfil-filtros');if(pf2)pf2.style.display='';
+am em "+fmt(mesSel)+"</div></div></div>";vipH+="<div style='overflow-x:auto'><table style='width:100%;border-collapse:collapse;font-size:12px'><thead><tr style='border-bottom:2px solid var(--border)'><th style='text-align:left;padding:5px 8px;color:var(--text2)'>#</th><th style='text-align:left;padding:5px 8px;color:var(--text2)'>Cliente</th><th style='text-align:left;padding:5px 8px;color:var(--text2)'>Telefone</th><th style='text-align:left;padding:5px 8px;color:var(--text2)'>\u00dalt. Produto</th><th style='text-align:right;padding:5px 8px;color:var(--text2)'>\u00dalt. Compra</th><th style='text-align:center;padding:5px 8px;color:var(--text2)'>Contato</th></tr></thead><tbody>";listaInativos.slice(0,50).forEach(function(c,vi){var tp=(c.topProdutos&&c.topProdutos[0])?c.topProdutos[0].descricao.substring(0,28)+"...":"\u2014";var tel=(c.telefone||"").replace(/\D/g,"");var priNome=c.nome.split(" ")[0];var topDesc=(c.topProdutos&&c.topProdutos[0])?c.topProdutos[0].descricao.split(" ").slice(0,3).join(" "):"medicamento";var waTxt=gerarMsgWhatsApp(priNome,c.topProdutos,'inativo');var waBtn=tel?"<a href='https://wa.me/55"+tel+"?text="+waTxt+"' target='_blank' style='display:inline-block;background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;text-decoration:none'>\uD83D\uDCAC WA</a>":"<span style='font-size:11px;color:var(--text2)'>sem tel.</span>";vipH+="<tr style='border-bottom:1px solid var(--border)'><td style='padding:4px 8px;color:var(--text2);font-weight:700'>"+(vi+1)+"</td><td style='padding:4px 8px;font-weight:600;cursor:pointer;text-decoration:underline dotted' onclick='abrirFichaCliente(event,window._vipList["+vi+"],window._vipLista,window._vipHist,window._vipMesSel)'>"+c.nome+"</td><td style='padding:4px 8px;color:var(--text2)'>"+(c.telefone||"--")+"</td><td style='padding:4px 8px;color:var(--text2);font-size:11px'>"+tp+"</td><td style='padding:4px 8px;text-align:right;color:var(--red);font-weight:700'>"+fmtR(c.valorUltimo)+"</td><td style='padding:4px 8px;text-align:center'>"+waBtn+"</td></tr>";});if(listaInativos.length>50)vipH+="<tr><td colspan='6' style='text-align:center;padding:.5rem;color:var(--text2);font-size:11px'>Mostrando 50 de "+listaInativos.length+"</td></tr>";vipH+="</tbody></table></div></div>";vipDiv.innerHTML=vipH;}}var rank=document.getElementById('cli-ranking');if(!rank)return;if(!lista.length){rank.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text2)">Nenhum cliente encontrado.</div>';return;}rank.innerHTML='<div class="chart-card"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:.75rem">RANKING DE CLIENTES \
+// === META MENSAL ===
+var metaCli=parseFloat(localStorage.getItem('msfarma-meta-cli')||0);
+var btnMeta=document.getElementById('btn-meta-cli');
+if(btnMeta){
+  if(metaCli>0){
+    var pctMeta=Math.min(100,(totalFat/metaCli)*100);
+    var corMeta=pctMeta>=100?'var(--green)':pctMeta>=70?'var(--yellow)':'var(--red)';
+    btnMeta.innerHTML='&#127919; Meta: '+pctMeta.toFixed(0)+'%';
+    btnMeta.style.background=corMeta;btnMeta.style.color='#000';btnMeta.style.fontWeight='700';
+  } else {
+    btnMeta.innerHTML='&#127919; Definir Meta';btnMeta.style.background='var(--surface2)';btnMeta.style.color='var(--text)';btnMeta.style.fontWeight='400';
+  }
+}
+// === FIM META MENSAL ===
+u2014 '+(mesSel?fmt(mesSel):'TODOS')+'</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px 8px;color:var(--text2)">#</th><th style="text-align:left;padding:6px 8px;color:var(--text2)">Cliente</th><th style="text-align:left;padding:6px 8px;color:var(--text2)">Telefone</th><th style="text-align:left;padding:6px 8px;color:var(--text2)">Top Produto</th><th style="text-align:left;padding:6px 8px;color:var(--text2)">Vendedor</th><th style="text-align:right;padding:6px 8px;color:var(--text2)">Qtde</th><th style="text-align:right;padding:6px 8px;color:var(--text2)">Total</th><th style="text-align:right;padding:6px 8px;color:var(--text2)">%</th><th style="text-align:center;padding:6px 8px;color:var(--text2)">WA</th></tr></thead><tbody>'+lista.slice(0,100).map(function(c,i){var tp=(c.topProdutos&&c.topProdutos[0])?c.topProdutos[0].descricao.substring(0,28)+'...':'\u2014';var pct=totalFat>0?((c.totalValor/totalFat)*100).toFixed(1):'0.0';var medal=i===0?'\uD83E\uDD47':i===1?'\uD83E\uDD48':i===2?'\uD83E\uDD49':'';return'<tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text2);font-weight:700">'+(medal||(i+1))+'</td><td style="padding:5px 8px;font-weight:'+(i<3?'700':'400')+'" style="cursor:pointer;text-decoration:underline dotted" onclick="abrirFichaCliente(event,c,lista,hist,mesSel)">'+c.nome+'</td><td style="padding:5px 8px;color:var(--text2)">'+c.telefone+'</td><td style="padding:5px 8px;color:var(--text2);font-size:11px">'+tp+'</td><td style="padding:5px 8px;color:var(--text2);font-size:11px">'+c.vendedor+'</td><td style="padding:5px 8px;text-align:right">'+c.totalQtd+'</td><td style="padding:5px 8px;text-align:right;color:var(--green);font-weight:600">'+fmtR(c.totalValor)+'</td><td style="padding:5px 8px;text-align:right;color:var(--text2)">'+(function(){var pN=(c.nome||'').split(' ')[0];var waTxt=gerarMsgWhatsApp(pN,c.topProdutos,'ranking');return c.telefone?'<a href="https://wa.me/55'+c.telefone+'?text='+waTxt+'" target="_blank" style="font-size:18px;text-decoration:none;display:block;text-align:center">💬</a>':'';})()+'</td>'}).join('')+'</tbody></table></div>'+(lista.length>100?'<div style="text-align:center;padding:.5rem;font-size:11px;color:var(--text2)">Mostrando 100 de '+lista.length+' clientes</div>':'')+' </div>';// === ANÁLISE DE CESTA (Passo 6) ===
 var cestaDiv=document.getElementById('cli-cesta');
 if(cestaDiv&&lista.length>0){
   var pares={};
@@ -8378,6 +8418,148 @@ if(cestaDiv&&lista.length>0){
 }
 // === FIM ANÁLISE DE CESTA ===
 var hDiv=document.getElementById('cli-historico');if(hDiv&&meses.length>=2){hDiv.style.display='';var labels=meses.map(fmt);var tF=meses.map(function(m){return hist[m].totalFaturamento||0;});var tC=meses.map(function(m){return hist[m].totalClientes||0;});hDiv.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:1rem">\uD83D\uDCC5 Evolu\u00e7\u00e3o Mensal</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem"><div><div style="font-size:11px;color:var(--text2);margin-bottom:.5rem">FATURAMENTO</div><canvas id="chart-cli-fat" height="120"></canvas></div><div><div style="font-size:11px;color:var(--text2);margin-bottom:.5rem">N\u00ba CLIENTES</div><canvas id="chart-cli-cli" height="120"></canvas></div></div><div style="margin-top:1rem;text-align:right"><button class="btn" style="font-size:11px;background:var(--surface2);color:var(--red)" onclick="apagarHistClientes()">&#128465; Apagar histórico</button></div>';setTimeout(function(){var cF=document.getElementById('chart-cli-fat');if(cF){if(cF._chart)cF._chart.destroy();cF._chart=new Chart(cF,{type:'bar',data:{labels:labels,datasets:[{label:'Fat.',data:tF,backgroundColor:'rgba(52,211,153,0.6)',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:2});}}}},scales:{y:{ticks:{callback:function(v){return'R$ '+v.toLocaleString('pt-BR');}},grid:{color:'rgba(255,255,255,0.05)'}},x:{grid:{display:false}}}}});}var cC=document.getElementById('chart-cli-cli');if(cC){if(cC._chart)cC._chart.destroy();cC._chart=new Chart(cC,{type:'line',data:{labels:labels,datasets:[{label:'Clientes',data:tC,borderColor:'#60a5fa',tension:.3,fill:true,backgroundColor:'rgba(96,165,250,0.1)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.05)'}},x:{grid:{display:false}}}}});}},150);}else if(hDiv)hDiv.style.display='none';}
+function renderVendedores(){
+  var histStr=localStorage.getItem('msfarma-clientes-hist');
+  var hist=histStr?JSON.parse(histStr):{};
+  var dadosStr=localStorage.getItem('msfarma-clientes');
+  if(!dadosStr){alert('Importe primeiro o PDF de Clientes.');return;}
+  var dados=JSON.parse(dadosStr);
+  var clientes=dados.clientes||[];
+  var mN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var fmt=function(m){var p=(m||'').split('-');return(mN[parseInt(p[1])-1]||p[1])+'/'+(p[0]?p[0].slice(2):'');};
+  var mesSel=document.getElementById('cli-mes-sel');
+  var mesSelecionado=mesSel?mesSel.value:'';
+  // Calcular stats por vendedor
+  var vendMap={};
+  clientes.forEach(function(c){
+    var v=c.vendedor||'Sem Vendedor';
+    if(!vendMap[v])vendMap[v]={nome:v,totalFat:0,totalCli:0,topProd:'',topProdVal:0,produtos:{}};
+    vendMap[v].totalFat+=c.totalValor||0;
+    vendMap[v].totalCli++;
+    (c.topProdutos||[]).forEach(function(p){
+      var d=p.descricao||'';
+      vendMap[v].produtos[d]=(vendMap[v].produtos[d]||0)+(p.valor||0);
+    });
+  });
+  // Top produto por vendedor
+  Object.values(vendMap).forEach(function(v){
+    var topP=Object.keys(v.produtos).sort(function(a,b){return v.produtos[b]-v.produtos[a];});
+    v.topProd=topP.length?topP[0].split(' ').slice(0,4).join(' '):'--';
+  });
+  // Calcular inativos por vendedor (clientes do mês anterior que não compraram no atual)
+  var meses=Object.keys(hist).sort();
+  var idxM=mesSelecionado?meses.indexOf(mesSelecionado):-1;
+  if(idxM>0){
+    var mesAnt=meses[idxM-1];
+    var clisMesAnt=(hist[mesAnt]?hist[mesAnt].clientes||[]:[]);
+    var nomesAtual=new Set(clientes.map(function(c){return c.nome;}));
+    clisMesAnt.forEach(function(c){
+      var v=c.vendedor||'Sem Vendedor';
+      if(!nomesAtual.has(c.nome)){
+        if(!vendMap[v])vendMap[v]={nome:v,totalFat:0,totalCli:0,topProd:'--',produtos:{},inativos:0};
+        vendMap[v].inativos=(vendMap[v].inativos||0)+1;
+      }
+    });
+  }
+  var vends=Object.values(vendMap).sort(function(a,b){return b.totalFat-a.totalFat;});
+  var fmtR=function(v){return'R$ '+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2});};
+  var totalGeral=vends.reduce(function(s,v){return s+v.totalFat;},0);
+  // Atualizar sub-tabs visuais
+  var tR=document.getElementById('cli-tab-ranking'),tV=document.getElementById('cli-tab-vendedores');
+  if(tR){tR.style.background='var(--surface2)';tR.style.color='var(--text2)';tR.style.fontWeight='400';}
+  if(tV){tV.style.background='var(--green)';tV.style.color='#000';tV.style.fontWeight='600';}
+  // Esconder ranking, mostrar vendedores
+  var rk=document.getElementById('cli-ranking');if(rk)rk.style.display='none';
+  var pf=document.getElementById('cli-perfil-filtros');if(pf)pf.style.display='none';
+  var al=document.getElementById('cli-alertas');if(al)al.innerHTML='';
+  var vip=document.getElementById('cli-inativos-vip');if(vip)vip.style.display='none';
+  var ce=document.getElementById('cli-cesta');if(ce)ce.style.display='none';
+  // Renderizar painel de vendedores
+  var vDiv=document.getElementById('cli-vendedores');
+  if(!vDiv)return;
+  vDiv.style.display='';
+  var h="<div class='chart-card' style='margin-bottom:1.25rem'>";
+  h+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem'>";
+  h+="<div style='font-size:14px;font-weight:700'>&#128104;&#8205;&#128188; Ranking de Vendedores</div>";
+  h+="<div style='font-size:12px;color:var(--text2)'>"+fmt(mesSelecionado)+" &bull; "+vends.length+" vendedores &bull; "+fmtR(totalGeral)+" total</div></div>";
+  h+="<table style='width:100%;border-collapse:collapse;font-size:13px'><thead><tr style='border-bottom:1px solid var(--border)'>";
+  h+="<th style='padding:6px 8px;text-align:left;color:var(--text2);font-weight:600'>#</th>";
+  h+="<th style='padding:6px 8px;text-align:left;color:var(--text2);font-weight:600'>Vendedor</th>";
+  h+="<th style='padding:6px 8px;text-align:right;color:var(--text2);font-weight:600'>Clientes</th>";
+  h+="<th style='padding:6px 8px;text-align:right;color:var(--text2);font-weight:600'>Inativos</th>";
+  h+="<th style='padding:6px 8px;text-align:left;color:var(--text2);font-weight:600'>Top Produto</th>";
+  h+="<th style='padding:6px 8px;text-align:right;color:var(--text2);font-weight:600'>Faturamento</th>";
+  h+="<th style='padding:6px 8px;text-align:right;color:var(--text2);font-weight:600'>%</th>";
+  h+="</tr></thead><tbody>";
+  h+=vends.map(function(v,i){
+    var pct=totalGeral>0?((v.totalFat/totalGeral)*100).toFixed(1):0;
+    var inatStr=v.inativos>0?'<span style="color:var(--red);font-weight:600">'+v.inativos+'</span>':'<span style="color:var(--text2)">0</span>';
+    return '<tr style="border-top:1px solid var(--border)">'+
+      '<td style="padding:6px 8px;color:var(--text2)">'+(i+1)+'</td>'+
+      '<td style="padding:6px 8px;color:var(--text1);font-weight:600">'+v.nome+'</td>'+
+      '<td style="padding:6px 8px;text-align:right">'+v.totalCli+'</td>'+
+      '<td style="padding:6px 8px;text-align:right">'+inatStr+'</td>'+
+      '<td style="padding:6px 8px;color:var(--text2);font-size:11px">'+v.topProd+'</td>'+
+      '<td style="padding:6px 8px;text-align:right;color:var(--green);font-weight:600">'+fmtR(v.totalFat)+'</td>'+
+      '<td style="padding:6px 8px;text-align:right;color:var(--text2)">'+pct+'%</td>'+
+      '</tr>';
+  }).join('');
+  h+="</tbody></table></div>";
+  vDiv.innerHTML=h;
+}
+
+function exportarCliCSV(){
+  var dadosStr=localStorage.getItem('msfarma-clientes');
+  if(!dadosStr){alert('Nenhum dado de clientes. Importe o PDF primeiro.');return;}
+  var dados=JSON.parse(dadosStr);
+  var lista=dados.clientes||[];
+  // Aplicar filtro de perfil atual
+  var _perfil=window._cliPerfil||'todos';
+  var PERF_CRONICO=['LOSART','METFORM','ATENOL','AMLOD','ENALAPRIL','CAPTOPRIL','SINVAST','ATORVAST','OMEPRAZ','GLIBENCL','CLONAZ','FLUOXET','LEVOTIR','PURAN','CLOPID','ROSUV','HIDROCLO'];
+  var PERF_BEBE=['FRALDA','SORO FISIOL','XPE INF','INFANTIL','BABY','BEBE','NEOPIRIDIN','PARACETAMOL INF'];
+  var PERF_DOMICILIO=['FRALDA GERI','FRALDA ADU','GERIATRIC','PANTS ADU','ABSORVENTE GERI','CATETER','SONDA'];
+  function _tp(c,kws){return(c.topProdutos||[]).some(function(p){var d=(p.descricao||'').toUpperCase();return kws.some(function(k){return d.includes(k);});});}
+  if(_perfil==='cronico')lista=lista.filter(function(c){return _tp(c,PERF_CRONICO);});
+  else if(_perfil==='bebe')lista=lista.filter(function(c){return _tp(c,PERF_BEBE);});
+  else if(_perfil==='domicilio')lista=lista.filter(function(c){return _tp(c,PERF_DOMICILIO);});
+  else if(_perfil==='ocasional')lista=lista.filter(function(c){return!_tp(c,PERF_CRONICO)&&!_tp(c,PERF_BEBE)&&!_tp(c,PERF_DOMICILIO);});
+  var busca=(document.getElementById('cli-busca')||{}).value||'';
+  if(busca){var b=busca.toLowerCase();lista=lista.filter(function(c){return c.nome.toLowerCase().includes(b)||c.telefone.includes(b);});}
+  var header='Codigo,Nome,Telefone,Vendedor,Qtd,Total,Top Produto';
+  var rows=lista.map(function(c){
+    var tp=(c.topProdutos&&c.topProdutos[0])?c.topProdutos[0].descricao:'';
+    return [c.codigo||'','"'+(c.nome||'').replace(/"/g,"'") +'"',c.telefone||'','"'+(c.vendedor||'').replace(/"/g,"'")+'"',c.totalQtd||0,(c.totalValor||0).toFixed(2),'"'+tp.replace(/"/g,"'")+'"'].join(',');
+  });
+  var csv=header+'
+'+rows.join('
+');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='clientes_'+(dados.mes||'export')+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSV exportado: '+lista.length+' clientes','green');
+}
+
+function abrirMetaMensal(){
+  var ov=document.getElementById('meta-cli-overlay');
+  var inp=document.getElementById('meta-cli-input');
+  if(!ov)return;
+  var meta=localStorage.getItem('msfarma-meta-cli')||'';
+  if(inp)inp.value=meta;
+  ov.style.display='flex';
+}
+
+function salvarMetaCli(){
+  var inp=document.getElementById('meta-cli-input');
+  var val=inp?parseFloat(inp.value)||0:0;
+  localStorage.setItem('msfarma-meta-cli',val);
+  document.getElementById('meta-cli-overlay').style.display='none';
+  renderClientes();
+  showToast('Meta salva: R$ '+val.toLocaleString('pt-BR',{minimumFractionDigits:2}),'green');
+}
+
 function importInfarma(file){
   if(!file)return;
   document.getElementById('infarma-input').value='';
