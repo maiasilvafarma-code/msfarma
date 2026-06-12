@@ -295,6 +295,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   <input type="file" id="xml-input" accept=".xml" multiple="" style="display:none" onchange="importXML(this.files)">
   <input type="file" id="infarma-input" accept=".xls,.xlsx,.csv" style="display:none" onchange="importInfarma(this.files[0])">
   <input type="file" id="vendas-input" accept=".xls,.xlsx,.csv" style="display:none" onchange="importVendasItens(this.files[0])">
+  <input type="file" id="curva-abc-pdf-input" accept=".pdf" style="display:none" onchange="importarCurvaAbcPdf(this.files[0])">
+  <input type="file" id="resumo-vendas-pdf-input" accept=".pdf" style="display:none" onchange="importarResumoVendasPdf(this.files[0])">
 </div>
 
 <div class="page">
@@ -317,6 +319,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
           <button class="drop-item" onclick="openImport();closeActions()">⬆️ Importar dados (.json)</button>
           <button class="drop-item" onclick="document.getElementById(&#39;infarma-input&#39;).click();closeActions()"><i class="ti ti-pill" style="font-size:14px;color:#a78bfa"></i> Importar Infarma — Faturamento</button>
           <button class="drop-item" onclick="document.getElementById(&#39;vendas-input&#39;).click();closeActions()"><i class="ti ti-package" style="font-size:14px;color:var(--green)"></i> Importar Vendas por Itens — ABC</button>
+        <button class="act-item" onclick="document.getElementById('curva-abc-pdf-input').click();closeActions()">Importar Curva ABC — PDF Infarma</button>
+        <button class="act-item" onclick="document.getElementById('resumo-vendas-pdf-input').click();closeActions()">Importar Resumo de Vendas — PDF Infarma</button>
           <button class="drop-item" onclick="openXLSXImport();closeActions()"><i class="ti ti-table-import" style="font-size:14px"></i> Importar Excel (.xlsx)</button>
           <button class="drop-item" onclick="document.getElementById(&#39;xml-input&#39;).click();closeActions()"><i class="ti ti-file-code" style="font-size:14px;color:var(--blue)"></i> Importar XML (NF-e)</button>
           <div style="border-top:1px solid var(--border);margin:4px 0"></div>
@@ -7851,6 +7855,277 @@ function importVendasItens(file){
 }
 
 // IMPORTAR INFARMA ───────────────────────────────────
+
+/* ============================================================
+   IMPORTAR CURVA ABC DE VENDAS POR PRODUTO — PDF Infarma
+   Colunas: Pos Código Produto Und ABC ValorVenda ValorAcum %Total %Acum.Valor Qtde QtdAcum %Qtde %Acum.Vol
+   ============================================================ */
+function importarCurvaAbcPdf(file){
+  if(!file)return;
+  showToast('Lendo PDF Curva ABC...','green');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      if(typeof pdfjsLib==='undefined'){showToast('Biblioteca PDF não carregada.','red');return;}
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const loadingTask=pdfjsLib.getDocument({data:e.target.result});
+      loadingTask.promise.then(function(pdf){
+        const pages=[];
+        for(let i=1;i<=pdf.numPages;i++){
+          pages.push(pdf.getPage(i).then(function(page){
+            return page.getTextContent().then(function(tc){
+              // Extrair itens com posição X/Y para reconstruir linhas
+              return tc.items;
+            });
+          }));
+        }
+        Promise.all(pages).then(function(allPageItems){
+          parsearCurvaAbcPdf(allPageItems,file.name);
+        });
+      }).catch(function(err){showToast('Erro ao ler PDF: '+err.message,'red');console.error(err);});
+    }catch(ex){showToast('Erro: '+ex.message,'red');console.error(ex);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parsearCurvaAbcPdf(allPageItems, nomeArquivo){
+  try{
+    const produtos=[];
+    // Regex para linha de produto: Pos(numero) Código(numero) Descricao Und ABC ValorVenda ValorAcum %... %... Qtde QtdAcum %... %...
+    // Formato: numero numero DESCRICAO UND A/B/C numero,numero numero,numero numero,numero% numero,numero% numero numero numero,numero% numero,numero%
+    const reLinha=/^s*(d+)s+(d+)s+(.+?)s+(UND|CX|FR|TB|GR|KG|ML|UN|PAR|EMB|BLS|CPS|AMP|FA|VD|SC|RL|PCT|FRS|FCP|SET|KIT|BIS|BLI|SRT|BISNAG|AUT|CAP|CPN|SRT|COMP|POM|SOL|INJ|XPE|XAR|GEL|CRE|SAB|SRP|ORG|GOM|LIQ|OVU|LOC|DRG|LEN|LIP|SPA|POL|PAS|NAI|COL|ACO|CHR|CGE)s+(A|B|C)s+([d.,]+)s+([d.,]+)s+([d.,]+)%?s+([d.,]+)%?s+([d.,]+)s+([d.,]+)s+([d.,]+)%?s+([d.,]+)%?/;
+    
+    // Reconstruir texto página por página agrupando por linha Y
+    for(const pageItems of allPageItems){
+      // Agrupar itens por Y (arredondado)
+      const byY={};
+      for(const item of pageItems){
+        if(!item.str||!item.str.trim())continue;
+        const y=Math.round(item.transform[5]);
+        if(!byY[y])byY[y]=[];
+        byY[y].push({x:item.transform[4],str:item.str});
+      }
+      // Ordenar por Y decrescente (topo para baixo) e X crescente
+      const ys=Object.keys(byY).map(Number).sort((a,b)=>b-a);
+      for(const y of ys){
+        const items=byY[y].sort((a,b)=>a.x-b.x);
+        const linha=items.map(i=>i.str).join(' ').replace(/s+/g,' ').trim();
+        // Testar se é linha de produto (começa com número)
+        if(!/^d+s+d+/.test(linha))continue;
+        // Extrair campos via split de espaços
+        const partes=linha.split(/s+/);
+        if(partes.length<8)continue;
+        const pos=parseInt(partes[0]);
+        const codigo=partes[1];
+        // Identificar a classe ABC (A, B ou C) e a unidade
+        // Procurar índice da classe ABC
+        let idxAbc=-1;
+        for(let i=2;i<partes.length;i++){
+          if(/^[ABC]$/.test(partes[i])){idxAbc=i;break;}
+        }
+        if(idxAbc<0||idxAbc<3)continue;
+        // Unidade = partes[idxAbc-1]
+        const und=partes[idxAbc-1];
+        const descricao=partes.slice(2,idxAbc-1).join(' ');
+        const classe=partes[idxAbc];
+        // Valores após a classe
+        const vals=partes.slice(idxAbc+1);
+        if(vals.length<6)continue;
+        const toNum=s=>parseFloat(s.replace(/\./g,'').replace(',','.'));
+        const valorVenda=toNum(vals[0]);
+        const valorAcum=toNum(vals[1]);
+        const pctTotal=toNum(vals[2]);
+        const pctAcumVal=toNum(vals[3]);
+        const qtde=toNum(vals[4]);
+        const qtdAcum=toNum(vals[5]);
+        if(isNaN(valorVenda)||isNaN(qtde)||!descricao)continue;
+        produtos.push({pos,codigo,descricao,und,classe,valorVenda,valorAcum,pctTotal,pctAcumVal,qtde,qtdAcum});
+      }
+    }
+    
+    if(produtos.length===0){
+      showToast('Nenhum produto encontrado no PDF. Verifique o formato.','red');
+      return;
+    }
+    
+    // Calcular totais para montar estrutura do sistema
+    const totalVal=produtos.reduce((s,p)=>s+p.valorVenda,0);
+    const classeA=produtos.filter(p=>p.classe==='A');
+    const classeB=produtos.filter(p=>p.classe==='B');
+    const classeC=produtos.filter(p=>p.classe==='C');
+    
+    // Construir objeto no formato esperado pelo sistema
+    const dadosAbc={
+      fonte:'curva-abc-pdf',
+      arquivo:nomeArquivo,
+      importadoEm:new Date().toISOString(),
+      total:parseFloat(totalVal.toFixed(2)),
+      totalProdutos:produtos.length,
+      classeA:classeA.length,
+      classeB:classeB.length,
+      classeC:classeC.length,
+      valorA:parseFloat(classeA.reduce((s,p)=>s+p.valorVenda,0).toFixed(2)),
+      valorB:parseFloat(classeB.reduce((s,p)=>s+p.valorVenda,0).toFixed(2)),
+      valorC:parseFloat(classeC.reduce((s,p)=>s+p.valorVenda,0).toFixed(2)),
+      produtos:produtos
+    };
+    
+    // Detectar período do nome do arquivo
+    const m=nomeArquivo.match(/(\d{2})[._-](\d{2})[._-](\d{4})/);
+    if(m){dadosAbc.periodo=m[0];}
+    
+    // Salvar no localStorage
+    localStorage.setItem('msfarma-abc-dados',JSON.stringify(dadosAbc));
+    
+    showToast('✓ Curva ABC importada! '+produtos.length+' produtos (A:'+classeA.length+', B:'+classeB.length+', C:'+classeC.length+')','green');
+    
+    // Atualizar aba se estiver ativa
+    if(typeof renderProdutos==='function')renderProdutos();
+    
+  }catch(ex){
+    showToast('Erro ao processar PDF: '+ex.message,'red');
+    console.error(ex);
+  }
+}
+
+/* ============================================================
+   IMPORTAR RESUMO DE VENDAS DE PRODUTOS — PDF Infarma
+   Colunas: Código Descrição L Fabricante Entregador LJ Estoque Qtd Vlr.Venda
+   ============================================================ */
+function importarResumoVendasPdf(file){
+  if(!file)return;
+  showToast('Lendo PDF Resumo de Vendas...','green');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      if(typeof pdfjsLib==='undefined'){showToast('Biblioteca PDF não carregada.','red');return;}
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const loadingTask=pdfjsLib.getDocument({data:e.target.result});
+      loadingTask.promise.then(function(pdf){
+        const pages=[];
+        for(let i=1;i<=pdf.numPages;i++){
+          pages.push(pdf.getPage(i).then(function(page){
+            return page.getTextContent().then(function(tc){return tc.items;});
+          }));
+        }
+        Promise.all(pages).then(function(allPageItems){
+          parsearResumoVendasPdf(allPageItems,file.name);
+        });
+      }).catch(function(err){showToast('Erro ao ler PDF: '+err.message,'red');console.error(err);});
+    }catch(ex){showToast('Erro: '+ex.message,'red');console.error(ex);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parsearResumoVendasPdf(allPageItems, nomeArquivo){
+  try{
+    const registros=[];
+    const toNum=s=>s?parseFloat(String(s).replace(/\./g,'').replace(',','.')):0;
+    
+    for(const pageItems of allPageItems){
+      // Agrupar por Y
+      const byY={};
+      for(const item of pageItems){
+        if(!item.str||!item.str.trim())continue;
+        const y=Math.round(item.transform[5]);
+        if(!byY[y])byY[y]=[];
+        byY[y].push({x:item.transform[4],str:item.str});
+      }
+      const ys=Object.keys(byY).map(Number).sort((a,b)=>b-a);
+      for(const y of ys){
+        const items=byY[y].sort((a,b)=>a.x-b.x);
+        const linha=items.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
+        // Linha de produto começa com código numérico
+        if(!/^\d{4,6}\s/.test(linha))continue;
+        const partes=linha.split(/\s+/);
+        if(partes.length<5)continue;
+        const codigo=partes[0];
+        // Últimas partes: LJ Estoque Qtd Vlr.Venda (números)
+        // Buscar a partir do fim os números
+        let fim=partes.length-1;
+        const vlrVenda=toNum(partes[fim--]);
+        const qtd=toNum(partes[fim--]);
+        const estoque=toNum(partes[fim--]);
+        const lj=partes[fim--];
+        // O restante entre código e lj contém: Descricao L Fabricante Entregador
+        // Entregador geralmente tem NOME SOBRENOME (2+ palavras)
+        // Fabricante é 1+ palavras em maiúsculas
+        // L é 1 char (N ou O)
+        const meio=partes.slice(1,fim+1);
+        // L é sempre 1 char N ou O
+        let idxL=-1;
+        for(let i=meio.length-1;i>=0;i--){
+          if(/^[NO]$/.test(meio[i])){idxL=i;break;}
+        }
+        let descricao,lFlag='',fabricante='',entregador='';
+        if(idxL>=0){
+          descricao=meio.slice(0,idxL).join(' ');
+          lFlag=meio[idxL];
+          // Após L: Fabricante Entregador
+          const restante=meio.slice(idxL+1);
+          if(restante.length>=1){fabricante=restante[0];}
+          if(restante.length>=2){entregador=restante.slice(1).join(' ');}
+        }else{
+          descricao=meio.join(' ');
+        }
+        if(!codigo||isNaN(vlrVenda)||vlrVenda===0)continue;
+        registros.push({codigo,descricao,lFlag,fabricante,entregador,lj,estoque,qtd,vlrVenda});
+      }
+    }
+    
+    if(registros.length===0){
+      showToast('Nenhum registro encontrado no PDF.','red');
+      return;
+    }
+    
+    // Agregar por código (pode ter múltiplos entregadores para o mesmo produto)
+    const agrupado={};
+    for(const r of registros){
+      if(!agrupado[r.codigo]){
+        agrupado[r.codigo]={codigo:r.codigo,descricao:r.descricao,fabricante:r.fabricante,qtdTotal:0,vlrTotal:0,entregadores:[]};
+      }
+      agrupado[r.codigo].qtdTotal+=r.qtd;
+      agrupado[r.codigo].vlrTotal+=r.vlrVenda;
+      if(r.entregador&&!agrupado[r.codigo].entregadores.includes(r.entregador)){
+        agrupado[r.codigo].entregadores.push(r.entregador);
+      }
+    }
+    const lista=Object.values(agrupado).sort((a,b)=>b.vlrTotal-a.vlrTotal);
+    const totalGeral=lista.reduce((s,p)=>s+p.vlrTotal,0);
+    
+    const dados={
+      fonte:'resumo-vendas-pdf',
+      arquivo:nomeArquivo,
+      importadoEm:new Date().toISOString(),
+      totalGeral:parseFloat(totalGeral.toFixed(2)),
+      totalRegistros:registros.length,
+      totalProdutos:lista.length,
+      produtos:lista.map(p=>({...p,vlrTotal:parseFloat(p.vlrTotal.toFixed(2))}))
+    };
+    
+    localStorage.setItem('msfarma-resumo-vendas',JSON.stringify(dados));
+    
+    // Também tentar cruzar com ABC existente para enriquecer
+    try{
+      const abcStr=localStorage.getItem('msfarma-abc-dados');
+      if(abcStr){
+        const abc=JSON.parse(abcStr);
+        const abcMap={};
+        if(abc.produtos){abc.produtos.forEach(p=>{abcMap[p.codigo]=p.classe;});}
+        dados.produtos.forEach(p=>{if(abcMap[p.codigo])p.classe=abcMap[p.codigo];});
+        localStorage.setItem('msfarma-resumo-vendas',JSON.stringify(dados));
+      }
+    }catch(e){}
+    
+    showToast('✓ Resumo de Vendas importado! '+lista.length+' produtos únicos | Total: R$ '+totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2}),'green');
+    if(typeof renderProdutos==='function')renderProdutos();
+    
+  }catch(ex){
+    showToast('Erro ao processar PDF: '+ex.message,'red');
+    console.error(ex);
+  }
+}
+
 function importInfarma(file){
   if(!file)return;
   document.getElementById('infarma-input').value='';
