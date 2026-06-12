@@ -2470,6 +2470,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
 
     <!-- Tabela de produtos -->
     <div class="chart-card" id="prod-tabela"></div>
+  <div class="chart-card" id="prod-historico" style="margin-top:1.25rem;display:none"></div>
   </div>
 
   <!-- SAÚDE FINANCEIRA MS FARMA -->
@@ -4529,6 +4530,8 @@ function renderProdutos(){
     }).join('')+'</tbody></table></div>'
     +(lista.length===0?'<div style="text-align:center;padding:2rem;color:var(--text3)">Nenhum produto encontrado.</div>':'')
     +'<div style="font-size:11px;color:var(--text3);margin-top:8px">Mostrando top 100 de 1.515 produtos. Estoque mínimo = 30 dias de venda para Classe A, 15 dias para B/C.</div>';
+
+  if(typeof renderHistoricoAnual==='function')setTimeout(renderHistoricoAnual,50);
 }
 
 
@@ -7975,6 +7978,12 @@ function parsearCurvaAbcPdf(allPageItems, nomeArquivo){
     if(m){dadosAbc.periodo=m[0];}
     
     // Salvar no localStorage
+    // Salvar no historico mensal
+    const _abcMes=dadosAbc.mes||dadosAbc.periodo||(new Date().toISOString().substring(0,7));
+    const _abcHistStr=localStorage.getItem('msfarma-abc-hist');
+    const _abcHist=_abcHistStr?JSON.parse(_abcHistStr):{};
+    _abcHist[_abcMes]=dadosAbc;
+    localStorage.setItem('msfarma-abc-hist',JSON.stringify(_abcHist));
     localStorage.setItem('msfarma-abc-dados',JSON.stringify(dadosAbc));
     
     showToast('✓ Curva ABC importada! '+produtos.length+' produtos (A:'+classeA.length+', B:'+classeB.length+', C:'+classeC.length+')','green');
@@ -8103,6 +8112,12 @@ function parsearResumoVendasPdf(allPageItems, nomeArquivo){
       produtos:lista.map(p=>({...p,vlrTotal:parseFloat(p.vlrTotal.toFixed(2))}))
     };
     
+    // Salvar no historico mensal
+    const _resMes=dados.mes||dados.periodo||(new Date().toISOString().substring(0,7));
+    const _resHistStr=localStorage.getItem('msfarma-resumo-hist');
+    const _resHist=_resHistStr?JSON.parse(_resHistStr):{};
+    _resHist[_resMes]=dados;
+    localStorage.setItem('msfarma-resumo-hist',JSON.stringify(_resHist));
     localStorage.setItem('msfarma-resumo-vendas',JSON.stringify(dados));
     
     // Também tentar cruzar com ABC existente para enriquecer
@@ -8113,6 +8128,9 @@ function parsearResumoVendasPdf(allPageItems, nomeArquivo){
         const abcMap={};
         if(abc.produtos){abc.produtos.forEach(p=>{abcMap[p.codigo]=p.classe;});}
         dados.produtos.forEach(p=>{if(abcMap[p.codigo])p.classe=abcMap[p.codigo];});
+        // Atualizar historico com cruzamento ABC
+        const _rH2str=localStorage.getItem('msfarma-resumo-hist');
+        if(_rH2str){const _rHO=JSON.parse(_rH2str);const _k2=dados.mes||dados.periodo||(new Date().toISOString().substring(0,7));_rHO[_k2]=dados;localStorage.setItem('msfarma-resumo-hist',JSON.stringify(_rHO));}
         localStorage.setItem('msfarma-resumo-vendas',JSON.stringify(dados));
       }
     }catch(e){}
@@ -8124,6 +8142,97 @@ function parsearResumoVendasPdf(allPageItems, nomeArquivo){
     showToast('Erro ao processar PDF: '+ex.message,'red');
     console.error(ex);
   }
+}
+
+
+/* === HISTORICO ANUAL ABC === */
+function renderHistoricoAnual(){
+  var div=document.getElementById('prod-historico');
+  if(!div)return;
+  var histStr=localStorage.getItem('msfarma-abc-hist');
+  if(!histStr){div.style.display='none';return;}
+  var hist;try{hist=JSON.parse(histStr);}catch(e){div.style.display='none';return;}
+  var meses=Object.keys(hist).sort();
+  if(!meses.length){div.style.display='none';return;}
+  div.style.display='';
+  var mN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var fmt=function(m){var p=m.split('-');return(mN[parseInt(p[1])-1]||p[1])+'/'+(p[0]?p[0].slice(2):'');};
+  var labels=meses.map(fmt);
+  var totalVenda=meses.map(function(m){return hist[m].total||0;});
+  var nA=meses.map(function(m){return hist[m].classeA||0;});
+  var nB=meses.map(function(m){return hist[m].classeB||0;});
+  var nC=meses.map(function(m){return hist[m].classeC||0;});
+  var totalProd=meses.map(function(m){return hist[m].totalProdutos||0;});
+  if(!window._histMesSel||!hist[window._histMesSel])window._histMesSel=meses[meses.length-1];
+  var mesSel=window._histMesSel;
+  var dadosSel=hist[mesSel];
+  var top20=(dadosSel.produtos||[]).slice(0,20);
+  var fmtR=function(v){return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});};
+  var html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">'+
+    '<div><div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">📅 Historico Anual — Curva ABC por Mes</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:2px">'+meses.length+' '+(meses.length===1?'mes importado':'meses importados')+'</div></div>'+
+    '<select id="hist-mes-sel" onchange="window._histMesSel=this.value;renderHistoricoAnual()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer">'+
+    meses.map(function(m){return '<option value="'+m+'"'+(m===mesSel?' selected':'')+'>'+fmt(m)+'</option>';}).join('')+
+    '</select></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1.25rem">'+
+    [{label:'Faturamento',val:fmtR(dadosSel.total),cor:'var(--green)'},{label:'Total Produtos',val:(dadosSel.totalProdutos||0)+'',cor:'var(--text)'},{label:'Classe A',val:(dadosSel.classeA||0)+' itens',cor:'var(--red)'},{label:'Classe B',val:(dadosSel.classeB||0)+' itens',cor:'var(--yellow)'},{label:'Classe C',val:(dadosSel.classeC||0)+' itens',cor:'var(--green)'}]
+    .map(function(k){return '<div style="background:var(--surface2);border-radius:10px;padding:.75rem;text-align:center"><div style="font-size:11px;color:var(--text2);margin-bottom:.25rem">'+k.label+'</div><div style="font-size:15px;font-weight:700;color:'+k.cor+'">'+k.val+'</div></div>';}).join('')+
+    '</div>'+
+    '<div style="margin-bottom:1.25rem"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:.5rem">EVOLUCAO MENSAL — FATURAMENTO (R$)</div><canvas id="chart-hist-fat" height="80"></canvas></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">'+
+    '<div><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:.5rem">Nº PRODUTOS/MES</div><canvas id="chart-hist-prod" height="120"></canvas></div>'+
+    '<div><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:.5rem">CLASSES ABC/MES</div><canvas id="chart-hist-classes" height="120"></canvas></div></div>'+
+    '<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:.5rem">TOP 20 PRODUTOS — '+fmt(mesSel)+'</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr style="border-bottom:1px solid var(--border)">'+
+    '<th style="text-align:left;padding:6px 8px;color:var(--text2)">#</th>'+
+    '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Produto</th>'+
+    '<th style="text-align:center;padding:6px 8px;color:var(--text2)">Cls</th>'+
+    '<th style="text-align:right;padding:6px 8px;color:var(--text2)">Qtde</th>'+
+    '<th style="text-align:right;padding:6px 8px;color:var(--text2)">Valor</th>'+
+    '<th style="text-align:right;padding:6px 8px;color:var(--text2)">%</th>'+
+    '</tr></thead><tbody>'+
+    top20.map(function(p,i){
+      var cl=p.classe==='A'?'var(--red)':p.classe==='B'?'var(--yellow)':'var(--green)';
+      var bg=p.classe==='A'?'rgba(248,113,113,0.15)':p.classe==='B'?'rgba(251,191,36,0.15)':'rgba(52,211,153,0.15)';
+      return '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:5px 8px;color:var(--text2)">'+(i+1)+'</td>'+
+        '<td style="padding:5px 8px;font-weight:'+(i<3?'600':'400')+'">'+(p.descricao||p.produto||'')+'</td>'+
+        '<td style="padding:5px 8px;text-align:center"><span style="background:'+bg+';color:'+cl+';padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">'+(p.classe||'?')+'</span></td>'+
+        '<td style="padding:5px 8px;text-align:right">'+(p.qtde||0).toLocaleString('pt-BR')+'</td>'+
+        '<td style="padding:5px 8px;text-align:right;color:var(--green);font-weight:600">'+fmtR(p.valorVenda||0)+'</td>'+
+        '<td style="padding:5px 8px;text-align:right;color:var(--text2)">'+(p.pctTotal||0).toFixed(2)+'%</td>'+
+        '</tr>';
+    }).join('')+
+    '</tbody></table></div>'+
+    '<div style="margin-top:1rem;text-align:right">'+
+    '<button class="btn" style="font-size:12px;background:var(--surface2);color:var(--red)" onclick="apagarMesHistorico()">🗑 Apagar '+fmt(mesSel)+' do historico</button></div>';
+  div.innerHTML=html;
+  setTimeout(function(){
+    var ctxF=document.getElementById('chart-hist-fat');
+    if(ctxF){if(ctxF._chart)ctxF._chart.destroy();ctxF._chart=new Chart(ctxF,{type:'bar',data:{labels:labels,datasets:[{label:'Faturamento',data:totalVenda,backgroundColor:meses.map(function(m){return m===mesSel?'rgba(52,211,153,0.9)':'rgba(52,211,153,0.35)';}),borderColor:meses.map(function(m){return m===mesSel?'#34d399':'rgba(52,211,153,0.5)';}),borderWidth:1,borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return 'R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:2});}}}},scales:{y:{ticks:{callback:function(v){return 'R$ '+v.toLocaleString('pt-BR');}},grid:{color:'rgba(255,255,255,0.05)'}},x:{grid:{display:false}}}}});}
+    var ctxP=document.getElementById('chart-hist-prod');
+    if(ctxP){if(ctxP._chart)ctxP._chart.destroy();ctxP._chart=new Chart(ctxP,{type:'line',data:{labels:labels,datasets:[{label:'Produtos',data:totalProd,borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.1)',tension:.3,fill:true,pointRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.05)'}},x:{grid:{display:false}}}}});}
+    var ctxC=document.getElementById('chart-hist-classes');
+    if(ctxC){if(ctxC._chart)ctxC._chart.destroy();ctxC._chart=new Chart(ctxC,{type:'bar',data:{labels:labels,datasets:[{label:'A',data:nA,backgroundColor:'rgba(248,113,113,0.7)',borderRadius:4},{label:'B',data:nB,backgroundColor:'rgba(251,191,36,0.7)',borderRadius:4},{label:'C',data:nC,backgroundColor:'rgba(52,211,153,0.7)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'rgba(255,255,255,0.05)'}}}}});}
+  },150);
+}
+
+function apagarMesHistorico(){
+  var mesSel=window._histMesSel;
+  if(!mesSel)return;
+  var mN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var p=mesSel.split('-');
+  var label=(mN[parseInt(p[1])-1]||p[1])+'/'+(p[0]?p[0].slice(2):'');
+  if(!confirm('Apagar o mes '+label+' do historico de curva ABC?'))return;
+  var hs=localStorage.getItem('msfarma-abc-hist');
+  if(hs){var h=JSON.parse(hs);delete h[mesSel];localStorage.setItem('msfarma-abc-hist',JSON.stringify(h));}
+  var rs=localStorage.getItem('msfarma-resumo-hist');
+  if(rs){var r=JSON.parse(rs);delete r[mesSel];localStorage.setItem('msfarma-resumo-hist',JSON.stringify(r));}
+  var left=Object.keys(JSON.parse(localStorage.getItem('msfarma-abc-hist')||'{}')).sort();
+  window._histMesSel=left.length?left[left.length-1]:null;
+  renderHistoricoAnual();
+  showToast('Mes '+label+' removido do historico.','yellow');
 }
 
 function importInfarma(file){
