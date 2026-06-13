@@ -8531,9 +8531,7 @@ function exportarCliCSV(){
     var tp=(c.topProdutos&&c.topProdutos[0])?c.topProdutos[0].descricao:'';
     return [c.codigo||'','"'+(c.nome||'').replace(/"/g,"'") +'"',c.telefone||'','"'+(c.vendedor||'').replace(/"/g,"'")+'"',c.totalQtd||0,(c.totalValor||0).toFixed(2),'"'+tp.replace(/"/g,"'")+'"'].join(',');
   });
-  var csv=header+'
-'+rows.join('
-');
+  var csv=header+'\n'+rows.join('\n');
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
