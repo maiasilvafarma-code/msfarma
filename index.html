@@ -9525,4 +9525,110 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
 
 
 <div id="ficha-cli-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:20px" onclick="if(event.target===this)fecharFichaCliente()"><div id="ficha-cli-box" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;max-width:680px;margin:0 auto;overflow:hidden"><div id="ficha-cli-content"></div></div></div>
+
+<script id="supabase-sync">
+(function() {
+  const SUPA_URL = 'https://aydzadpymxkcygquixgv.supabase.co';
+  const SUPA_KEY = 'sb_publishable_VYdgoTKL9nVBIkmAKs2Uhw_NkcPx0e5';
+  
+  const SYNC_KEYS = [
+    'farmacia-fin-v2','farmacia-folha-v3','farmacia-folha-hist-v1',
+    'farmacia-pronampe-v1','farmacia-entregas-v1','farmacia-meta',
+    'msfarma-clientes','msfarma-clientes-hist','farmacia-fornecedores-extra',
+    'farmacia-capital-giro','farmacia-limite-dia','farmacia-abc-produtos',
+    'msfarma-abc-dados','msfarma-abc-hist','msfarma-resumo-hist',
+    'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup',
+    'ms-farma-clean-v5','farmacia-folha-v1'
+  ];
+
+  function setStatus(estado) {
+    const el = document.querySelector('.saved-tag');
+    if(!el) return;
+    if(estado === 'sync') { el.textContent = '\u2601\uFE0F sincronizando...'; el.style.color = '#f59e0b'; }
+    else if(estado === 'ok') { el.textContent = '\u2705 sincronizado'; el.style.color = '#22c55e'; }
+    else if(estado === 'local') { el.textContent = '\uD83D\uDCBE dados salvos localmente'; el.style.color = ''; }
+    else if(estado === 'erro') { el.textContent = '\u26A0\uFE0F erro ao sincronizar'; el.style.color = '#ef4444'; }
+  }
+
+  async function supaUpsert(chave, valor) {
+    try {
+      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({ chave: chave, valor: valor, atualizado_em: new Date().toISOString() })
+      });
+      return resp.ok;
+    } catch(e) { return false; }
+  }
+
+  async function syncParaNuvem() {
+    setStatus('sync');
+    let ok = true;
+    for(const key of SYNC_KEYS) {
+      const val = localStorage.getItem(key);
+      if(val === null) continue;
+      try {
+        const parsed = JSON.parse(val);
+        const result = await supaUpsert(key, parsed);
+        if(!result) ok = false;
+      } catch(e) {
+        const result = await supaUpsert(key, val);
+        if(!result) ok = false;
+      }
+    }
+    setStatus(ok ? 'ok' : 'erro');
+    window._supaLastSync = new Date();
+    return ok;
+  }
+
+  async function carregarDaNuvem() {
+    try {
+      setStatus('sync');
+      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?select=chave,valor', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      });
+      if(!resp.ok) { setStatus('local'); return false; }
+      const rows = await resp.json();
+      if(!rows || rows.length === 0) { setStatus('local'); return false; }
+      let updated = 0;
+      for(const row of rows) {
+        if(!SYNC_KEYS.includes(row.chave)) continue;
+        const valStr = typeof row.valor === 'string' ? row.valor : JSON.stringify(row.valor);
+        localStorage.setItem(row.chave, valStr);
+        updated++;
+      }
+      setStatus('ok');
+      return updated;
+    } catch(e) { setStatus('local'); return false; }
+  }
+
+  const _orig = localStorage.setItem.bind(localStorage);
+  let _timer = null;
+  localStorage.setItem = function(key, value) {
+    _orig(key, value);
+    if(SYNC_KEYS.includes(key)) {
+      clearTimeout(_timer);
+      _timer = setTimeout(function() { syncParaNuvem(); }, 3000);
+    }
+  };
+
+  window.msfarmaSync = { syncParaNuvem: syncParaNuvem, carregarDaNuvem: carregarDaNuvem };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    carregarDaNuvem().then(function(updated) {
+      if(updated > 0) {
+        setTimeout(function() {
+          const activeTab = document.querySelector('.main-tab.active');
+          if(activeTab) { activeTab.click(); }
+        }, 600);
+      }
+    });
+  });
+})();
+</script>
 </body></html>
