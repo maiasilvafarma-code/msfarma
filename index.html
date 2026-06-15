@@ -9560,7 +9560,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates'
         },
-        body: JSON.stringify({ chave: chave, valor: valor, atualizado_em: new Date().toISOString() })
+        body: JSON.stringify({ chave: chave, valor: valor })
       });
       return resp.ok;
     } catch(e) { return false; }
