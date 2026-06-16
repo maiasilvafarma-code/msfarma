@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #84 - Adiciona farmacia-meta-dia ao Supabase SYNC_KEYS: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #85 - Corrige onclick meta diaria (backslash quotes quebravam PIN): faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7661,7 +7661,7 @@ function renderDashboard(){
     +'<div style="background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:1.25rem">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
     +'<div style="font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">🎯 Meta Diária de Vendas</div>'
-    +'<button onclick="(function(){const v=prompt(\'Meta diária (R$):',metaDia);if(v!==null&&!isNaN(parseFloat(v))&&parseFloat(v)>0){localStorage.setItem(\'farmacia-meta-dia\',parseFloat(v));renderDashboard();}})()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;color:var(--text);font-size:.75rem;cursor:pointer">✏️ Editar</button>'
+    +'<button onclick="(function(){const v=prompt('Meta diária (R$):',metaDia);if(v!==null&&!isNaN(parseFloat(v))&&parseFloat(v)>0){localStorage.setItem('farmacia-meta-dia',parseFloat(v));renderDashboard();}})()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;color:var(--text);font-size:.75rem;cursor:pointer">✏️ Editar</button>'
     +'</div>'
     +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">'
     +'<span style="font-size:1.6rem;font-weight:800;color:'+corDia+'">'+fmtCur(recHoje)+'</span>'
