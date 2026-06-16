@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #78 - corrige JS quebrado: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #79 - corrige JS quebrado: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2455,7 +2455,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   <div class="section" id="sec-produtos">
     <div class="sec-title">
       <i class="ti ti-package" style="font-size:20px;color:var(--green)"></i> Curva ABC de Produtos
-      <span style="font-size:12px;color:var(--text3);margin-left:4px">Maio/2026 — 1.515 produtos</span>
+      <span id="prod-periodo" style="font-size:12px;color:var(--text3);margin-left:4px">Maio/2026 — 1.515 produtos</span>
       <div style="margin-left:auto;display:flex;gap:8px">
         <input type="text" id="prod-search" placeholder="🔍 Buscar produto..." oninput="renderProdutos()" style="height:32px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:13px;color:var(--text);outline:none;min-width:220px">
         <select id="prod-classe" onchange="renderProdutos()" style="height:32px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:13px;color:var(--text);outline:none;cursor:pointer">
@@ -4475,6 +4475,7 @@ function renderProdutos(){
   let abc=window._abcDinamico||null;
   if(!abc){try{const s=localStorage.getItem('farmacia-abc-produtos');if(s)abc=JSON.parse(s);}catch(e){}}
   if(!abc)abc=ABC_PRODUTOS;
+  const _pEl=document.getElementById('prod-periodo');if(_pEl){const _tot=(abc.lista||[]).length;_pEl.textContent=(abc.periodo||'Maio/2026')+' — '+_tot.toLocaleString('pt-BR')+' produtos';}
   const classColors={A:'var(--red)',B:'var(--yellow)',C:'var(--green)'};
   const classeBg={A:'var(--red-dim)',B:'var(--yellow-dim)',C:'var(--green-dim)'};
 
@@ -4561,7 +4562,7 @@ function renderProdutos(){
 
   document.getElementById('prod-tabela').innerHTML=
     '<div class="chart-title"><i class="ti ti-list" style="font-size:13px;color:var(--green)"></i> '
-    +(q||cf?'Resultados filtrados':'Top 100 produtos por faturamento — Maio/2026')+'</div>'
+    +(q||cf?'Resultados filtrados':'Top 100 produtos por faturamento — '+(abc.periodo||'Maio/2026'))+'</div>'
     +'<div style="overflow-x:auto"><table class="data-table"><thead><tr>'
     +'<th style="width:40px">#</th>'
     +'<th style="width:40px">Cl.</th>'
