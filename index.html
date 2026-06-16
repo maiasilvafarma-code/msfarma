@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #92 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #93 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7619,11 +7619,9 @@ function importarRelacaoVendasHtml(input){
     try{
       const txt=e.target.result;
       const byDay={};
-      let periodo='';
-      // Detectar periodo no texto bruto (antes de remover tags)
+      let periodoObj={de:'',ate:''};
       const mPer=txt.match(/Per[\u00edi]odo[^\d]*(\d{2}\/\d{2}\/\d{2,4})\s*a\s*(\d{2}\/\d{2}\/\d{2,4})/i);
-      if(mPer)periodo=mPer[1]+' a '+mPer[2];
-      // Processar: se HTML (tem <tr>), split por <tr>; senao split por linha
+      if(mPer)periodoObj={de:mPer[1],ate:mPer[2]};
       let rows;
       if(txt.indexOf('<tr')!==-1){
         rows=txt.split(/<tr[^>]*>/i);
@@ -7634,10 +7632,8 @@ function importarRelacaoVendasHtml(input){
         const linha=row.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
         const mL=linha.match(/(\d{2}\/\d{2}\/\d{4})/);
         if(!mL)continue;
-        // Validar que e data de venda (ano >= 2020)
         const ano=parseInt(mL[1].split('/')[2]);
         if(ano<2020||ano>2099)continue;
-        // Coletar todos valores X,XX que nao sejam percentuais
         const vals=[];
         const reV=/([\d\.]+,\d{2})(?!%)/g;
         let mv;
@@ -7652,12 +7648,12 @@ function importarRelacaoVendasHtml(input){
       }
       const dias=Object.keys(byDay).sort();
       if(dias.length===0){alert('Nenhum dado encontrado. Verifique se o arquivo e a Relacao de Vendas por Periodo do Infarma.');input.value='';return;}
-      const dados={periodo,dias:dias.map(d=>({data:d,total:Math.round(byDay[d]*100)/100})),importado:new Date().toISOString()};
+      const dados={periodo:periodoObj,dias:dias.map(d=>({data:d,total:Math.round(byDay[d]*100)/100})),importado:new Date().toISOString()};
       localStorage.setItem('msfarma-fatur-dia',JSON.stringify(dados));
       input.value='';
       renderDashboard();
       const totalGeral=dias.reduce((s,d)=>s+(byDay[d]||0),0);
-      alert('Importado! '+dias.length+' dias | Total: R$ '+totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2}));
+      alert('Importado! '+dias.length+' dias ('+periodoObj.de+' a '+periodoObj.ate+') | Total: R$ '+totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2}));
     }catch(ex){alert('Erro ao importar: '+ex.message);input.value='';}
   };
   rd.readAsText(file,'windows-1252');
