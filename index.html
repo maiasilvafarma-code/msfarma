@@ -1,5 +1,5 @@
 —é<!DOCTYPE html>
-<!-- Deploy #98 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #99 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9530,6 +9530,16 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     }
     setStatus(ok ? 'ok' : 'erro');
     window._supaLastSync = new Date();
+    if(ok) {
+      clearTimeout(window._retryTimer);
+      window._retryCount = 0;
+    } else {
+      window._retryCount = (window._retryCount || 0) + 1;
+      if(window._retryCount <= 10) {
+        clearTimeout(window._retryTimer);
+        window._retryTimer = setTimeout(function(){ syncParaNuvem(); }, 30000);
+      }
+    }
     return ok;
   }
 
@@ -9560,6 +9570,8 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     _orig(key, value);
     if(SYNC_KEYS.includes(key)) {
       clearTimeout(_timer);
+      clearTimeout(window._retryTimer);
+      window._retryCount = 0;
       _timer = setTimeout(function() { syncParaNuvem(); }, 3000);
     }
   };
