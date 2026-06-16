@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #77 - corrige JS quebrado: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #78 - corrige JS quebrado: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2762,7 +2762,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <div class="sec-title" style="margin:0"><i class="ti ti-chart-bar" style="font-size:18px;color:var(--blue)"></i> Relatório mensal</div>
       <div style="display:flex;gap:8px;align-items:center">
         <select id="rel-month" onchange="renderRelatorio()" style="height:34px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:13px;color:var(--text);outline:none;cursor:pointer;min-width:150px"><option value="2026-09">Set/26</option><option value="2026-08">Ago/26</option><option value="2026-07">Jul/26</option><option value="2026-06">Jun/26</option><option value="2026-05">Mai/26</option><option value="2026-04">Abr/26</option></select>
-        <button class="btn btn-green" onclick="exportCSV()">⬇️ Exportar CSV</button>
+        <label style="font-size:12px;color:var(--text3);align-self:center">De:</label><input type="date" id="rel-ini" onchange="renderRelatorio()" style="height:34px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer"><label style="font-size:12px;color:var(--text3);align-self:center">Até:</label><input type="date" id="rel-fim" onchange="renderRelatorio()" style="height:34px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer"><button class="btn btn-green" onclick="exportCSV()">⬇️ Exportar CSV</button>
       </div>
     </div>
     <div class="metrics" id="rel-metrics"></div>
@@ -3496,13 +3496,17 @@ function initRelMeses(){
   D.boletos.forEach(b=>{if(b.due)months.add(b.due.substring(0,7));});
   D.nf.forEach(n=>{if(n.emi)months.add(n.emi.substring(0,7));});
   sel.innerHTML=[...months].sort().reverse().map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
+  const _prev=sel.value;sel.value=(_prev&&[...months].includes(_prev))?_prev:curMonth();
 }
 function renderRelatorio(){
   const m=document.getElementById('rel-month').value||curMonth();
-  const eM=D.entradas.filter(x=>x.date.startsWith(m));
-  const sM=D.saidas.filter(x=>x.date.startsWith(m));
-  const nfM=D.nf.filter(x=>x.emi.startsWith(m));
-  const bM=D.boletos.filter(b=>b.due.startsWith(m));
+  const _ini=document.getElementById('rel-ini')?.value||'';
+  const _fim=document.getElementById('rel-fim')?.value||'';
+  const _inRange=(d)=>(!_ini&&!_fim)?d.startsWith(m):((!_ini||d>=_ini)&&(!_fim||d<=_fim));
+  const eM=D.entradas.filter(x=>x.date&&_inRange(x.date));
+  const sM=D.saidas.filter(x=>x.date&&_inRange(x.date));
+  const nfM=D.nf.filter(x=>x.emi&&_inRange(x.emi));
+  const bM=D.boletos.filter(b=>b.due&&_inRange(b.due));
   const totalE=eM.reduce((s,x)=>s+x.val,0);
   const totalS=sM.reduce((s,x)=>s+x.val,0);
   const saldo=totalE-totalS;
@@ -3920,9 +3924,12 @@ function parseImportData(raw){
 }
 function exportCSV(){
   const m=document.getElementById('rel-month')?.value||curMonth();
+  const _ini=document.getElementById('rel-ini')?.value||'';
+  const _fim=document.getElementById('rel-fim')?.value||'';
+  const _inRange=(d)=>(!_ini&&!_fim)?d.startsWith(m):((!_ini||d>=_ini)&&(!_fim||d<=_fim));
   let csv='Tipo,Data,Descrição/NF,Fornecedor/Categoria,Valor,Status/Obs\n';
-  D.nf.filter(x=>x.emi.startsWith(m)).forEach(x=>{csv+=`NF,${x.emi},"${x.num}","${x.sup}",${x.val.toFixed(2)},"${statusNF(x)}"\n`;});
-  D.boletos.filter(x=>x.due.startsWith(m)).forEach(x=>{csv+=`Boleto,${x.due},"${x.sup}","${x.cat}",${x.val.toFixed(2)},"${x.paid?'Pago':'Pendente'}"\n`;});
+  D.nf.filter(x=>x.emi&&_inRange(x.emi)).forEach(x=>{csv+=`NF,${x.emi},"${x.num}","${x.sup}",${x.val.toFixed(2)},"${statusNF(x)}"\n`;});
+  D.boletos.filter(x=>x.due&&_inRange(x.due)).forEach(x=>{csv+=`Boleto,${x.due},"${x.sup}","${x.cat}",${x.val.toFixed(2)},"${x.paid?'Pago':'Pendente'}"\n`;});
   D.entradas.filter(x=>x.date.startsWith(m)).forEach(x=>{csv+=`Entrada,${x.date},"${x.desc}","${x.cat}",${x.val.toFixed(2)},"${x.note||''}"\n`;});
   D.saidas.filter(x=>x.date.startsWith(m)).forEach(x=>{csv+=`Saída,${x.date},"${x.desc}","${x.cat}",${x.val.toFixed(2)},"${x.note||''}"\n`;});
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
