@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #94 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #95 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7626,11 +7626,12 @@ function importarRelacaoVendasHtml(input){
       const linhas=txtLimpo.split(/\r?\n/);
       for(const l of linhas){
         const linha=l.replace(/\s+/g,' ').trim();
-        if(!/^\d{4,6}\s/.test(linha))continue;
         const mL=linha.match(/(\d{2}\/\d{2}\/\d{4})/);
         if(!mL)continue;
         const ano=parseInt(mL[1].split('/')[2]);
         if(ano<2020||ano>2099)continue;
+        // Exige horario HH:MM - toda linha de cupom tem hora, rodape nao tem
+        if(!/\d{2}:\d{2}/.test(linha))continue;
         const vals=[];
         const reV=/(\d{1,3}(?:\.\d{3})*,\d{2})(?!%)/g;
         let mv;
@@ -7643,7 +7644,7 @@ function importarRelacaoVendasHtml(input){
         byDay[isoDate]=(byDay[isoDate]||0)+val;
       }
       const dias=Object.keys(byDay).sort();
-      if(dias.length===0){alert('Nenhum dado encontrado. Verifique se o arquivo e a Relacao de Vendas por Periodo do Infarma.');input.value='';return;}
+      if(dias.length===0){alert('Nenhum dado encontrado.');input.value='';return;}
       const dados={periodo:periodoObj,dias:dias.map(d=>({data:d,total:Math.round(byDay[d]*100)/100})),importado:new Date().toISOString()};
       localStorage.setItem('msfarma-fatur-dia',JSON.stringify(dados));
       input.value='';
