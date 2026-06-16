@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #91 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #92 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7617,25 +7617,31 @@ function importarRelacaoVendasHtml(input){
   const rd=new FileReader();
   rd.onload=function(e){
     try{
-      let txt=e.target.result;
-      // Remove tags HTML se o arquivo for HTML (ex: salvo pelo browser)
-      txt=txt.replace(/<[^>]+>/g,' ');
-      // Normaliza espacos multiplos em espaco simples por linha
-      const lines=txt.split(/\r?\n/).map(l=>l.replace(/\s+/g,' ').trim());
+      const txt=e.target.result;
       const byDay={};
       let periodo='';
-      for(const line of lines){
-        if((line.includes('Per')&&line.includes('odo:'))&&!periodo){
-          const mP=line.match(/Per[\u00ed\u0069]odo[:\s]*(\d{2}\/\d{2}\/\d{2,4})\s*a\s*(\d{2}\/\d{2}\/\d{2,4})/i);
-          if(mP)periodo=mP[1]+' a '+mP[2];
-        }
-        const mL=line.match(/(\d{2}\/\d{2}\/\d{4})/);
+      // Detectar periodo no texto bruto (antes de remover tags)
+      const mPer=txt.match(/Per[\u00edi]odo[^\d]*(\d{2}\/\d{2}\/\d{2,4})\s*a\s*(\d{2}\/\d{2}\/\d{2,4})/i);
+      if(mPer)periodo=mPer[1]+' a '+mPer[2];
+      // Processar: se HTML (tem <tr>), split por <tr>; senao split por linha
+      let rows;
+      if(txt.indexOf('<tr')!==-1){
+        rows=txt.split(/<tr[^>]*>/i);
+      } else {
+        rows=txt.split(/\r?\n/);
+      }
+      for(const row of rows){
+        const linha=row.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+        const mL=linha.match(/(\d{2}\/\d{2}\/\d{4})/);
         if(!mL)continue;
-        // Busca todos os valores "numero,2digitos" que NAO sejam seguidos de %
+        // Validar que e data de venda (ano >= 2020)
+        const ano=parseInt(mL[1].split('/')[2]);
+        if(ano<2020||ano>2099)continue;
+        // Coletar todos valores X,XX que nao sejam percentuais
         const vals=[];
         const reV=/([\d\.]+,\d{2})(?!%)/g;
         let mv;
-        while((mv=reV.exec(line))!==null){vals.push(mv[1]);}
+        while((mv=reV.exec(linha))!==null){vals.push(mv[1]);}
         if(!vals.length)continue;
         const valStr=vals[vals.length-1];
         const val=parseFloat(valStr.replace(/\./g,'').replace(',','.'));
