@@ -1,5 +1,5 @@
 —é<!DOCTYPE html>
-<!-- Deploy #99 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #100 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -8039,22 +8039,50 @@ function importarCurvaAbcXls(file){
       const wb=XLSX.read(e.target.result,{type:'array'});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      // Detectar período em qualquer linha das primeiras 10
       let periodoLabel='';
-      const linha3=String(rows[2]?rows[2][0]:'');
-      const mPer=linha3.match(/Per[íi]odo[:\s]*([\d\/]+)\s*a\s*([\d\/]+)/i);
-      if(mPer){
-        const d1=mPer[1].split('/');const d2=mPer[2].split('/');
-        periodoLabel=d1[0]+'/'+d1[1]+'/'+d1[2].substring(2)+' a '+d2[0]+'/'+d2[1]+'/'+d2[2].substring(2);
+      for(let pi=0;pi<Math.min(10,rows.length);pi++){
+        const txt=rows[pi].join(' ');
+        const mPer=txt.match(/Per[íi]odo[:\s]*([\d\/]+)\s*a\s*([\d\/]+)/i);
+        if(mPer){const d1=mPer[1].split('/');const d2=mPer[2].split('/');
+          periodoLabel=d1[0]+'/'+d1[1]+'/'+(d1[2]||'').substring(0,4)+' a '+d2[0]+'/'+d2[1]+'/'+(d2[2]||'').substring(0,4);break;}
       }
+      // Detectar linha de cabeçalho dinamicamente (procura Código ou Produto)
+      let headerRow=-1;
+      let colCod=-1,colNome=-1,colUnd=-1,colClasse=-1,colValor=-1,colQtde=-1,colPos=-1;
+      for(let hi=0;hi<Math.min(20,rows.length);hi++){
+        const r=rows[hi];
+        const txt=r.map(c=>String(c).toLowerCase());
+        const iCod=txt.findIndex(c=>c.includes('código')||c.includes('codigo')||c==='cód'||c==='cod');
+        const iNome=txt.findIndex(c=>c.includes('produto')&&!c.includes('%'));
+        if(iCod>=0&&iNome>=0){
+          headerRow=hi;
+          colPos=txt.findIndex(c=>c==='pos'||c==='#');
+          colCod=iCod;colNome=iNome;
+          colUnd=txt.findIndex(c=>c==='und'||c==='unid'||c.includes('unidade'));
+          colClasse=txt.findIndex(c=>c==='abc'||c==='classe');
+          colValor=txt.findIndex(c=>c.includes('valor')&&(c.includes('venda')||c.includes('vendas')));
+          if(colValor<0)colValor=txt.findIndex(c=>c.includes('valor')&&!c.includes('acum')&&!c.includes('%'));
+          colQtde=txt.findIndex(c=>(c==='qtde'||c==='qtd'||c==='quantidade')&&!c.includes('acum'));
+          break;
+        }
+      }
+      // Fallback: posições fixas originais se não encontrou cabeçalho
+      if(headerRow<0){headerRow=5;colPos=0;colCod=1;colNome=2;colUnd=3;colClasse=4;colValor=5;colQtde=9;}
       const produtos=[];
-      for(let i=6;i<rows.length;i++){
+      for(let i=headerRow+1;i<rows.length;i++){
         const r=rows[i];
-        const cod=String(r[1]||'').trim();const nome=String(r[2]||'').trim();
-        const und=String(r[3]||'').trim();const classe=String(r[4]||'').trim();
-        const valorVenda=parseFloat(String(r[5]||'0').replace(',','.'));
-        const qtde=parseFloat(String(r[9]||'0').replace(',','.'));
-        if(!cod||!nome||isNaN(valorVenda)||valorVenda<=0)continue;
-        produtos.push({pos:parseInt(r[0])||0,codigo:cod,nome:nome,und:und,classe:classe||'C',valorVenda:valorVenda,qtde:qtde});
+        const cod=String(r[colCod]||'').trim();
+        const nome=String(r[colNome]||'').trim();
+        const und=colUnd>=0?String(r[colUnd]||'').trim():'';
+        const classeRaw=colClasse>=0?String(r[colClasse]||'').trim():'';
+        const classe=classeRaw.toUpperCase().replace(/[^ABC]/g,'').substring(0,1)||'C';
+        const valStr=String(r[colValor>=0?colValor:5]||'0').replace(/\./g,'').replace(',','.');
+        const valorVenda=parseFloat(valStr)||0;
+        const qtde=colQtde>=0?parseFloat(String(r[colQtde]||'0').replace(',','.'))||0:0;
+        if(!cod||!nome||valorVenda<=0)continue;
+        if(cod.toLowerCase().includes('total')||nome.toLowerCase().includes('total'))continue;
+        produtos.push({pos:colPos>=0?parseInt(r[colPos])||0:i-headerRow,codigo:cod,nome:nome,und:und,classe:classe||'C',valorVenda:valorVenda,qtde:qtde});
       }
       if(!produtos.length){showToast('Nenhum produto encontrado no XLS','red');return;}
       const totalVal=produtos.reduce((s,p)=>s+p.valorVenda,0);
