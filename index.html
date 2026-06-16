@@ -1,5 +1,5 @@
 —é<!DOCTYPE html>
-<!-- Deploy #101 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #102 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -8094,6 +8094,22 @@ function importarCurvaAbcXls(file){
       const classeA=produtos.filter(p=>p.classe==='A');
       const classeB=produtos.filter(p=>p.classe==='B');
       const classeC=produtos.filter(p=>p.classe==='C');
+      // Gerar top100 no formato padrão do sistema
+      const top100=produtos.slice(0,100).map(function(p){
+        const pct=totalVal>0?parseFloat((p.valorVenda/totalVal*100).toFixed(2)):0;
+        const estoqueMin=p.qtde>0?Math.ceil(p.qtde/30*30):0;
+        return{cod:p.codigo,desc:p.nome,qtd:p.qtde,valor:parseFloat(p.valorVenda.toFixed(2)),pct:pct,classe:p.classe,estoqueMin:estoqueMin,und:p.und};
+      });
+      const sampleB=classeB.slice(0,60).map(function(p){
+        const pct=totalVal>0?parseFloat((p.valorVenda/totalVal*100).toFixed(2)):0;
+        const estoqueMin=p.qtde>0?Math.ceil(p.qtde/30*15):0;
+        return{cod:p.codigo,desc:p.nome,qtd:p.qtde,valor:parseFloat(p.valorVenda.toFixed(2)),pct:pct,classe:p.classe,estoqueMin:estoqueMin,und:p.und};
+      });
+      const sampleC=classeC.slice(0,40).map(function(p){
+        const pct=totalVal>0?parseFloat((p.valorVenda/totalVal*100).toFixed(2)):0;
+        const estoqueMin=p.qtde>0?Math.ceil(p.qtde/30*15):0;
+        return{cod:p.codigo,desc:p.nome,qtd:p.qtde,valor:parseFloat(p.valorVenda.toFixed(2)),pct:pct,classe:p.classe,estoqueMin:estoqueMin,und:p.und};
+      });
       const dadosAbc={
         fonte:'curva-abc-xls',arquivo:file.name,
         importadoEm:new Date().toISOString(),
@@ -8103,6 +8119,7 @@ function importarCurvaAbcXls(file){
         valorA:parseFloat(classeA.reduce((s,p)=>s+p.valorVenda,0).toFixed(2)),
         valorB:parseFloat(classeB.reduce((s,p)=>s+p.valorVenda,0).toFixed(2)),
         valorC:parseFloat(classeC.reduce((s,p)=>s+p.valorVenda,0).toFixed(2)),
+        top100:top100,sampleB:sampleB,sampleC:sampleC,
         produtos:produtos,
         periodo:periodoLabel||file.name.replace(/\.xlsx?$/i,'')
       };
