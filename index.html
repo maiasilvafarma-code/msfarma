@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #86 - Corrige meta diaria: extrai logica para funcao global editMetaDia(): faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #87 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -334,6 +334,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <button class="act-item" onclick="document.getElementById('resumo-vendas-xls-input').click();closeActions()">Importar Resumo de Vendas — XLS Infarma</button>
           <button class="drop-item" onclick="openXLSXImport();closeActions()"><i class="ti ti-table-import" style="font-size:14px"></i> Importar Excel (.xlsx)</button>
           <button class="drop-item" onclick="document.getElementById(&#39;xml-input&#39;).click();closeActions()"><i class="ti ti-file-code" style="font-size:14px;color:var(--blue)"></i> Importar XML (NF-e)</button>
+        <button class="drop-item" onclick="document.getElementById('inp-relacao-vendas-html').click()"><i class="ti ti-chart-bar" style="font-size:14px"></i> Importar Relação de Vendas — HTML</button>
+        <input type="file" id="inp-relacao-vendas-html" accept=".html,.htm" style="display:none" onchange="importarRelacaoVendasHtml(this)">
           <div style="border-top:1px solid var(--border);margin:4px 0"></div>
           <button class="drop-item" onclick="openNewForm();closeActions()"><i class="ti ti-plus" style="font-size:14px;color:var(--green)"></i> Nova NF manual</button>
           <div style="border-top:1px solid var(--border);margin:4px 0"></div>
@@ -7610,6 +7612,37 @@ function hideLoading(sectionId){
 function renderAll(){renderDashboard();renderNF();setTimeout(applyResizableToAllTables,100);renderBoletos();setTimeout(applyResizableToAllTables,100);renderEntradas();setTimeout(applyResizableToAllTables,100);renderSaidas();setTimeout(applyResizableToAllTables,100);initRelMeses();initAnaliseMeses();updateCounts();if(document.getElementById('sec-fornecedores').classList.contains('active'))renderFornecedores();if(document.getElementById('sec-folha').classList.contains('active')){renderFolha();setTimeout(applyResizableToAllTables,200);}if(document.getElementById('sec-cartoes').classList.contains('active'))renderCartoes();if(document.getElementById('sec-estrategia').classList.contains('active'))renderEstrategia();}
 
 // DASHBOARD ──────────────────────────────────────────
+function importarRelacaoVendasHtml(input){
+  const file=input.files[0];if(!file)return;
+  const rd=new FileReader();
+  rd.onload=function(e){
+    const txt=e.target.result;
+    const lines=txt.split(/\r?\n/);
+    const byDay={};
+    let periodo='';
+    for(const line of lines){
+      if(line.includes('Período:')&&!periodo){
+        const m=line.match(/Período:\s*(\d{2}\/\d{2}\/\d{2,4})\s*a\s*(\d{2}\/\d{2}\/\d{2,4})/);
+        if(m)periodo=m[1]+' a '+m[2];
+      }
+      const m=line.match(/(\d{2}\/\d{2}\/\d{4}).+?([\d\.]+,[\d]{2})\s*$/);
+      if(!m)continue;
+      const parts=m[1].split('/');
+      const isoDate=parts[2]+'-'+parts[1]+'-'+parts[0];
+      const val=parseFloat(m[2].replace(/\./g,'').replace(',','.'));
+      if(isNaN(val)||val<=0)continue;
+      byDay[isoDate]=(byDay[isoDate]||0)+val;
+    }
+    const dias=Object.keys(byDay).sort();
+    if(dias.length===0){alert('Nenhum dado encontrado.');input.value='';return;}
+    const dados={periodo,dias:dias.map(d=>({data:d,total:Math.round(byDay[d]*100)/100})),importado:new Date().toISOString()};
+    localStorage.setItem('msfarma-fatur-dia',JSON.stringify(dados));
+    input.value='';
+    renderDashboard();
+    alert('✅ Importado! '+dias.length+' dias carregados.');
+  };
+  rd.readAsText(file,'windows-1252');
+}
 function editMetaDia(){
   const metaDia=parseFloat(localStorage.getItem('farmacia-meta-dia')||'3000');
   const v=prompt('Meta diária de vendas (R$):',metaDia);
@@ -7667,21 +7700,53 @@ function renderDashboard(){
     +'<div class="mcard"><div class="mcard-label">🚨 Em atraso</div><div class="mcard-value '+(bolVenc.length>0?'red':'green')+'">'+bolVenc.length+' boleto(s)'+( bolVenc.length>0?'<div style="font-size:11px;font-weight:400;color:var(--red)">'+fmtCur(bolVenc.reduce((s,b)=>s+b.val,0))+'</div>':'')+'</div></div>'
     +'</div>'
     +'<div style="background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:1.25rem">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
     +'<div style="font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">🎯 Meta Diária de Vendas</div>'
-    +'<button onclick="editMetaDia()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;color:var(--text);font-size:.75rem;cursor:pointer">✏️ Editar</button>'
-    +'</div>'
-    +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">'
-    +'<span style="font-size:1.6rem;font-weight:800;color:'+corDia+'">'+fmtCur(recHoje)+'</span>'
-    +'<span style="font-size:.9rem;color:var(--muted)">de '+fmtCur(metaDia)+' — '+pctDia+'%</span>'
-    +'</div>'
-    +'<div style="background:var(--border);border-radius:99px;height:10px;overflow:hidden">'
-    +'<div style="background:'+corDia+';height:100%;width:'+pctDia+'%;border-radius:99px;transition:width .4s"></div>'
-    +'</div>'
-    +'<div style="margin-top:6px;font-size:.8rem;color:var(--muted)">'
-    +(pctDia>=100?'✅ Meta batida! Parabéns!':pctDia>=80?'🔥 Quase lá! Faltam '+fmtCur(metaDia-recHoje):pctDia>=50?'📈 Na metade — faltam '+fmtCur(metaDia-recHoje):'⚡ Faltam '+fmtCur(metaDia-recHoje)+' para bater a meta')
+    +'<div style="display:flex;gap:6px">'
+    +'<button onclick="editMetaDia()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;color:var(--text);font-size:.75rem;cursor:pointer">✏️ Meta: '+fmtCur(metaDia)+'/dia</button>'
+    +'<button onclick="document.getElementById(\047inp-relacao-vendas-html\047).click()" style="background:var(--green-dim);border:1px solid var(--green-border);border-radius:6px;padding:3px 10px;color:var(--green);font-size:.75rem;cursor:pointer">📥 Importar</button>'
     +'</div>'
     +'</div>'
+    +(function(){
+      const raw=localStorage.getItem('msfarma-fatur-dia');
+      if(!raw)return '<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0">📥 Clique em Importar para carregar a Relação de Vendas por Período do Infarma</div>';
+      const dados=JSON.parse(raw);
+      const dias=dados.dias||[];
+      const total=dias.reduce(function(s,d){return s+d.total;},0);
+      const nd=dias.length;
+      const media=nd>0?total/nd:0;
+      const pctMedia=metaDia>0?Math.min(Math.round(media/metaDia*100),999):0;
+      const corMedia=pctMedia>=100?'#22c55e':pctMedia>=70?'#f59e0b':'#ef4444';
+      let out='<div style="margin-bottom:10px">'
+        +'<div style="display:flex;align-items:baseline;gap:8px">'
+        +'<span style="font-size:1.3rem;font-weight:800;color:'+corMedia+'">'+fmtCur(media)+'/dia</span>'
+        +'<span style="font-size:.82rem;color:var(--muted)">média em '+nd+' dias — meta '+fmtCur(metaDia)+'</span>'
+        +'</div>'
+        +'<div style="background:var(--border);border-radius:99px;height:7px;overflow:hidden;margin-top:5px">'
+        +'<div style="background:'+corMedia+';height:100%;width:'+Math.min(pctMedia,100)+'%;border-radius:99px"></div>'
+        +'</div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:5px;max-height:210px;overflow-y:auto">';
+      for(var i=0;i<dias.length;i++){
+        var d=dias[i];
+        var parts=d.data.split('-');
+        var label=parts[2]+'/'+parts[1];
+        var pct=metaDia>0?Math.min(Math.round(d.total/metaDia*100),999):0;
+        var cor=pct>=100?'#22c55e':pct>=70?'#f59e0b':'#ef4444';
+        var bg=pct>=100?'rgba(34,197,94,.1)':pct>=70?'rgba(245,158,11,.1)':'rgba(239,68,68,.1)';
+        var icon=pct>=100?'✅':pct>=70?'🟡':'🔴';
+        out+='<div style="background:'+bg+';border:1px solid '+cor+'40;border-radius:8px;padding:6px 8px;text-align:center">'
+          +'<div style="font-size:.72rem;color:var(--muted);font-weight:600">'+label+'</div>'
+          +'<div style="font-size:.82rem;font-weight:700;color:'+cor+'">'+fmtCur(d.total)+'</div>'
+          +'<div style="font-size:.65rem;color:var(--muted)">'+icon+' '+pct+'%</div>'
+          +'</div>';
+      }
+      out+='</div>';
+      if(dados.periodo)out+='<div style="font-size:.7rem;color:var(--muted);margin-top:7px;text-align:right">📅 '+dados.periodo+'</div>';
+      return out;
+    })()
+    +'</div>'
++'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem">'
     +'<div class="chart-card"><div class="chart-title"><i class="ti ti-chart-bar" style="font-size:13px;color:var(--green)"></i> Faturamento — 5 meses</div>'
     +'<div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding:0 4px;margin-bottom:8px">'
