@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #93 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #94 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7622,26 +7622,22 @@ function importarRelacaoVendasHtml(input){
       let periodoObj={de:'',ate:''};
       const mPer=txt.match(/Per[\u00edi]odo[^\d]*(\d{2}\/\d{2}\/\d{2,4})\s*a\s*(\d{2}\/\d{2}\/\d{2,4})/i);
       if(mPer)periodoObj={de:mPer[1],ate:mPer[2]};
-      let rows;
-      if(txt.indexOf('<tr')!==-1){
-        rows=txt.split(/<tr[^>]*>/i);
-      } else {
-        rows=txt.split(/\r?\n/);
-      }
-      for(const row of rows){
-        const linha=row.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+      const txtLimpo=txt.replace(/<[^>]+>/g,' ');
+      const linhas=txtLimpo.split(/\r?\n/);
+      for(const l of linhas){
+        const linha=l.replace(/\s+/g,' ').trim();
+        if(!/^\d{4,6}\s/.test(linha))continue;
         const mL=linha.match(/(\d{2}\/\d{2}\/\d{4})/);
         if(!mL)continue;
         const ano=parseInt(mL[1].split('/')[2]);
         if(ano<2020||ano>2099)continue;
         const vals=[];
-        const reV=/([\d\.]+,\d{2})(?!%)/g;
+        const reV=/(\d{1,3}(?:\.\d{3})*,\d{2})(?!%)/g;
         let mv;
         while((mv=reV.exec(linha))!==null){vals.push(mv[1]);}
         if(!vals.length)continue;
-        const valStr=vals[vals.length-1];
-        const val=parseFloat(valStr.replace(/\./g,'').replace(',','.'));
-        if(isNaN(val)||val<=0||val>99999)continue;
+        const val=parseFloat(vals[vals.length-1].replace(/\./g,'').replace(',','.'));
+        if(isNaN(val)||val<=0||val>9999)continue;
         const parts=mL[1].split('/');
         const isoDate=parts[2]+'-'+parts[1]+'-'+parts[0];
         byDay[isoDate]=(byDay[isoDate]||0)+val;
