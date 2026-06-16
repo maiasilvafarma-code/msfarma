@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #87 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #88 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7643,6 +7643,7 @@ function importarRelacaoVendasHtml(input){
   };
   rd.readAsText(file,'windows-1252');
 }
+function setFatView(m){localStorage.setItem('msfarma-fat-view',m);renderDashboard();}
 function editMetaDia(){
   const metaDia=parseFloat(localStorage.getItem('farmacia-meta-dia')||'3000');
   const v=prompt('Meta diária de vendas (R$):',metaDia);
@@ -7707,44 +7708,54 @@ function renderDashboard(){
     +'<button onclick="document.getElementById(\047inp-relacao-vendas-html\047).click()" style="background:var(--green-dim);border:1px solid var(--green-border);border-radius:6px;padding:3px 10px;color:var(--green);font-size:.75rem;cursor:pointer">📥 Importar</button>'
     +'</div>'
     +'</div>'
-    +(function(){
-      const raw=localStorage.getItem('msfarma-fatur-dia');
-      if(!raw)return '<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0">📥 Clique em Importar para carregar a Relação de Vendas por Período do Infarma</div>';
-      const dados=JSON.parse(raw);
-      const dias=dados.dias||[];
-      const total=dias.reduce(function(s,d){return s+d.total;},0);
-      const nd=dias.length;
-      const media=nd>0?total/nd:0;
-      const pctMedia=metaDia>0?Math.min(Math.round(media/metaDia*100),999):0;
-      const corMedia=pctMedia>=100?'#22c55e':pctMedia>=70?'#f59e0b':'#ef4444';
-      let out='<div style="margin-bottom:10px">'
-        +'<div style="display:flex;align-items:baseline;gap:8px">'
-        +'<span style="font-size:1.3rem;font-weight:800;color:'+corMedia+'">'+fmtCur(media)+'/dia</span>'
-        +'<span style="font-size:.82rem;color:var(--muted)">média em '+nd+' dias — meta '+fmtCur(metaDia)+'</span>'
-        +'</div>'
-        +'<div style="background:var(--border);border-radius:99px;height:7px;overflow:hidden;margin-top:5px">'
-        +'<div style="background:'+corMedia+';height:100%;width:'+Math.min(pctMedia,100)+'%;border-radius:99px"></div>'
-        +'</div>'
-        +'</div>'
-        +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:5px;max-height:210px;overflow-y:auto">';
-      for(var i=0;i<dias.length;i++){
-        var d=dias[i];
-        var parts=d.data.split('-');
-        var label=parts[2]+'/'+parts[1];
-        var pct=metaDia>0?Math.min(Math.round(d.total/metaDia*100),999):0;
-        var cor=pct>=100?'#22c55e':pct>=70?'#f59e0b':'#ef4444';
-        var bg=pct>=100?'rgba(34,197,94,.1)':pct>=70?'rgba(245,158,11,.1)':'rgba(239,68,68,.1)';
-        var icon=pct>=100?'✅':pct>=70?'🟡':'🔴';
-        out+='<div style="background:'+bg+';border:1px solid '+cor+'40;border-radius:8px;padding:6px 8px;text-align:center">'
-          +'<div style="font-size:.72rem;color:var(--muted);font-weight:600">'+label+'</div>'
-          +'<div style="font-size:.82rem;font-weight:700;color:'+cor+'">'+fmtCur(d.total)+'</div>'
-          +'<div style="font-size:.65rem;color:var(--muted)">'+icon+' '+pct+'%</div>'
-          +'</div>';
+      +(function(){
+      var raw=localStorage.getItem('msfarma-fatur-dia');
+      if(!raw)return '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:12px 8px">📂 Importe a <b>Relção de Vendas</b> (HTML) para ver o histórico por dia, semana ou mês.</div>';
+      var dados=JSON.parse(raw);
+      if(!dados||!dados.dias||!dados.dias.length)return '';
+      var metaDia=parseFloat(localStorage.getItem('farmacia-meta-dia')||'3000');
+      var vm=localStorage.getItem('msfarma-fat-view')||'dia';
+      var mesesAbr=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      function getWeekKey(d){var dt=new Date(d+'T12:00:00');var day=dt.getDay()||7;dt.setDate(dt.getDate()-day+1);return dt.toISOString().slice(0,10);}
+      function getWeekLabel(wk){var dt=new Date(wk+'T12:00:00');var dt2=new Date(wk+'T12:00:00');dt2.setDate(dt2.getDate()+6);return dt.getDate()+'/'+String(dt.getMonth()+1).padStart(2,'0')+'-'+dt2.getDate()+'/'+String(dt2.getMonth()+1).padStart(2,'0');}
+      function getMonthLabel(mk){var parts=mk.split('-');return mesesAbr[parseInt(parts[1])-1]+'/'+parts[0].slice(2);}
+      var grupos=[];
+      if(vm==='dia'){
+        grupos=dados.dias.map(function(d){return {label:d.data.slice(8,10)+'/'+d.data.slice(5,7),total:d.total,data:d.data};});
+      } else if(vm==='semana'){
+        var wmap={};
+        dados.dias.forEach(function(d){var k=getWeekKey(d.data);if(!wmap[k])wmap[k]={label:getWeekLabel(k),total:0,data:k};wmap[k].total+=d.total;});
+        grupos=Object.values(wmap).sort(function(a,b){return a.data.localeCompare(b.data);});
+      } else {
+        var mmap={};
+        dados.dias.forEach(function(d){var k=d.data.slice(0,7);if(!mmap[k])mmap[k]={label:getMonthLabel(k),total:0,data:k};mmap[k].total+=d.total;});
+        grupos=Object.values(mmap).sort(function(a,b){return a.data.localeCompare(b.data);});
       }
-      out+='</div>';
-      if(dados.periodo)out+='<div style="font-size:.7rem;color:var(--muted);margin-top:7px;text-align:right">📅 '+dados.periodo+'</div>';
-      return out;
-    })()
+      var metaRef=vm==='semana'?metaDia*7:vm==='mes'?metaDia*30:metaDia;
+      var out='<div style="margin-top:2px">';
+      out+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+      out+='<span style="font-size:.72rem;color:var(--text3)">'+dados.periodo.de+' a '+dados.periodo.ate+'</span>';
+      out+='<div style="display:flex;gap:4px">';
+      ['dia','semana','mes'].forEach(function(v){
+        var lbl=v==='dia'?'Dia':v==='semana'?'Semana':'Mês';
+        var active=vm===v;
+        out+='<button data-v="'+v+'" onclick="setFatView(this.dataset.v)" style="padding:2px 9px;font-size:.72rem;border-radius:12px;border:1px solid var(--border);cursor:pointer;background:'+(active?'var(--primary)':'var(--card)')+';color:'+(active?'#fff':'var(--text)')+';font-weight:'+(active?'700':'400')+'">'+lbl+'</button>';
+      });
+      out+='</div></div>';
+      var cols=vm==='dia'?'repeat(auto-fill,minmax(64px,1fr))':'repeat(auto-fill,minmax(88px,1fr))';
+      out+='<div style="display:grid;grid-template-columns:'+cols+';gap:5px">';
+      grupos.forEach(function(g){
+        var p=g.total/metaRef*100;
+        var c=p>=100?'var(--ok)':p>=70?'#e8a000':'var(--danger)';
+        var ico=p>=100?'✅':p>=70?'🟡':'🔴';
+        out+='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 4px;text-align:center">';
+        out+='<div style="font-size:.68rem;color:var(--text3);margin-bottom:1px">'+g.label+'</div>';
+        out+='<div style="font-size:.82rem;font-weight:700;color:'+c+'">'+ico+' R$'+Math.round(g.total).toLocaleString('pt-BR')+'</div>';
+        out+='<div style="font-size:.64rem;color:'+c+'">'+p.toFixed(0)+'%</div>';
+        out+='</div>';
+      });
+      out+='</div></div>';
+      return out;    })()
     +'</div>'
 +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem">'
@@ -9472,7 +9483,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     'msfarma-clientes','msfarma-clientes-hist','farmacia-fornecedores-extra',
     'farmacia-capital-giro','farmacia-limite-dia','farmacia-abc-produtos',
     'msfarma-abc-dados','msfarma-abc-hist','msfarma-resumo-hist',
-    'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup',
+    'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup','msfarma-fatur-dia',
     'ms-farma-clean-v5','farmacia-folha-v1'
   ];
 
