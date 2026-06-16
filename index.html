@@ -1,5 +1,5 @@
 —é<!DOCTYPE html>
-<!-- Deploy #100 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #101 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -8047,42 +8047,47 @@ function importarCurvaAbcXls(file){
         if(mPer){const d1=mPer[1].split('/');const d2=mPer[2].split('/');
           periodoLabel=d1[0]+'/'+d1[1]+'/'+(d1[2]||'').substring(0,4)+' a '+d2[0]+'/'+d2[1]+'/'+(d2[2]||'').substring(0,4);break;}
       }
-      // Detectar linha de cabeçalho dinamicamente (procura Código ou Produto)
+      // Detectar linha de cabeçalho dinamicamente (procura Código e Produto)
       let headerRow=-1;
-      let colCod=-1,colNome=-1,colUnd=-1,colClasse=-1,colValor=-1,colQtde=-1,colPos=-1;
+      let colPos=0,colCod=1,colNome=2,colUnd=3,colClasse=4,colValor=5,colAcumPct=7,colQtde=9;
       for(let hi=0;hi<Math.min(20,rows.length);hi++){
         const r=rows[hi];
-        const txt=r.map(c=>String(c).toLowerCase());
-        const iCod=txt.findIndex(c=>c.includes('código')||c.includes('codigo')||c==='cód'||c==='cod');
-        const iNome=txt.findIndex(c=>c.includes('produto')&&!c.includes('%'));
+        const txt=r.map(c=>String(c).toLowerCase().trim());
+        const iCod=txt.findIndex(c=>c==='código'||c==='codigo'||c==='cód'||c==='cod');
+        const iNome=txt.findIndex(c=>c==='produto');
         if(iCod>=0&&iNome>=0){
           headerRow=hi;
-          colPos=txt.findIndex(c=>c==='pos'||c==='#');
+          const iPos=txt.findIndex(c=>c==='pos');if(iPos>=0)colPos=iPos;
           colCod=iCod;colNome=iNome;
-          colUnd=txt.findIndex(c=>c==='und'||c==='unid'||c.includes('unidade'));
-          colClasse=txt.findIndex(c=>c==='abc'||c==='classe');
-          colValor=txt.findIndex(c=>c.includes('valor')&&(c.includes('venda')||c.includes('vendas')));
-          if(colValor<0)colValor=txt.findIndex(c=>c.includes('valor')&&!c.includes('acum')&&!c.includes('%'));
-          colQtde=txt.findIndex(c=>(c==='qtde'||c==='qtd'||c==='quantidade')&&!c.includes('acum'));
+          const iUnd=txt.findIndex(c=>c==='und'||c==='unid');if(iUnd>=0)colUnd=iUnd;
+          const iAbc=txt.findIndex(c=>c==='abc');if(iAbc>=0)colClasse=iAbc;
+          const iVal=txt.findIndex(c=>c.startsWith('valor')&&!c.includes('acum'));if(iVal>=0)colValor=iVal;
+          const iAcum=txt.findIndex(c=>c.includes('%')&&c.includes('acum')&&(c.includes('valor')||c.includes('total')));if(iAcum>=0)colAcumPct=iAcum;
+          else{const iAcum2=txt.findIndex((c,idx)=>c.includes('%acum')&&idx>iVal);if(iAcum2>=0)colAcumPct=iAcum2;}
+          const iQtde=txt.findIndex(c=>c==='qtde'||c==='qtd');if(iQtde>=0)colQtde=iQtde;
           break;
         }
       }
-      // Fallback: posições fixas originais se não encontrou cabeçalho
-      if(headerRow<0){headerRow=5;colPos=0;colCod=1;colNome=2;colUnd=3;colClasse=4;colValor=5;colQtde=9;}
+      if(headerRow<0)headerRow=4;
+      const pN=function(v){return parseFloat(String(v||'0').replace(/\./g,'').replace(',','.'))||0;};
+      const pPct=function(v){return parseFloat(String(v||'0').replace('%','').replace(',','.'))||0;};
       const produtos=[];
       for(let i=headerRow+1;i<rows.length;i++){
         const r=rows[i];
+        const posVal=String(r[colPos]||'').trim();
         const cod=String(r[colCod]||'').trim();
         const nome=String(r[colNome]||'').trim();
-        const und=colUnd>=0?String(r[colUnd]||'').trim():'';
-        const classeRaw=colClasse>=0?String(r[colClasse]||'').trim():'';
-        const classe=classeRaw.toUpperCase().replace(/[^ABC]/g,'').substring(0,1)||'C';
-        const valStr=String(r[colValor>=0?colValor:5]||'0').replace(/\./g,'').replace(',','.');
-        const valorVenda=parseFloat(valStr)||0;
-        const qtde=colQtde>=0?parseFloat(String(r[colQtde]||'0').replace(',','.'))||0:0;
-        if(!cod||!nome||valorVenda<=0)continue;
-        if(cod.toLowerCase().includes('total')||nome.toLowerCase().includes('total'))continue;
-        produtos.push({pos:colPos>=0?parseInt(r[colPos])||0:i-headerRow,codigo:cod,nome:nome,und:und,classe:classe||'C',valorVenda:valorVenda,qtde:qtde});
+        if(!cod||!nome)continue;
+        if(!posVal&&!cod.match(/^\d+$/))continue;
+        if(cod.toLowerCase()==='total'||nome.toLowerCase().includes('total'))continue;
+        const und=String(r[colUnd]||'').trim();
+        const valorVenda=pN(r[colValor]);
+        if(valorVenda<=0)continue;
+        const qtde=pN(r[colQtde]);
+        let classe=String(r[colClasse]||'').trim().toUpperCase().replace(/[^ABC]/g,'').substring(0,1);
+        if(!classe){const pct=pPct(r[colAcumPct]);classe=pct<=80?'A':pct<=95?'B':'C';}
+        if(!classe)classe='C';
+        produtos.push({pos:parseInt(posVal)||0,codigo:cod,nome:nome,und:und,classe:classe,valorVenda:valorVenda,qtde:qtde});
       }
       if(!produtos.length){showToast('Nenhum produto encontrado no XLS','red');return;}
       const totalVal=produtos.reduce((s,p)=>s+p.valorVenda,0);
