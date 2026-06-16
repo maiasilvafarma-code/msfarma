@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #88 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #91 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7616,30 +7616,43 @@ function importarRelacaoVendasHtml(input){
   const file=input.files[0];if(!file)return;
   const rd=new FileReader();
   rd.onload=function(e){
-    const txt=e.target.result;
-    const lines=txt.split(/\r?\n/);
-    const byDay={};
-    let periodo='';
-    for(const line of lines){
-      if(line.includes('Período:')&&!periodo){
-        const m=line.match(/Período:\s*(\d{2}\/\d{2}\/\d{2,4})\s*a\s*(\d{2}\/\d{2}\/\d{2,4})/);
-        if(m)periodo=m[1]+' a '+m[2];
+    try{
+      let txt=e.target.result;
+      // Remove tags HTML se o arquivo for HTML (ex: salvo pelo browser)
+      txt=txt.replace(/<[^>]+>/g,' ');
+      // Normaliza espacos multiplos em espaco simples por linha
+      const lines=txt.split(/\r?\n/).map(l=>l.replace(/\s+/g,' ').trim());
+      const byDay={};
+      let periodo='';
+      for(const line of lines){
+        if((line.includes('Per')&&line.includes('odo:'))&&!periodo){
+          const mP=line.match(/Per[\u00ed\u0069]odo[:\s]*(\d{2}\/\d{2}\/\d{2,4})\s*a\s*(\d{2}\/\d{2}\/\d{2,4})/i);
+          if(mP)periodo=mP[1]+' a '+mP[2];
+        }
+        const mL=line.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if(!mL)continue;
+        // Busca todos os valores "numero,2digitos" que NAO sejam seguidos de %
+        const vals=[];
+        const reV=/([\d\.]+,\d{2})(?!%)/g;
+        let mv;
+        while((mv=reV.exec(line))!==null){vals.push(mv[1]);}
+        if(!vals.length)continue;
+        const valStr=vals[vals.length-1];
+        const val=parseFloat(valStr.replace(/\./g,'').replace(',','.'));
+        if(isNaN(val)||val<=0||val>99999)continue;
+        const parts=mL[1].split('/');
+        const isoDate=parts[2]+'-'+parts[1]+'-'+parts[0];
+        byDay[isoDate]=(byDay[isoDate]||0)+val;
       }
-      const m=line.match(/(\d{2}\/\d{2}\/\d{4}).+\s([\d\.]+,\d{2})(?!%)\s*$/);
-      if(!m)continue;
-      const parts=m[1].split('/');
-      const isoDate=parts[2]+'-'+parts[1]+'-'+parts[0];
-      const val=parseFloat(m[2].replace(/\./g,'').replace(',','.'));
-      if(isNaN(val)||val<=0)continue;
-      byDay[isoDate]=(byDay[isoDate]||0)+val;
-    }
-    const dias=Object.keys(byDay).sort();
-    if(dias.length===0){alert('Nenhum dado encontrado.');input.value='';return;}
-    const dados={periodo,dias:dias.map(d=>({data:d,total:Math.round(byDay[d]*100)/100})),importado:new Date().toISOString()};
-    localStorage.setItem('msfarma-fatur-dia',JSON.stringify(dados));
-    input.value='';
-    renderDashboard();
-    alert('✅ Importado! '+dias.length+' dias carregados.');
+      const dias=Object.keys(byDay).sort();
+      if(dias.length===0){alert('Nenhum dado encontrado. Verifique se o arquivo e a Relacao de Vendas por Periodo do Infarma.');input.value='';return;}
+      const dados={periodo,dias:dias.map(d=>({data:d,total:Math.round(byDay[d]*100)/100})),importado:new Date().toISOString()};
+      localStorage.setItem('msfarma-fatur-dia',JSON.stringify(dados));
+      input.value='';
+      renderDashboard();
+      const totalGeral=dias.reduce((s,d)=>s+(byDay[d]||0),0);
+      alert('Importado! '+dias.length+' dias | Total: R$ '+totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2}));
+    }catch(ex){alert('Erro ao importar: '+ex.message);input.value='';}
   };
   rd.readAsText(file,'windows-1252');
 }
