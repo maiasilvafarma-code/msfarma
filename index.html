@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #82 - corrige JS quebrado: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #83 - Meta diária de vendas no dashboard: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7638,7 +7638,13 @@ function renderDashboard(){
   ].sort((a,b)=>a.due.localeCompare(b.due));
   const dias=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
   const mesesNome=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-  const hr=hoje.getHours();const saud=hr<12?'Bom dia':hr<18?'Boa tarde':'Boa noite';
+  const hr=hoje.getHours();const pad=n=>String(n).padStart(2,'0');
+  const todayStr=hoje.getFullYear()+'-'+pad(hoje.getMonth()+1)+'-'+pad(hoje.getDate());
+  const recHoje=D.entradas.filter(x=>x.date&&x.date===todayStr).reduce((s,x)=>s+x.val,0);
+  const metaDia=parseFloat(localStorage.getItem('farmacia-meta-dia')||'3000');
+  const pctDia=metaDia>0?Math.min(Math.round(recHoje/metaDia*100),100):0;
+  const corDia=pctDia>=100?'#22c55e':pctDia>=50?'#f59e0b':'#ef4444';
+  const saud=hr<12?'Bom dia':hr<18?'Boa tarde':'Boa noite';
 
   el.innerHTML=
     '<div style="margin-bottom:1.25rem">'
@@ -7651,6 +7657,22 @@ function renderDashboard(){
     +'<div class="mcard"><div class="mcard-label">📊 Saldo</div><div class="mcard-value '+(saldo>=0?'green':'red')+'">'+fmtCur(saldo)+'</div></div>'
     +'<div class="mcard"><div class="mcard-label">📋 Boletos pend.</div><div class="mcard-value yellow">'+fmtCur(totalBolPend)+'<div style="font-size:11px;font-weight:400;color:var(--text3)">'+bolPend.length+' boleto(s)</div></div></div>'
     +'<div class="mcard"><div class="mcard-label">🚨 Em atraso</div><div class="mcard-value '+(bolVenc.length>0?'red':'green')+'">'+bolVenc.length+' boleto(s)'+( bolVenc.length>0?'<div style="font-size:11px;font-weight:400;color:var(--red)">'+fmtCur(bolVenc.reduce((s,b)=>s+b.val,0))+'</div>':'')+'</div></div>'
+    +'</div>'
+    +'<div style="background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:1.25rem">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<div style="font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">🎯 Meta Diária de Vendas</div>'
+    +'<button onclick="(function(){const v=prompt(\'Meta diária (R$):',metaDia);if(v!==null&&!isNaN(parseFloat(v))&&parseFloat(v)>0){localStorage.setItem(\'farmacia-meta-dia\',parseFloat(v));renderDashboard();}})()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;color:var(--text);font-size:.75rem;cursor:pointer">✏️ Editar</button>'
+    +'</div>'
+    +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">'
+    +'<span style="font-size:1.6rem;font-weight:800;color:'+corDia+'">'+fmtCur(recHoje)+'</span>'
+    +'<span style="font-size:.9rem;color:var(--muted)">de '+fmtCur(metaDia)+' — '+pctDia+'%</span>'
+    +'</div>'
+    +'<div style="background:var(--border);border-radius:99px;height:10px;overflow:hidden">'
+    +'<div style="background:'+corDia+';height:100%;width:'+pctDia+'%;border-radius:99px;transition:width .4s"></div>'
+    +'</div>'
+    +'<div style="margin-top:6px;font-size:.8rem;color:var(--muted)">'
+    +(pctDia>=100?'✅ Meta batida! Parabéns!':pctDia>=80?'🔥 Quase lá! Faltam '+fmtCur(metaDia-recHoje):pctDia>=50?'📈 Na metade — faltam '+fmtCur(metaDia-recHoje):'⚡ Faltam '+fmtCur(metaDia-recHoje)+' para bater a meta')
+    +'</div>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem">'
     +'<div class="chart-card"><div class="chart-title"><i class="ti ti-chart-bar" style="font-size:13px;color:var(--green)"></i> Faturamento — 5 meses</div>'
