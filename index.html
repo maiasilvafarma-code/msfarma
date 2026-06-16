@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #85 - Corrige onclick meta diaria (backslash quotes quebravam PIN): faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #86 - Corrige meta diaria: extrai logica para funcao global editMetaDia(): faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -7610,6 +7610,14 @@ function hideLoading(sectionId){
 function renderAll(){renderDashboard();renderNF();setTimeout(applyResizableToAllTables,100);renderBoletos();setTimeout(applyResizableToAllTables,100);renderEntradas();setTimeout(applyResizableToAllTables,100);renderSaidas();setTimeout(applyResizableToAllTables,100);initRelMeses();initAnaliseMeses();updateCounts();if(document.getElementById('sec-fornecedores').classList.contains('active'))renderFornecedores();if(document.getElementById('sec-folha').classList.contains('active')){renderFolha();setTimeout(applyResizableToAllTables,200);}if(document.getElementById('sec-cartoes').classList.contains('active'))renderCartoes();if(document.getElementById('sec-estrategia').classList.contains('active'))renderEstrategia();}
 
 // DASHBOARD ──────────────────────────────────────────
+function editMetaDia(){
+  const metaDia=parseFloat(localStorage.getItem('farmacia-meta-dia')||'3000');
+  const v=prompt('Meta diária de vendas (R$):',metaDia);
+  if(v!==null&&!isNaN(parseFloat(v))&&parseFloat(v)>0){
+    localStorage.setItem('farmacia-meta-dia',parseFloat(v));
+    renderDashboard();
+  }
+}
 function renderDashboard(){
   const el=document.getElementById('dash-content');
   if(!el)return;
@@ -7661,7 +7669,7 @@ function renderDashboard(){
     +'<div style="background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:1.25rem">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
     +'<div style="font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">🎯 Meta Diária de Vendas</div>'
-    +'<button onclick="(function(){const v=prompt('Meta diária (R$):',metaDia);if(v!==null&&!isNaN(parseFloat(v))&&parseFloat(v)>0){localStorage.setItem('farmacia-meta-dia',parseFloat(v));renderDashboard();}})()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;color:var(--text);font-size:.75rem;cursor:pointer">✏️ Editar</button>'
+    +'<button onclick="editMetaDia()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;color:var(--text);font-size:.75rem;cursor:pointer">✏️ Editar</button>'
     +'</div>'
     +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">'
     +'<span style="font-size:1.6rem;font-weight:800;color:'+corDia+'">'+fmtCur(recHoje)+'</span>'
