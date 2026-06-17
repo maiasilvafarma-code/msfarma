@@ -1,5 +1,5 @@
 —é<!DOCTYPE html>
-<!-- Deploy #102 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #103 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -6141,12 +6141,13 @@ function renderCaixa(){
         +'<td style="text-align:right;color:var(--text2)">'+fmtCur(c.outros||0)+'</td>'
         +'<td style="text-align:right;font-weight:700;color:'+sc+'">'+fmtCur(c.saldo)+'</td>'
         +'<td style="font-size:12px;color:var(--text2)">'+( c.obs||'—')+'</td>'
-        +'<td style="text-align:center"><button class="btn-icon del" onclick="delCaixa('+c.id+')" title="Remover">🗑</button></td>'
+        +'<td style="text-align:center;white-space:nowrap"><button class="btn-icon" onclick="editCaixa('+c.id+')" title="Editar" style="margin-right:4px">✏️</button><button class="btn-icon del" onclick="delCaixa('+c.id+')" title="Remover">🗑</button></td>'
         +'</tr>';
     }).join('')
     +'</tbody></table></div>';
 }
 
+function editCaixa(id){var lista=loadCaixa();var c=lista.find(function(x){return x.id===id;});if(!c)return;document.getElementById('modal-area').innerHTML='<div class="modal-overlay" onclick="closeModal(event)"><div class="modal-box" onclick="event.stopPropagation()" style="max-width:560px"><div class="modal-head"><span style="font-size:18px">✏️</span><div style="font-size:15px;font-weight:600">Editar Fechamento — '+fmtDate(c.data)+'</div></div><div class="modal-body"><div class="fg fg-3" style="margin-bottom:10px"><div class="field"><label>Dinheiro (R$)</label><input type="number" id="ec-din" step="0.01" value="'+(c.dinheiro||0)+'"></div><div class="field"><label>Cartao (R$)</label><input type="number" id="ec-cart" step="0.01" value="'+(c.cartao||0)+'"></div><div class="field"><label>Pix (R$)</label><input type="number" id="ec-pix" step="0.01" value="'+(c.pix||0)+'"></div></div><div class="fg fg-4" style="margin-bottom:10px"><div class="field"><label>Entregas (qtd)</label><input type="number" id="ec-ent" step="1" value="'+(c.entrega||0)+'"></div><div class="field"><label>Despesas (R$)</label><input type="number" id="ec-desp" step="0.01" value="'+(c.despesas||0)+'"></div><div class="field"><label>Combustivel (R$)</label><input type="number" id="ec-comb" step="0.01" value="'+(c.combustivel||0)+'"></div><div class="field"><label>Outros (R$)</label><input type="number" id="ec-out" step="0.01" value="'+(c.outros||0)+'"></div></div><div class="field"><label>Observacao</label><input type="text" id="ec-obs" value="'+(c.obs||'')+'"></div></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-green" onclick="salvarEditCaixa('+id+')">✓ Salvar</button></div></div></div>';}function salvarEditCaixa(id){var lista=loadCaixa();var idx=lista.findIndex(function(x){return x.id===id;});if(idx===-1)return;var din=parseFloat(document.getElementById('ec-din').value)||0;var cart=parseFloat(document.getElementById('ec-cart').value)||0;var pix=parseFloat(document.getElementById('ec-pix').value)||0;var ent=parseInt(document.getElementById('ec-ent').value)||0;var desp=parseFloat(document.getElementById('ec-desp').value)||0;var comb=parseFloat(document.getElementById('ec-comb').value)||0;var out=parseFloat(document.getElementById('ec-out').value)||0;var obs=document.getElementById('ec-obs').value.trim();var total=din+cart+pix;var saldo=total-desp-comb-out;lista[idx]=Object.assign(lista[idx],{dinheiro:din,cartao:cart,pix:pix,entrega:ent,despesas:desp,combustivel:comb,outros:out,obs:obs,total:total,saldo:saldo});saveCaixaData(lista);closeModal();renderCaixa();showToast('Fechamento atualizado!','green');}
 function delCaixa(id){
   if(!confirm('Remover fechamento?'))return;
   saveCaixaData(loadCaixa().filter(function(c){return c.id!==id;}));
