@@ -1317,6 +1317,9 @@ body {
           </div>
         </div>
 
+        <!-- Fundo temático discreto da área de produtos -->
+        <div id="enc-fundo-produtos" style="position:absolute;top:226px;left:0;right:0;bottom:90px;z-index:1;pointer-events:none;overflow:hidden;"></div>
+
         <!-- Produtos -->
         <div id="enc-prods-area">
           <div id="enc-vazio">
@@ -1758,6 +1761,7 @@ function aplicarTema(){
   const enc=document.getElementById('encarte');
   document.getElementById('enc-faixa-topo').style.background=grad;
   document.getElementById('enc-faixa-topo').innerHTML=gerarHeaderSVG(k,c,dark,t);
+  document.getElementById('enc-fundo-produtos').innerHTML=gerarFundoSVG(k,c,dark);
   document.getElementById('enc-linha').style.background=c;
   document.getElementById('enc-faixa-base').style.background=rodape;
   document.getElementById('enc-faixa-base').style.color=rodapeTxt;
@@ -1774,7 +1778,140 @@ function aplicarTema(){
   syncTextos();
 }
 
-// ══ HEADERS SVG TEMÁTICOS ══
+// ══ FUNDO TEMÁTICO DISCRETO ══
+function gerarFundoSVG(tema, c, dark){
+  const w=1080, h=1040;
+  const op=0.04; // opacidade bem discreta
+
+  const fundos = {
+    junina: `
+      ${[...Array(8)].map((_,i)=>`
+        <polygon points="${i*140},${h} ${i*140+70},${h-120} ${i*140+140},${h}" fill="${['#F9A825','#BF360C','#1B5E20'][i%3]}" opacity="${op}"/>
+      `).join('')}
+      ${[...Array(20)].map((_,i)=>`
+        <circle cx="${i*55+27}" cy="${i%4*220+110}" r="3" fill="#F9A825" opacity="0.06"/>
+      `).join('')}`,
+
+    copa: `
+      ${[...Array(6)].map((_,i)=>`
+        <circle cx="${i*200+100}" cy="${i%2*400+200}" r="${80+i*20}" fill="none" stroke="#1B5E20" stroke-width="3" opacity="${op}"/>
+        <circle cx="${i*200+100}" cy="${i%2*400+200}" r="${50+i*10}" fill="none" stroke="#FFD600" stroke-width="2" opacity="${op}"/>
+      `).join('')}
+      <text x="750" y="600" font-size="300" opacity="0.03" fill="#1B5E20">⚽</text>`,
+
+    out: `
+      ${[...Array(12)].map((_,i)=>`
+        <path d="M${i*95+47},${i%3*300+50} C${i*95+20},${i%3*300+20} ${i*95+70},${i%3*300+20} ${i*95+47},${i%3*300+50} C${i*95+70},${i%3*300+80} ${i*95+20},${i%3*300+80} ${i*95+47},${i%3*300+50}Z" 
+              fill="#E91E63" opacity="${op}"/>
+      `).join('')}
+      <text x="650" y="600" font-size="400" opacity="0.03" fill="#880E4F">🎀</text>`,
+
+    nov: `
+      ${[...Array(8)].map((_,i)=>`
+        <circle cx="${i*140+70}" cy="${i%3*350+175}" r="${60+i*10}" fill="none" stroke="#0D47A1" stroke-width="4" opacity="${op*1.5}"/>
+      `).join('')}
+      <text x="650" y="620" font-size="380" opacity="0.03" fill="#0D47A1">🔵</text>`,
+
+    natal: `
+      ${[...Array(25)].map((_,i)=>`
+        <circle cx="${Math.sin(i*0.8)*400+540}" cy="${i*42}" r="${4+i%5*3}" fill="#fff" opacity="0.05"/>
+      `).join('')}
+      <text x="600" y="620" font-size="400" opacity="0.03" fill="#1B5E20">🎄</text>
+      ${[...Array(6)].map((_,i)=>`
+        <polygon points="${i*200+100},0 ${i*200+120},60 ${i*200+140},0" fill="#FFD600" opacity="${op}"/>
+      `).join('')}`,
+
+    carnaval: `
+      ${[...Array(40)].map((_,i)=>`
+        <rect x="${i*27+Math.sin(i)*30}" y="${i*26}" width="10" height="18" 
+              fill="${['#E040FB','#FF6D00','#FFD600','#00BCD4','#69F0AE'][i%5]}" 
+              opacity="0.06" transform="rotate(${i*17},${i*27+5},${i*26+9})"/>
+      `).join('')}`,
+
+    pascoa: `
+      ${[100,300,500,700,900,200,400,600,800].map((x,i)=>`
+        <ellipse cx="${x}" cy="${120+i*110}" rx="35" ry="50" 
+                 fill="${['#AB47BC','#F48FB1','#FFD600','#69F0AE','#90CAF9'][i%5]}" opacity="${op}"/>
+      `).join('')}`,
+
+    maes: `
+      ${[...Array(15)].map((_,i)=>`
+        <circle cx="${i*75+37}" cy="${i%4*260+130}" r="${30+i%4*15}" fill="#E91E63" opacity="${op}"/>
+        <circle cx="${i*75+37}" cy="${i%4*260+130}" r="${10+i%3*8}" fill="#FFD600" opacity="${op*1.5}"/>
+      `).join('')}`,
+
+    blackfriday: `
+      ${[...Array(10)].map((_,i)=>`
+        <polygon points="${i*120+60},0 ${i*120+75},200 ${i*120+65},200 ${i*120+85},${h} ${i*120+70},180 ${i*120+80},180" 
+                 fill="#FFD600" opacity="0.05"/>
+      `).join('')}`,
+
+    relampago: `
+      ${[...Array(8)].map((_,i)=>`
+        <polygon points="${i*140+70},0 ${i*140+90},300 ${i*140+110},300 ${i*140+80},${h} ${i*140+100},280 ${i*140+120},280" 
+                 fill="#FFD600" opacity="0.05"/>
+      `).join('')}`,
+
+    liquidacao: `
+      ${[...Array(10)].map((_,i)=>`
+        <path d="M${i*110+55},${h} C${i*110+30},${h-300} ${i*110+70},${h-500} ${i*110+55},${h-700} 
+                 C${i*110+80},${h-500} ${i*110+90},${h-350} ${i*110+75},${h}Z" 
+              fill="#FF1744" opacity="0.04"/>
+      `).join('')}`,
+
+    fechames: `
+      ${[...Array(4)].map((_,i)=>`
+        <circle cx="${i*360+180}" cy="${i%2*500+250}" r="150" fill="none" stroke="${c}" stroke-width="6" opacity="${op}"/>
+        <circle cx="${i*360+180}" cy="${i%2*500+250}" r="100" fill="none" stroke="${dark}" stroke-width="3" opacity="${op}"/>
+        ${[...Array(12)].map((_,j)=>`
+          <line x1="${i*360+180+Math.cos(j*30*Math.PI/180)*85}" y1="${i%2*500+250+Math.sin(j*30*Math.PI/180)*85}"
+                x2="${i*360+180+Math.cos(j*30*Math.PI/180)*100}" y2="${i%2*500+250+Math.sin(j*30*Math.PI/180)*100}"
+                stroke="${dark}" stroke-width="3" opacity="${op*2}"/>
+        `).join('')}
+      `).join('')}`,
+
+    fraldas: `
+      ${[...Array(20)].map((_,i)=>`
+        <circle cx="${i*55+27}" cy="${i%5*210+105}" r="${20+i%4*10}" fill="#F48FB1" opacity="${op}"/>
+      `).join('')}
+      <path d="M0,300 Q540,200 1080,300" stroke="#F48FB1" stroke-width="4" fill="none" opacity="${op*2}"/>
+      <path d="M0,700 Q540,600 1080,700" stroke="#F48FB1" stroke-width="4" fill="none" opacity="${op*2}"/>`,
+
+    jan: `
+      ${[...Array(30)].map((_,i)=>`
+        <circle cx="${i*36+18}" cy="${i%6*175+87}" r="${3+i%4*3}" fill="#90A4AE" opacity="0.06"/>
+      `).join('')}
+      <path d="M0,300 Q270,200 540,300 Q810,400 1080,300" stroke="#90A4AE" stroke-width="3" fill="none" opacity="${op}"/>
+      <path d="M0,700 Q270,600 540,700 Q810,800 1080,700" stroke="#90A4AE" stroke-width="3" fill="none" opacity="${op}"/>`,
+
+    set: `
+      ${[...Array(12)].map((_,i)=>`
+        <path d="M${i*90+45},${h} C${i*90+20},${h-200} ${i*90+70},${h-400} ${i*90+45},${h-600} 
+                 C${i*90+70},${h-400} ${i*90+80},${h-250} ${i*90+65},${h}Z" 
+              fill="#69F0AE" opacity="0.05"/>
+      `).join('')}`,
+
+    verao: `
+      ${[...Array(6)].map((_,i)=>`
+        <circle cx="${i*200+100}" cy="${i%2*500+250}" r="${100+i*20}" fill="none" stroke="#FF6D00" stroke-width="4" opacity="${op}"/>
+      `).join('')}
+      <text x="600" y="650" font-size="400" opacity="0.03" fill="#0288D1">☀️</text>`,
+
+    copa: `
+      ${[...Array(6)].map((_,i)=>`
+        <circle cx="${i*200+100}" cy="${i%2*400+200}" r="${80+i*20}" fill="none" stroke="#1B5E20" stroke-width="3" opacity="${op}"/>
+      `).join('')}`,
+  };
+
+  const fundo = fundos[tema] || `
+    ${[...Array(8)].map((_,i)=>`
+      <circle cx="${i*140+70}" cy="${i%3*350+175}" r="${60+i*10}" fill="${c}" opacity="${op}"/>
+    `).join('')}`;
+
+  return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;">
+    ${fundo}
+  </svg>`;
+}
 function gerarHeaderSVG(tema, c, dark, t){
   const w=1080, h=220;
   const decs = {
