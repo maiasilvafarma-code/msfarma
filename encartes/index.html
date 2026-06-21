@@ -1757,13 +1757,13 @@ function aplicarTema(){
   // Aplicar ao encarte
   const enc=document.getElementById('encarte');
   document.getElementById('enc-faixa-topo').style.background=grad;
+  document.getElementById('enc-faixa-topo').innerHTML=gerarHeaderSVG(k,c,dark,t);
   document.getElementById('enc-linha').style.background=c;
   document.getElementById('enc-faixa-base').style.background=rodape;
   document.getElementById('enc-faixa-base').style.color=rodapeTxt;
   document.querySelectorAll('#enc-faixa-base .enc-contato').forEach(el=>el.style.color=rodapeTxt);
   document.getElementById('enc-rod-txt').style.color=rodapeTxt==='#fff'?'rgba(255,255,255,0.55)':'rgba(0,0,0,0.45)';
 
-  // Cor dos preços e badges
   enc.style.setProperty('--tema-dark', dark);
   document.querySelectorAll('.enc-preco-por .lbl, .enc-preco-por .val').forEach(el=>el.style.color=dark);
   document.querySelectorAll('.enc-card .ci-por').forEach(el=>el.style.color=dark);
@@ -1772,6 +1772,182 @@ function aplicarTema(){
   if(!campEdit){ document.getElementById('inp-camp').value=t.nome; }
   if(!subEdit){ document.getElementById('inp-sub').value=t.sub; }
   syncTextos();
+}
+
+// ══ HEADERS SVG TEMÁTICOS ══
+function gerarHeaderSVG(tema, c, dark, t){
+  const w=1080, h=220;
+  const decs = {
+    // Festa Junina — bandeirinhas
+    junina: `
+      ${[...Array(12)].map((_,i)=>`<rect x="${i*95}" y="0" width="90" height="${20+Math.random()*15}" fill="${['#F9A825','#BF360C','#1B5E20','#fff'][i%4]}" opacity="0.7"/>`).join('')}
+      <polygon points="0,0 540,100 1080,0" fill="rgba(0,0,0,0.1)"/>
+      ${[0,160,320,480,640,800,960].map((x,i)=>`
+        <polygon points="${x},0 ${x+80},0 ${x+40},60" fill="${['#F9A825','#e53935','#1B5E20','#fff','#F9A825','#e53935','#1B5E20'][i]}" opacity="0.9"/>
+        <line x1="${x+40}" y1="0" x2="${x+40}" y2="60" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>
+      `).join('')}
+      <line x1="0" y1="0" x2="1080" y2="0" stroke="#F9A825" stroke-width="3"/>`,
+
+    // Copa do Mundo — gramado e bola
+    copa: `
+      <ellipse cx="900" cy="110" rx="140" ry="140" fill="rgba(255,255,255,0.06)"/>
+      <ellipse cx="900" cy="110" rx="100" ry="100" fill="rgba(255,255,255,0.05)"/>
+      ${[...Array(8)].map((_,i)=>`<circle cx="${120+i*130}" cy="${180+Math.sin(i)*20}" r="${8+i%3*4}" fill="#FFD600" opacity="${0.3+i*0.05}"/>`).join('')}
+      <path d="M800,30 C820,10 860,10 880,30 C860,50 820,50 800,30Z" fill="#fff" opacity="0.15"/>
+      <circle cx="900" cy="110" r="80" fill="none" stroke="#FFD600" stroke-width="3" opacity="0.4"/>
+      <circle cx="900" cy="110" r="50" fill="none" stroke="#FFD600" stroke-width="2" opacity="0.3"/>
+      <text x="860" y="130" font-size="80" opacity="0.25">⚽</text>
+      <rect x="0" y="180" width="1080" height="40" fill="rgba(0,0,0,0.15)"/>
+      ${[...Array(20)].map((_,i)=>`<rect x="${i*54}" y="180" width="27" height="40" fill="rgba(255,255,255,0.03)"/>`).join('')}`,
+
+    // Outubro Rosa — laço e flores
+    out: `
+      <circle cx="950" cy="110" r="160" fill="rgba(255,255,255,0.05)"/>
+      <circle cx="950" cy="110" r="110" fill="rgba(255,255,255,0.05)"/>
+      ${[30,80,130,200,260,320,420,520,620,720,820,920,1020].map((x,i)=>`
+        <circle cx="${x}" cy="${20+i%3*15}" r="${5+i%4*3}" fill="#F48FB1" opacity="${0.2+i%3*0.15}"/>
+      `).join('')}
+      <path d="M900,60 C920,40 960,40 940,70 C960,100 920,100 900,80 C880,100 840,100 860,70 C840,40 880,40 900,60Z" fill="#fff" opacity="0.2"/>
+      <path d="M900,80 L900,160" stroke="#fff" stroke-width="4" opacity="0.2" stroke-linecap="round"/>
+      <text x="840" y="160" font-size="100" opacity="0.15">🎀</text>`,
+
+    // Novembro Azul — fita azul
+    nov: `
+      <circle cx="950" cy="110" r="150" fill="rgba(255,255,255,0.05)"/>
+      ${[...Array(15)].map((_,i)=>`<circle cx="${i*72}" cy="${10+i%4*20}" r="${3+i%3*3}" fill="#90CAF9" opacity="0.25"/>`).join('')}
+      <path d="M900,50 C920,30 960,30 940,60 C960,90 920,90 900,70 C880,90 840,90 860,60 C840,30 880,30 900,50Z" fill="#90CAF9" opacity="0.3"/>
+      <path d="M900,70 L900,160" stroke="#90CAF9" stroke-width="5" opacity="0.3" stroke-linecap="round"/>`,
+
+    // Natal — neve e estrelas
+    natal: `
+      ${[...Array(20)].map((_,i)=>`<circle cx="${i*54+27}" cy="${20+i%5*30}" r="${3+i%4*2}" fill="#fff" opacity="${0.2+i%3*0.1}"/>`).join('')}
+      <text x="820" y="160" font-size="100" opacity="0.2">🎄</text>
+      <text x="180" y="140" font-size="80" opacity="0.15">⭐</text>
+      <polygon points="940,20 960,80 1020,80 970,120 990,180 940,140 890,180 910,120 860,80 920,80" fill="#FFD600" opacity="0.2"/>`,
+
+    // Carnaval — confete
+    carnaval: `
+      ${[...Array(30)].map((_,i)=>`
+        <rect x="${i*36+Math.sin(i)*20}" y="${i%5*40}" width="12" height="20" fill="${['#E040FB','#FF6D00','#FFD600','#00BCD4','#69F0AE'][i%5]}" opacity="0.5" transform="rotate(${i*23},${i*36+6},${i%5*40+10})"/>
+      `).join('')}
+      <text x="820" y="160" font-size="90" opacity="0.2">🎭</text>`,
+
+    // Páscoa — ovos e coelhos
+    pascoa: `
+      ${[100,300,500,700,900].map((x,i)=>`
+        <ellipse cx="${x}" cy="${80+i%3*30}" rx="25" ry="35" fill="${['#AB47BC','#F48FB1','#FFD600','#69F0AE','#90CAF9'][i]}" opacity="0.3"/>
+        <ellipse cx="${x}" cy="${80+i%3*30}" rx="25" ry="35" fill="none" stroke="#fff" stroke-width="2" opacity="0.2"/>
+      `).join('')}
+      <text x="820" y="160" font-size="90" opacity="0.2">🐣</text>`,
+
+    // Dia das Mães — flores
+    maes: `
+      ${[50,200,400,600,800,1000].map((x,i)=>`
+        <circle cx="${x}" cy="${60+i%3*30}" r="30" fill="#F48FB1" opacity="0.15"/>
+        <circle cx="${x}" cy="${60+i%3*30}" r="20" fill="#E91E63" opacity="0.15"/>
+        <circle cx="${x}" cy="${60+i%3*30}" r="10" fill="#FFD600" opacity="0.2"/>
+      `).join('')}
+      <text x="820" y="160" font-size="90" opacity="0.2">💐</text>`,
+
+    // Dia dos Pais — gravata
+    pais: `
+      ${[...Array(10)].map((_,i)=>`<rect x="${i*108}" y="0" width="4" height="220" fill="rgba(255,255,255,0.05)"/>`).join('')}
+      <text x="820" y="160" font-size="90" opacity="0.2">👔</text>
+      <circle cx="200" cy="110" r="80" fill="rgba(255,255,255,0.05)"/>`,
+
+    // Dia das Crianças — balões
+    criancas: `
+      ${[80,200,350,500,650,800,950].map((x,i)=>`
+        <ellipse cx="${x}" cy="${50+i%3*25}" rx="30" ry="40" fill="${['#FF6D00','#E91E63','#FFD600','#69F0AE','#90CAF9','#AB47BC','#FF6D00'][i]}" opacity="0.3"/>
+        <line x1="${x}" y1="${90+i%3*25}" x2="${x+10}" y2="180" stroke="${['#FF6D00','#E91E63','#FFD600','#69F0AE','#90CAF9','#AB47BC','#FF6D00'][i]}" stroke-width="2" opacity="0.3"/>
+      `).join('')}
+      <text x="820" y="160" font-size="90" opacity="0.2">🎈</text>`,
+
+    // Black Friday — raios
+    blackfriday: `
+      ${[100,250,400,600,750,900].map((x,i)=>`
+        <polygon points="${x},0 ${x+20},80 ${x+10},80 ${x+30},220 ${x+10},120 ${x+20},120" fill="#FFD600" opacity="0.15"/>
+      `).join('')}
+      <text x="780" y="160" font-size="90" opacity="0.15">🖤</text>
+      <rect x="0" y="0" width="1080" height="220" fill="rgba(0,0,0,0.3)"/>`,
+
+    // Fecha Mês — relógio
+    fechames: `
+      <circle cx="900" cy="110" r="120" fill="rgba(255,102,0,0.15)"/>
+      <circle cx="900" cy="110" r="90" fill="none" stroke="#FF6D00" stroke-width="4" opacity="0.3"/>
+      ${[...Array(12)].map((_,i)=>`
+        <line x1="${900+Math.cos(i*30*Math.PI/180)*75}" y1="${110+Math.sin(i*30*Math.PI/180)*75}"
+              x2="${900+Math.cos(i*30*Math.PI/180)*85}" y2="${110+Math.sin(i*30*Math.PI/180)*85}"
+              stroke="#FF6D00" stroke-width="3" opacity="0.4"/>
+      `).join('')}
+      <text x="820" y="160" font-size="90" opacity="0.2">⏰</text>`,
+
+    // Menor Preço — moedas
+    menorpreco: `
+      ${[50,150,280,420,560,700,840,980].map((x,i)=>`
+        <circle cx="${x}" cy="${110+Math.sin(i)*30}" r="${20+i%3*8}" fill="#FFD600" opacity="${0.15+i%3*0.05}"/>
+        <circle cx="${x}" cy="${110+Math.sin(i)*30}" r="${14+i%3*6}" fill="none" stroke="#FFD600" stroke-width="2" opacity="0.2"/>
+      `).join('')}
+      <text x="800" y="155" font-size="90" opacity="0.2">🏷️</text>`,
+
+    // Liquidação — chamas
+    liquidacao: `
+      ${[60,180,300,450,600,750,900].map((x,i)=>`
+        <path d="M${x},220 C${x-20},160 ${x+10},120 ${x},80 C${x+30},120 ${x+40},100 ${x+20},220Z" fill="#FF1744" opacity="0.2"/>
+        <path d="M${x+10},220 C${x},180 ${x+20},150 ${x+10},110 C${x+25},150 ${x+30},130 ${x+20},220Z" fill="#FFD600" opacity="0.15"/>
+      `).join('')}
+      <text x="800" y="155" font-size="90" opacity="0.2">🔥</text>`,
+
+    // Oferta Relâmpago
+    relampago: `
+      ${[80,200,350,520,680,840,1000].map((x,i)=>`
+        <polygon points="${x},0 ${x+15},80 ${x+25},80 ${x+10},220 ${x+20},80 ${x+30},80" fill="#FFD600" opacity="0.2"/>
+      `).join('')}
+      <text x="800" y="155" font-size="90" opacity="0.2">⚡</text>`,
+
+    // Fraldas
+    fraldas: `
+      ${[60,200,380,560,740,920].map((x,i)=>`
+        <circle cx="${x}" cy="${60+i%3*30}" r="${25+i%3*10}" fill="#F48FB1" opacity="0.15"/>
+      `).join('')}
+      <text x="800" y="155" font-size="90" opacity="0.2">👶</text>
+      <path d="M0,160 Q540,120 1080,160" stroke="#F48FB1" stroke-width="3" fill="none" opacity="0.3"/>`,
+
+    // Copa subtemas — variações de futebol
+    copacampeaas: `
+      <polygon points="900,20 940,100 1040,100 960,155 990,240 900,185 810,240 840,155 760,100 860,100" fill="#FFD600" opacity="0.2"/>
+      <text x="800" y="155" font-size="90" opacity="0.2">🏆</text>
+      ${[...Array(10)].map((_,i)=>`<circle cx="${i*108+54}" cy="${180+i%2*20}" r="8" fill="#FFD600" opacity="0.25"/>`).join('')}`,
+
+    // Janeiro Branco
+    jan: `
+      ${[...Array(20)].map((_,i)=>`<circle cx="${i*54+27}" cy="${20+i%5*35}" r="${4+i%4*3}" fill="#fff" opacity="0.15"/>`).join('')}
+      <path d="M0,110 Q270,60 540,110 Q810,160 1080,110" stroke="#fff" stroke-width="2" fill="none" opacity="0.2"/>`,
+
+    // Março Mulher
+    mar: `
+      ${[100,300,500,700,900].map((x,i)=>`
+        <circle cx="${x}" cy="${70+i%3*25}" r="40" fill="#E91E63" opacity="0.1"/>
+        <circle cx="${x}" cy="${70+i%3*25}" r="25" fill="#F48FB1" opacity="0.1"/>
+      `).join('')}
+      <text x="800" y="155" font-size="90" opacity="0.2">♀️</text>`,
+
+    // Setembro Verde
+    set: `
+      ${[...Array(15)].map((_,i)=>`
+        <path d="M${i*72+36},${220} C${i*72+10},${150-i%3*20} ${i*72+60},${130-i%3*20} ${i*72+36},${220}" fill="#69F0AE" opacity="0.15"/>
+      `).join('')}
+      <text x="800" y="155" font-size="90" opacity="0.2">💚</text>`,
+  };
+
+  const svgDec = decs[tema] || `
+    <circle cx="900" cy="110" r="150" fill="rgba(255,255,255,0.06)"/>
+    <circle cx="900" cy="110" r="100" fill="rgba(255,255,255,0.04)"/>
+    ${[...Array(10)].map((_,i)=>`<circle cx="${i*108+54}" cy="${20+i%4*40}" r="${5+i%3*4}" fill="rgba(255,255,255,0.15)"/>`).join('')}`;
+
+  return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;pointer-events:none;">
+    ${svgDec}
+  </svg>`;
 }
 
 function escurecer(hex,amt){
