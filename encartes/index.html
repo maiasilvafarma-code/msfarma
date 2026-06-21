@@ -1605,30 +1605,85 @@ let prods=[], fotoAtual=null, logoSrc=null;
 let campEdit=false, subEdit=false;
 let temaAtual='junina';
 
-// ══ MEUS PRODUTOS (localStorage) ══
-function getMeusProdutos(){
-  try { return JSON.parse(localStorage.getItem('msfarma_produtos')||'[]'); } catch(e){ return []; }
+// ══ SUPABASE CONFIG ══
+const SUPA_URL='https://aydzadpymxkcygquixgv.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZHphZHB5bXhrY3lncXVpeGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MDQxMzQsImV4cCI6MjA5NjA4MDEzNH0.LiBxr2Eu6QAPXSLJ93sDLxsaKZIKR_4XFVtbSMhkX0s';
+
+async function supaFetch(path, opts={}){
+  const res=await fetch(`${SUPA_URL}/rest/v1/${path}`,{
+    headers:{
+      'apikey': SUPA_KEY,
+      'Authorization': `Bearer ${SUPA_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer||'return=representation',
+      ...opts.headers
+    },
+    ...opts
+  });
+  if(!res.ok){ const e=await res.text(); throw new Error(e); }
+  const txt=await res.text();
+  return txt ? JSON.parse(txt) : [];
 }
-function salvarMeusProdutos(lista){
-  try { localStorage.setItem('msfarma_produtos', JSON.stringify(lista)); } catch(e){}
+
+// ══ MEUS PRODUTOS (Supabase) ══
+async function getMeusProdutos(){
+  try{
+    const data=await supaFetch('produtos_salvos?order=created_at.desc');
+    return data.map(p=>({id:p.id, nome:p.nome, precoDe:p.preco_de, precoPor:p.preco_por, foto:p.foto}));
+  } catch(e){ console.error('Erro ao buscar produtos:', e); return []; }
 }
-function adicionarMeusProdutos(p){
-  const lista=getMeusProdutos();
-  // Evitar duplicata por nome
-  if(lista.find(x=>x.nome.toLowerCase()===p.nome.toLowerCase())) return;
-  lista.unshift({id:'mp_'+Date.now(), nome:p.nome, precoDe:p.de, precoPor:p.por, foto:p.foto});
-  salvarMeusProdutos(lista);
-  atualizarContadorMP();
-  renderMeusProdutos();
+
+async function adicionarMeusProdutos(p){
+  try{
+    // Verificar duplicata
+    const existe=await supaFetch(`produtos_salvos?nome=eq.${encodeURIComponent(p.nome)}`);
+    if(existe.length>0){ return; }
+    await supaFetch('produtos_salvos',{
+      method:'POST',
+      prefer:'return=minimal',
+      body: JSON.stringify({nome:p.nome, preco_de:p.de||null, preco_por:p.por, foto:p.foto||null})
+    });
+    atualizarContadorMP();
+    renderMeusProdutos();
+    toast('Produto salvo na nuvem! ☁️');
+  } catch(e){ console.error('Erro ao salvar produto:', e); toast('Erro ao salvar produto.'); }
 }
-function removerMeusProduto(id){
-  const lista=getMeusProdutos().filter(x=>x.id!==id);
-  salvarMeusProdutos(lista);
-  atualizarContadorMP();
-  renderMeusProdutos();
+
+async function removerMeusProduto(id){
+  try{
+    await supaFetch(`produtos_salvos?id=eq.${id}`,{method:'DELETE', prefer:'return=minimal'});
+    atualizarContadorMP();
+    renderMeusProdutos();
+  } catch(e){ console.error('Erro ao remover produto:', e); }
 }
-function atualizarContadorMP(){
-  document.getElementById('mp-cnt').textContent=getMeusProdutos().length;
+
+async function atualizarContadorMP(){
+  try{
+    const data=await supaFetch('produtos_salvos?select=id');
+    document.getElementById('mp-cnt').textContent=data.length;
+  } catch(e){ document.getElementById('mp-cnt').textContent='?'; }
+}
+
+async function renderMeusProdutos(){
+  const el=document.getElementById('lista-meus-produtos');
+  el.innerHTML='<div class="mp-empty">⏳ Carregando...</div>';
+  const filtro=(document.getElementById('inp-mp-busca')||{}).value||'';
+  let lista=await getMeusProdutos();
+  if(filtro) lista=lista.filter(p=>p.nome.toLowerCase().includes(filtro.toLowerCase()));
+  if(!lista.length){
+    el.innerHTML='<div class="mp-empty">Nenhum produto salvo ainda.<br>Adicione produtos com "Salvar em Meus Produtos" ativado.</div>';
+    return;
+  }
+  el.innerHTML=lista.map(p=>`
+    <div class="mp-item">
+      <img src="${p.foto||'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2236%22 height=%2236%22%3E%3Crect width=%2236%22 height=%2236%22 fill=%22%231a1d24%22/%3E%3C/svg%3E'}" alt="">
+      <div class="mp-info">
+        <div class="mp-nome">${p.nome}</div>
+        <div class="mp-preco">R$${fv(p.precoPor)}${p.precoDe?` <span style="text-decoration:line-through;color:#555;font-size:9px">R$${fv(p.precoDe)}</span>`:''}</div>
+      </div>
+      <button class="mp-add" onclick="addProdDoMeu(${JSON.stringify(p).replace(/"/g,'&quot;')})">+</button>
+      <button class="mp-del" onclick="removerMeusProduto('${p.id}')" title="Remover do banco">🗑</button>
+    </div>`).join('');
 }
 function renderMeusProdutos(){
   const el=document.getElementById('lista-meus-produtos');
@@ -2005,7 +2060,7 @@ function calcDesc(){
 
 function fv(v){ return v.toFixed(2).replace('.',','); }
 
-function addProd(){
+async function addProd(){
   const nome=document.getElementById('inp-nome').value.trim();
   const por=parseFloat(document.getElementById('inp-por').value);
   if(!nome){ toast('Digite o nome do produto.'); return; }
@@ -2015,7 +2070,7 @@ function addProd(){
   const novoProd={id:Date.now(),nome,de,por,desc,foto:fotoAtual,dest:prods.length===0};
   prods.push(novoProd);
   if(document.getElementById('chk-salvar').checked){
-    adicionarMeusProdutos(novoProd);
+    await adicionarMeusProdutos(novoProd);
   }
   renderLista(); renderEncarte(); limparForm();
   toast('Produto adicionado!');
