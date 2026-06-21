@@ -1254,7 +1254,22 @@ body {
           <div class="f"><label>Preço DE (R$)</label><input type="number" id="inp-de" placeholder="0,00" step="0.01" oninput="calcDesc()"></div>
           <div class="f"><label>Preço POR (R$)</label><input type="number" id="inp-por" placeholder="0,00" step="0.01" oninput="calcDesc()"></div>
         </div>
+        <div class="f">
+          <label>Tipo de preço</label>
+          <select id="inp-tipo-preco" style="width:100%;background:#0d0d18;color:#fff;border:1px solid #1e1e30;border-radius:5px;padding:6px 9px;font-size:12px;font-family:inherit;">
+            <option value="cada">📦 CADA</option>
+            <option value="depor">🏷️ DE / POR</option>
+            <option value="simples">💰 Preço simples</option>
+            <option value="apartir">➡️ A PARTIR DE</option>
+            <option value="caixa">📦 POR CAIXA</option>
+            <option value="unidade">💊 POR UNIDADE</option>
+          </select>
+        </div>
         <div class="f"><label>Desconto</label><input type="text" id="inp-desc" readonly style="color:#1a7a4a;font-weight:700;"></div>
+        <div class="f">
+          <label>Seção (opcional)</label>
+          <input type="text" id="inp-secao" placeholder="Ex: FRALDAS, MEDICAMENTOS, HIGIENE...">
+        </div>
         <div class="salvar-check">
           <input type="checkbox" id="chk-salvar" checked>
           <label for="chk-salvar">Salvar em Meus Produtos</label>
@@ -2073,7 +2088,9 @@ async function addProd(){
   if(!por||por<=0){ toast('Digite o preço promocional.'); return; }
   const de=parseFloat(document.getElementById('inp-de').value)||null;
   const desc=(de&&por<de)?Math.round((1-por/de)*100):null;
-  const novoProd={id:Date.now(),nome,de,por,desc,foto:fotoAtual,dest:prods.length===0};
+  const tipo=document.getElementById('inp-tipo-preco').value;
+  const secao=document.getElementById('inp-secao').value.trim();
+  const novoProd={id:Date.now(),nome,de,por,desc,foto:fotoAtual,dest:prods.length===0,tipo,secao};
   prods.push(novoProd);
   if(document.getElementById('chk-salvar').checked){
     await adicionarMeusProdutos(novoProd);
@@ -2084,9 +2101,10 @@ async function addProd(){
 }
 
 function limparForm(){
-  ['inp-nome','inp-de','inp-por'].forEach(id=>document.getElementById(id).value='');
+  ['inp-nome','inp-de','inp-por','inp-secao'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('inp-desc').value='—';
   document.getElementById('inp-busca').value='';
+  document.getElementById('inp-tipo-preco').value='cada';
   document.getElementById('res-busca').innerHTML='';
   limparFoto();
 }
@@ -2152,8 +2170,53 @@ function renderEncarte(){
     return;
   }
 
-  // Foto placeholder SVG
+  // Foto placeholder
   const noFoto='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect width=%2280%22 height=%2280%22 fill=%22%23f0f0f0%22/%3E%3Ctext x=%2240%22 y=%2248%22 text-anchor=%22middle%22 font-size=%2232%22%3E💊%3C/text%3E%3C/svg%3E';
+
+  const precoHtml=(p,grande=false)=>{
+    const tipo=p.tipo||'cada';
+    const vs=grande?'72px':'30px';
+    const ls=grande?'12px':'9px';
+    switch(tipo){
+      case 'depor': return `
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${p.de?`<div style="font-size:${ls};color:#999;text-decoration:line-through;font-weight:700;">R$${fv(p.de)}</div>`:''}
+          <div style="display:flex;align-items:baseline;gap:2px;">
+            <span style="font-size:${grande?'14px':'11px'};font-weight:700;color:${dark}">POR</span>
+            <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
+          </div>
+        </div>`;
+      case 'apartir': return `
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <span style="font-size:${ls};color:${dark};font-weight:700;text-transform:uppercase;letter-spacing:1px;">A PARTIR DE</span>
+          <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
+        </div>`;
+      case 'caixa': return `
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
+          <span style="font-size:${ls};color:#999;font-weight:700;text-transform:uppercase;">POR CAIXA</span>
+        </div>`;
+      case 'unidade': return `
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
+          <span style="font-size:${ls};color:#999;font-weight:700;text-transform:uppercase;">POR UNIDADE</span>
+        </div>`;
+      case 'simples': return `
+        <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>`;
+      default: return `
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
+          <span style="font-size:${ls};color:#999;font-weight:700;text-transform:uppercase;letter-spacing:1px;">CADA</span>
+        </div>`;
+    }
+  };
+
+  const secaoSep=(nome)=>`
+    <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:4px 0;">
+      <div style="flex:1;height:2px;background:${dark};opacity:0.3;"></div>
+      <span style="font-size:11px;font-weight:900;color:${dark};text-transform:uppercase;letter-spacing:2px;opacity:0.7;">${nome}</span>
+      <div style="flex:1;height:2px;background:${dark};opacity:0.3;"></div>
+    </div>`;
 
   const cardHtml=(p,grande=false)=>{
     const fotoSrc=p.foto||noFoto;
@@ -2162,14 +2225,7 @@ function renderEncarte(){
         <div class="enc-dest-foto"><img src="${fotoSrc}" alt=""></div>
         <div class="enc-dest-info">
           <div class="enc-dest-nome">${p.nome}</div>
-          <div class="enc-preco-wrap">
-            ${p.de?`<div class="enc-preco-de"><span class="lbl">DE</span><span class="val">R$${fv(p.de)}</span></div>`:''}
-            <div class="enc-preco-por">
-              <span class="lbl" style="color:${dark}">POR</span>
-              <span class="val" style="color:${dark}">R$${fv(p.por)}</span>
-              <span class="cada">CADA</span>
-            </div>
-          </div>
+          <div class="enc-preco-wrap">${precoHtml(p,true)}</div>
         </div>
       </div>`;
     }
@@ -2178,11 +2234,7 @@ function renderEncarte(){
       <div class="cf"><img src="${fotoSrc}" alt=""></div>
       <div class="ci">
         <div class="ci-nome">${p.nome}</div>
-        <div class="ci-row">
-          ${p.de?`<span class="ci-de">R$${fv(p.de)}</span>`:''}
-          <span class="ci-por" style="color:${dark}">R$${fv(p.por)}</span>
-          <span class="ci-cada">cada</span>
-        </div>
+        <div class="ci-row">${precoHtml(p,false)}</div>
       </div>
     </div>`;
   };
@@ -2225,9 +2277,14 @@ function renderEncarte(){
     html=cardHtml(dest,true)+`<div class="enc-divv"></div><div class="enc-grade" style="grid-template-columns:1fr;grid-template-rows:repeat(2,1fr);">`+outros.map(p=>cardHtml(p)).join('')+`</div>`;
 
   } else if(n===4){
-    // 4: grade 2×2
-    area.style.cssText='display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;';
-    html=prods.map(p=>cardHtml(p)).join('');
+    // 4: grade 2×2 com separadores de seção
+    area.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start;';
+    let secaoAtual='';
+    html=prods.map(p=>{
+      let sep='';
+      if(p.secao && p.secao!==secaoAtual){ secaoAtual=p.secao; sep=secaoSep(p.secao); }
+      return sep+cardHtml(p);
+    }).join('');
 
   } else if(n===5){
     // 5: destaque + grade 2×2
@@ -2237,9 +2294,14 @@ function renderEncarte(){
     html=cardHtml(dest,true)+`<div class="enc-divv"></div><div class="enc-grade">`+outros.map(p=>cardHtml(p)).join('')+`</div>`;
 
   } else if(n===6){
-    // 6: grade 2×3
-    area.style.cssText=gradeStyle(2);
-    html=`<div style="${gradeStyle(2)}">`+prods.map(p=>cardHtml(p)).join('')+`</div>`;
+    // 6: grade 2×3 com seções
+    area.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;';
+    let secaoAtual='';
+    html=prods.map(p=>{
+      let sep='';
+      if(p.secao&&p.secao!==secaoAtual){ secaoAtual=p.secao; sep=secaoSep(p.secao); }
+      return sep+cardHtml(p);
+    }).join('');
 
   } else if(n<=8){
     // 7-8: destaque + grade 3 colunas
@@ -2268,20 +2330,22 @@ function renderEncarte(){
     </div>`;
 
   } else if(n<=12){
-    // 9-12: grade 3 colunas compacta
+    // 9-12: grade 3 colunas compacta com seções
     area.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-content:start;';
-    html=prods.map(p=>`
+    let secaoAtual='';
+    html=prods.map(p=>{
+      let sep='';
+      if(p.secao&&p.secao!==secaoAtual){ secaoAtual=p.secao; sep=secaoSep(p.secao); }
+      return sep+`
       <div class="enc-card">
         ${p.desc?`<div class="ci-desc-badge" style="background:${dark};font-size:8px;">${p.desc}% OFF</div>`:''}
         <div class="cf" style="padding:8px;"><img src="${p.foto||noFoto}" alt="" style="max-height:110px;"></div>
         <div class="ci" style="padding:6px 8px 8px;">
           <div class="ci-nome" style="font-size:9px;-webkit-line-clamp:2;">${p.nome}</div>
-          <div class="ci-row">
-            ${p.de?`<span class="ci-de" style="font-size:9px;">R$${fv(p.de)}</span>`:''}
-            <span class="ci-por" style="color:${dark};font-size:22px;">R$${fv(p.por)}</span>
-          </div>
+          <div class="ci-row">${precoHtml(p,false)}</div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
   } else {
     // 13+: grade 4 colunas super compacta
