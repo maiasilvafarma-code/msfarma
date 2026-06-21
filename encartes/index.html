@@ -1199,6 +1199,10 @@ body {
       <div class="pblock-title">Contatos</div>
       <div class="f"><label>WhatsApp</label><input type="text" id="inp-wpp" value="(85) 98567-4230" oninput="syncTextos()"></div>
       <div class="f"><label>Telefone</label><input type="text" id="inp-tel" value="(85) 3249-7936" oninput="syncTextos()"></div>
+      <div class="toggle-row">
+        <label class="tgl"><input type="checkbox" id="tog-qrcode" checked onchange="atualizarQRCode()"><span class="tgl-track"></span></label>
+        <span>Mostrar QR Code WhatsApp no rodapé</span>
+      </div>
       <div class="f"><label>Título da lista (quando usar layout tabela)</label><input type="text" id="inp-lista-titulo" value="GENÉRICOS COM ATÉ 90% DE DESCONTO!!" oninput="renderEncarte()" placeholder="Ex: GENÉRICOS COM ATÉ 90% DE DESCONTO"></div>
       <div class="f"><label>Frase promocional no rodapé</label><input type="text" id="inp-frase-promo" value="Economizar faz bem todo dia!" oninput="syncTextos()"></div>
     </div>
@@ -1332,6 +1336,10 @@ body {
         <div id="enc-faixa-base">
           <div class="enc-contato"><span class="ico">💬</span><span id="enc-wpp">(85) 98567-4230</span></div>
           <div id="enc-rod-txt">Ofertas válidas enquanto durarem os estoques.</div>
+          <div id="enc-qrcode-wrap" style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;">
+            <img id="enc-qrcode" src="" alt="QR WhatsApp" style="width:70px;height:70px;border-radius:6px;background:#fff;padding:3px;">
+            <span style="font-size:10px;color:rgba(255,255,255,0.6);font-weight:600;">Fale conosco</span>
+          </div>
           <div class="enc-contato"><span class="ico">📞</span><span id="enc-tel">(85) 3249-7936</span></div>
         </div>
 
@@ -2139,11 +2147,25 @@ function trocarFormato(){
   renderEncarte();
 }
 
+function atualizarQRCode(){
+  const wpp=document.getElementById('inp-wpp').value.replace(/\D/g,'');
+  const ativo=document.getElementById('tog-qrcode').checked;
+  const wrap=document.getElementById('enc-qrcode-wrap');
+  const img=document.getElementById('enc-qrcode');
+  if(!ativo || !wpp){ wrap.style.display='none'; return; }
+  wrap.style.display='flex';
+  // Monta link do WhatsApp e gera QR
+  const waLink=`https://wa.me/55${wpp}`;
+  const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(waLink)}&color=000000&bgcolor=ffffff&margin=2`;
+  img.src=qrUrl;
+}
+
 function syncTextos(){
   document.getElementById('enc-titulo').textContent=document.getElementById('inp-camp').value||'CAMPANHA';
   document.getElementById('enc-subtitulo').textContent=document.getElementById('inp-sub').value;
   document.getElementById('enc-wpp').textContent=document.getElementById('inp-wpp').value;
   document.getElementById('enc-tel').textContent=document.getElementById('inp-tel').value;
+  atualizarQRCode();
   // Frase promo
   const frase=document.getElementById('inp-frase-promo').value;
   let fp=document.getElementById('enc-frase-promo');
@@ -3025,6 +3047,7 @@ function toast(msg){
 aplicarTema();
 atualizarContadorMP();
 gerarRodape();
+atualizarQRCode();
 </script>
 </body>
 </html>
