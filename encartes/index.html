@@ -2004,7 +2004,38 @@ function selImg(url,desc,el){
 function uploadFoto(inp){
   const f=inp.files[0]; if(!f) return;
   const rd=new FileReader();
-  rd.onload=e=>{ fotoAtual=e.target.result; mostrarFoto(e.target.result,'📁 '+f.name.substring(0,24)); };
+  rd.onload=async e=>{
+    const base64orig=e.target.result;
+    mostrarFoto(base64orig,'⏳ Removendo fundo...');
+    document.getElementById('foto-icon').textContent='⏳';
+    document.getElementById('foto-txt').textContent='Removendo fundo automaticamente...';
+    try{
+      // Chamar remove.bg API
+      const formData=new FormData();
+      formData.append('image_file', f);
+      formData.append('size', 'auto');
+      const resp=await fetch('https://api.remove.bg/v1.0/removebg',{
+        method:'POST',
+        headers:{'X-Api-Key':'nxFN1EZFoyzE7tQu6QVaewF5'},
+        body: formData
+      });
+      if(!resp.ok) throw new Error('remove.bg error: '+resp.status);
+      const blob=await resp.blob();
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        fotoAtual=ev.target.result;
+        mostrarFoto(ev.target.result,'✨ Fundo removido! '+f.name.substring(0,20));
+        toast('Fundo removido com sucesso! ✨');
+      };
+      reader.readAsDataURL(blob);
+    } catch(err){
+      console.error('remove.bg:', err);
+      // Fallback: usar imagem original sem remover fundo
+      fotoAtual=base64orig;
+      mostrarFoto(base64orig,'📁 '+f.name.substring(0,24)+' (sem remoção)');
+      toast('Não foi possível remover o fundo. Usando imagem original.');
+    }
+  };
   rd.readAsDataURL(f);
 }
 
