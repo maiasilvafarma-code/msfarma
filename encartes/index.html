@@ -1230,7 +1230,7 @@ body {
       <!-- ABA: NOVO PRODUTO -->
       <div class="aba-painel ativa" id="aba-novo">
         <div class="search-row">
-          <input type="text" id="inp-busca" placeholder="Buscar imagem na web..." onkeydown="if(event.key==='Enter')buscar()">
+          <input type="text" id="inp-busca" placeholder="Ex: Dipirona 500mg — abre Google Imagens..." onkeydown="if(event.key==='Enter')buscar()">
           <button id="btn-busca" onclick="buscar()">🔍</button>
         </div>
         <div id="res-busca"></div>
@@ -1977,45 +1977,20 @@ function initLogoResize(){
   });
 })();
 
-// ══ BUSCA IA ══
-async function buscar(){
+// ══ BUSCA GOOGLE IMAGENS ══
+function buscar(){
   const q=document.getElementById('inp-busca').value.trim();
-  if(!q){ toast('Digite o nome do produto.'); return; }
-  const rb=document.getElementById('res-busca');
-  rb.innerHTML='<div class="busca-msg">🔍 Buscando...</div>';
-  document.getElementById('btn-busca').disabled=true;
-  try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:1000,
-        tools:[{"type":"web_search_20250305","name":"web_search"}],
-        system:`Você busca imagens de produtos farmacêuticos e de higiene para encartes.
-Faça uma busca por "${q}" e retorne URLs diretas de imagens do produto (preferencialmente PNG com fundo branco).
-Retorne APENAS JSON válido sem markdown:
-{"imagens":[{"url":"URL_DIRETA","descricao":"nome curto"}]}
-Máximo 4 imagens. URLs devem terminar em .jpg .jpeg .png .webp ou conter padrões de imagem.`,
-        messages:[{role:'user',content:`Buscar imagem: ${q}`}]
-      })
-    });
-    const data=await resp.json();
-    let txt='';
-    for(const b of data.content||[]){ if(b.type==='text') txt+=b.text; }
-    const m=txt.match(/\{[\s\S]*\}/);
-    if(!m) throw new Error();
-    const parsed=JSON.parse(m[0]);
-    const imgs=parsed.imagens||[];
-    if(!imgs.length) throw new Error();
-    rb.innerHTML=imgs.map((img,i)=>`
-      <div class="res-img" onclick="selImg('${img.url.replace(/'/g,"\\'")}','${(img.descricao||q).replace(/'/g,"\\'")}',this)">
-        <img src="${img.url}" alt="${img.descricao||q}" onerror="this.parentElement.style.display='none'">
-      </div>`).join('');
-  } catch(e){
-    rb.innerHTML='<div class="busca-msg">Sem resultados. Tente outro termo ou faça upload.</div>';
-  }
-  document.getElementById('btn-busca').disabled=false;
+  if(!q){ toast('Digite o nome do produto para buscar.'); return; }
+  // Preenche o nome do produto automaticamente
+  if(!document.getElementById('inp-nome').value) document.getElementById('inp-nome').value=q;
+  // Abre Google Imagens em nova aba
+  const url=`https://www.google.com/search?q=${encodeURIComponent(q+' embalagem fundo branco')}&tbm=isch`;
+  window.open(url,'_blank');
+  document.getElementById('res-busca').innerHTML=`
+    <div class="busca-msg" style="color:#aaa;line-height:1.6;">
+      🔍 Google Imagens aberto!<br>
+      Encontre a foto, clique com botão direito → <strong style="color:#fff">Salvar imagem</strong> e depois faça o upload abaixo.
+    </div>`;
 }
 
 function selImg(url,desc,el){
