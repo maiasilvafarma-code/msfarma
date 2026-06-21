@@ -1035,6 +1035,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   gap: 60px; background: rgba(0,0,0,0.4);
 }
+#modal-historico.open { display: flex !important; }
 #modal-capa.open { display: flex !important; }
 
 #toast {
@@ -1174,8 +1175,21 @@ body {
 
   <div class="tb-spacer"></div>
 
-  <button id="btn-capa" onclick="abrirModalCapa()" style="background:#333;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-right:6px;">🖼 Gerar Capa</button>
+  <button id="btn-capa" onclick="abrirModalCapa()" style="background:#333;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;">🖼 Capa</button>
+  <button onclick="salvarRascunho()" style="background:#1a5c3a;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;" title="Salvar rascunho">💾 Salvar</button>
+  <button onclick="carregarRascunho()" style="background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;" title="Carregar rascunho">📂 Rascunho</button>
+  <button onclick="salvarHistorico()" style="background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;" title="Salvar no histórico">📚 Salvar</button>
+  <button onclick="abrirHistorico()" style="background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;" title="Ver histórico">🕐 Histórico</button>
   <button id="btn-prev" onclick="abrirModal()">👁 Visualizar</button>
+</div>
+
+<!-- MODAL HISTÓRICO -->
+<div id="modal-historico" style="display:none;position:fixed;inset:0;z-index:1003;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+  <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:1px;">Histórico de Encartes</div>
+  <div style="width:480px;max-height:60vh;overflow-y:auto;background:#13131f;border-radius:12px;padding:16px;">
+    <div id="hist-lista"></div>
+  </div>
+  <button class="mbtn f" onclick="document.getElementById('modal-historico').classList.remove('open')" style="background:#222;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;">✕ Fechar</button>
 </div>
 
 <!-- LAYOUT -->
@@ -1267,9 +1281,19 @@ body {
             <option value="apartir">➡️ A PARTIR DE</option>
             <option value="caixa">📦 POR CAIXA</option>
             <option value="unidade">💊 POR UNIDADE</option>
+            <option value="leve3pague2">🎁 LEVE 3 PAGUE 2</option>
+            <option value="combo">🔢 COMBO (qtd por preço)</option>
           </select>
         </div>
+        <div class="f" id="campo-combo" style="display:none">
+          <label>Combo (ex: 3 CX POR)</label>
+          <input type="text" id="inp-combo-txt" placeholder="Ex: 3 CAIXAS POR">
+        </div>
         <div class="f"><label>Desconto</label><input type="text" id="inp-desc" readonly style="color:#1a7a4a;font-weight:700;"></div>
+        <div class="f">
+          <label>Observação (opcional)</label>
+          <input type="text" id="inp-obs" placeholder="Ex: Consultar tamanhos, Enquanto durar...">
+        </div>
         <div class="f">
           <label>Seção (opcional)</label>
           <input type="text" id="inp-secao" placeholder="Ex: FRALDAS, MEDICAMENTOS, HIGIENE...">
@@ -2147,6 +2171,102 @@ function trocarFormato(){
   renderEncarte();
 }
 
+// ══ RASCUNHO E HISTÓRICO ══
+function getEstadoAtual(){
+  return {
+    tema: document.getElementById('sel-tema').value,
+    campanha: document.getElementById('inp-camp').value,
+    subtitulo: document.getElementById('inp-sub').value,
+    wpp: document.getElementById('inp-wpp').value,
+    tel: document.getElementById('inp-tel').value,
+    formato: document.getElementById('sel-formato').value,
+    layout: document.getElementById('sel-layout').value,
+    prods: prods,
+    logoSrc: logoSrc,
+    data: new Date().toISOString()
+  };
+}
+
+function salvarRascunho(){
+  try{
+    localStorage.setItem('msfarma_rascunho', JSON.stringify(getEstadoAtual()));
+    toast('Rascunho salvo! 💾');
+  } catch(e){ toast('Erro ao salvar rascunho.'); }
+}
+
+function carregarRascunho(){
+  try{
+    const r=JSON.parse(localStorage.getItem('msfarma_rascunho'));
+    if(!r){ toast('Nenhum rascunho encontrado.'); return; }
+    if(!confirm('Carregar rascunho? O encarte atual será substituído.')) return;
+    restaurarEstado(r);
+    toast('Rascunho carregado! ✓');
+  } catch(e){ toast('Erro ao carregar rascunho.'); }
+}
+
+function salvarHistorico(){
+  try{
+    const hist=JSON.parse(localStorage.getItem('msfarma_historico')||'[]');
+    const estado=getEstadoAtual();
+    estado.titulo=`${estado.campanha} — ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+    hist.unshift(estado);
+    if(hist.length>20) hist.pop(); // manter últimos 20
+    localStorage.setItem('msfarma_historico', JSON.stringify(hist));
+    toast('Salvo no histórico! 📚');
+  } catch(e){ toast('Erro ao salvar histórico.'); }
+}
+
+function restaurarEstado(r){
+  document.getElementById('sel-tema').value=r.tema||'junina';
+  document.getElementById('inp-camp').value=r.campanha||'';
+  document.getElementById('inp-sub').value=r.subtitulo||'';
+  document.getElementById('inp-wpp').value=r.wpp||'';
+  document.getElementById('inp-tel').value=r.tel||'';
+  if(r.formato) document.getElementById('sel-formato').value=r.formato;
+  if(r.layout) document.getElementById('sel-layout').value=r.layout;
+  prods=r.prods||[];
+  if(r.logoSrc){
+    logoSrc=r.logoSrc;
+    document.getElementById('enc-logo-inner').innerHTML=`<img src="${logoSrc}" alt="Logo">`;
+  }
+  campEdit=true; subEdit=true;
+  aplicarTema();
+  renderLista();
+  renderEncarte();
+}
+
+function abrirHistorico(){
+  const hist=JSON.parse(localStorage.getItem('msfarma_historico')||'[]');
+  if(!hist.length){ toast('Nenhum encarte no histórico.'); return; }
+  const modal=document.getElementById('modal-historico');
+  const lista=document.getElementById('hist-lista');
+  lista.innerHTML=hist.map((h,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#1a1d24;border-radius:8px;margin-bottom:6px;cursor:pointer;" onclick="carregarDoHistorico(${i})">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:#fff;">${h.titulo||h.campanha}</div>
+        <div style="font-size:11px;color:#555;">${h.prods?.length||0} produtos · ${h.formato||'feed'}</div>
+      </div>
+      <button onclick="event.stopPropagation();removerHistorico(${i})" style="background:none;border:none;color:#444;cursor:pointer;font-size:16px;">🗑</button>
+    </div>`).join('');
+  modal.classList.add('open');
+}
+
+function carregarDoHistorico(idx){
+  const hist=JSON.parse(localStorage.getItem('msfarma_historico')||'[]');
+  if(!hist[idx]) return;
+  if(!confirm('Carregar este encarte? O atual será substituído.')) return;
+  restaurarEstado(hist[idx]);
+  document.getElementById('modal-historico').classList.remove('open');
+  toast('Encarte carregado do histórico! ✓');
+}
+
+function removerHistorico(idx){
+  const hist=JSON.parse(localStorage.getItem('msfarma_historico')||'[]');
+  hist.splice(idx,1);
+  localStorage.setItem('msfarma_historico', JSON.stringify(hist));
+  abrirHistorico();
+}
+
 function atualizarQRCode(){
   const wpp=document.getElementById('inp-wpp').value.replace(/\D/g,'');
   const ativo=document.getElementById('tog-qrcode').checked;
@@ -2427,7 +2547,9 @@ async function addProd(){
   const desc=(de&&por<de)?Math.round((1-por/de)*100):null;
   const tipo=document.getElementById('inp-tipo-preco').value;
   const secao=document.getElementById('inp-secao').value.trim();
-  const novoProd={id:Date.now(),nome,de,por,desc,foto:fotoAtual,dest:prods.length===0,tipo,secao};
+  const obs=document.getElementById('inp-obs').value.trim();
+  const comboTxt=document.getElementById('inp-combo-txt').value.trim();
+  const novoProd={id:Date.now(),nome,de,por,desc,foto:fotoAtual,dest:prods.length===0,tipo,secao,obs,comboTxt};
   prods.push(novoProd);
   if(document.getElementById('chk-salvar').checked){
     await adicionarMeusProdutos(novoProd);
@@ -2438,10 +2560,11 @@ async function addProd(){
 }
 
 function limparForm(){
-  ['inp-nome','inp-de','inp-por','inp-secao'].forEach(id=>document.getElementById(id).value='');
+  ['inp-nome','inp-de','inp-por','inp-secao','inp-obs','inp-combo-txt'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('inp-desc').value='—';
   document.getElementById('inp-busca').value='';
   document.getElementById('inp-tipo-preco').value='cada';
+  document.getElementById('campo-combo').style.display='none';
   document.getElementById('res-busca').innerHTML='';
   limparFoto();
 }
@@ -2549,38 +2672,55 @@ function renderEncarte(){
     const tipo=p.tipo||'cada';
     const vs=grande?'72px':'30px';
     const ls=grande?'12px':'9px';
+    const obsHtml=p.obs?`<div style="font-size:${grande?'13px':'9px'};color:#888;font-weight:600;text-transform:uppercase;margin-top:4px;font-style:italic;">${p.obs}</div>`:'';
+    let precoEl='';
     switch(tipo){
-      case 'depor': return `
-        <div style="display:flex;flex-direction:column;gap:4px;">
+      case 'depor': precoEl=`
+        <div style="display:flex;flex-direction:column;gap:2px;">
           ${p.de?`<div style="font-size:${ls};color:#999;text-decoration:line-through;font-weight:700;">R$${fv(p.de)}</div>`:''}
           <div style="display:flex;align-items:baseline;gap:2px;">
             <span style="font-size:${grande?'14px':'11px'};font-weight:700;color:${dark}">POR</span>
             <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
           </div>
-        </div>`;
-      case 'apartir': return `
+        </div>`; break;
+      case 'apartir': precoEl=`
         <div style="display:flex;flex-direction:column;align-items:flex-start;">
           <span style="font-size:${ls};color:${dark};font-weight:700;text-transform:uppercase;letter-spacing:1px;">A PARTIR DE</span>
           <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
-        </div>`;
-      case 'caixa': return `
+        </div>`; break;
+      case 'caixa': precoEl=`
         <div style="display:flex;flex-direction:column;align-items:flex-start;">
           <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
           <span style="font-size:${ls};color:#999;font-weight:700;text-transform:uppercase;">POR CAIXA</span>
-        </div>`;
-      case 'unidade': return `
+        </div>`; break;
+      case 'unidade': precoEl=`
         <div style="display:flex;flex-direction:column;align-items:flex-start;">
           <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
           <span style="font-size:${ls};color:#999;font-weight:700;text-transform:uppercase;">POR UNIDADE</span>
-        </div>`;
-      case 'simples': return `
-        <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>`;
-      default: return `
+        </div>`; break;
+      case 'simples': precoEl=`
+        <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>`; break;
+      case 'leve3pague2': precoEl=`
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+          <span style="font-size:${grande?'16px':'10px'};font-weight:900;color:#e53935;text-transform:uppercase;letter-spacing:0.5px;">LEVE 3 PAGUE 2</span>
+          <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
+          <span style="font-size:${ls};color:#999;font-weight:700;text-transform:uppercase;">CADA</span>
+        </div>`; break;
+      case 'combo': precoEl=`
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+          ${p.de?`<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:${grande?'14px':'10px'};color:#999;font-weight:700;">1 CX</span><span style="font-size:${grande?'20px':'14px'};color:#999;font-weight:900;">R$${fv(p.de)}</span></div>`:''}
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:${grande?'14px':'10px'};font-weight:900;color:${dark};text-transform:uppercase;">${p.comboTxt||'COMBO POR'}</span>
+          </div>
+          <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
+        </div>`; break;
+      default: precoEl=`
         <div style="display:flex;flex-direction:column;align-items:flex-start;">
           <span style="font-size:${vs};font-weight:900;color:${dark};line-height:1;letter-spacing:-1px;">R$${fv(p.por)}</span>
           <span style="font-size:${ls};color:#999;font-weight:700;text-transform:uppercase;letter-spacing:1px;">CADA</span>
-        </div>`;
+        </div>`; break;
     }
+    return precoEl+obsHtml;
   };
 
   const secaoSep=(nome)=>`
