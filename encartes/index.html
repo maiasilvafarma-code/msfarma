@@ -2078,12 +2078,14 @@ function gerarHeaderSVG(tema, c, dark, t){
   };
 
   const svgDec = decs[tema] || `
-    <circle cx="900" cy="110" r="150" fill="rgba(255,255,255,0.06)"/>
-    <circle cx="900" cy="110" r="100" fill="rgba(255,255,255,0.04)"/>
-    ${[...Array(10)].map((_,i)=>`<circle cx="${i*108+54}" cy="${20+i%4*40}" r="${5+i%3*4}" fill="rgba(255,255,255,0.15)"/>`).join('')}`;
+    <circle cx="200" cy="110" r="120" fill="rgba(255,255,255,0.06)"/>
+    <circle cx="400" cy="110" r="80" fill="rgba(255,255,255,0.04)"/>
+    ${[...Array(8)].map((_,i)=>`<circle cx="${i*88+44}" cy="${20+i%4*55}" r="${5+i%3*4}" fill="rgba(255,255,255,0.15)"/>`).join('')}`;
 
+  // ClipPath limita os decorativos à metade esquerda (0-700px) — direita livre para a logo
   return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;pointer-events:none;">
-    ${svgDec}
+    <defs><clipPath id="clip-hdr-esq"><rect x="0" y="0" width="700" height="${h}"/></clipPath></defs>
+    <g clip-path="url(#clip-hdr-esq)">${svgDec}</g>
   </svg>`;
 }
 
