@@ -9723,7 +9723,7 @@ setTimeout(function(){try{var i2='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA
               return r;
         };
 
-        setTimeout(aplicarLimiteDiario, 800);
+        setTimeout(aplicarLimiteDiario,800);setTimeout(aplicarLimiteDiario,2000);setTimeout(aplicarLimiteDiario,4000);var _obsLimite=new MutationObserver(function(){clearTimeout(window._limT);window._limT=setTimeout(aplicarLimiteDiario,200);});var _secB=document.getElementById('b-venc-summary');if(_secB)_obsLimite.observe(_secB,{childList:true,subtree:true});
     })();
   </script>
   </script>
