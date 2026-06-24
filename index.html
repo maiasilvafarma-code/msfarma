@@ -2907,17 +2907,28 @@ function editNFCampo(id,campo,td){
   var n=D.nf.find(function(x){return x.id===id;});
   if(!n)return;
   var opcoes={
-    formaPagto:[{v:'',l:'— Selecione'},{v:'Boleto',l:'📋 Boleto'},{v:'PIX',l:'⚡ PIX'},{v:'Transferência',l:'🏦 Transferência'},{v:'Cartão',l:'💳 Cartão'},{v:'Bonificação',l:'🎁 Bonificação'}],
-    sitFinanceira:[{v:'',l:'— Selecione'},{v:'Em aberto',l:'🟡 Em aberto'},{v:'Pago',l:'✅ Pago'},{v:'Parcelado',l:'🔵 Parcelado'}],
-    centroCompra:[{v:'',l:'— Selecione'},{v:'Medicamentos',l:'💊 Medicamentos'},{v:'Perfumaria',l:'🌸 Perfumaria'},{v:'Fraldas',l:'👶 Fraldas'},{v:'Vitaminas',l:'🌿 Vitaminas'},{v:'Naturais',l:'🍃 Naturais'},{v:'Diversos',l:'📦 Diversos'}]
+    formaPagto:[{v:'',l:'—'},{v:'Boleto',l:'📋 Boleto'},{v:'PIX',l:'⚡ PIX'},{v:'Transferência',l:'🏦 Transferência'},{v:'Cartão',l:'💳 Cartão'},{v:'Bonificação',l:'🎁 Bonificação'}],
+    sitFinanceira:[{v:'',l:'—'},{v:'Em aberto',l:'🟡 Em aberto'},{v:'Pago',l:'✅ Pago'},{v:'Parcelado',l:'🔵 Parcelado'}],
+    centroCompra:[{v:'',l:'—'},{v:'Medicamentos',l:'💊 Medicamentos'},{v:'Perfumaria',l:'🌸 Perfumaria'},{v:'Fraldas',l:'👶 Fraldas'},{v:'Vitaminas',l:'🌿 Vitaminas'},{v:'Naturais',l:'🍃 Naturais'},{v:'Diversos',l:'📦 Diversos'}]
   };
-  var sel=document.createElement('select');
-  sel.style.cssText='height:30px;background:var(--surface);border:2px solid var(--green);border-radius:6px;padding:0 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer;min-width:120px;box-shadow:0 4px 12px rgba(0,0,0,.3)';
-  sel.innerHTML=opcoes[campo].map(function(o){return'<option value="'+o.v+'"'+(n[campo]===o.v?' selected':'')+'>'+o.l+'</option>';}).join('');
-  td.innerHTML='';
-  td.appendChild(sel);
-  sel.focus();
-  sel.onchange=function(){n[campo]=this.value;save();renderNF();};
+  // Remove qualquer dropdown aberto
+  document.querySelectorAll('.nf-dropdown-menu').forEach(function(el){el.remove();});
+  var rect=td.getBoundingClientRect();
+  var menu=document.createElement('div');
+  menu.className='nf-dropdown-menu';
+  menu.style.cssText='position:fixed;top:'+(rect.bottom+2)+'px;left:'+rect.left+'px;background:var(--surface);border:1px solid var(--green);border-radius:8px;z-index:99999;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.5);overflow:hidden';
+  opcoes[campo].forEach(function(o){
+    if(!o.v)return;
+    var item=document.createElement('div');
+    item.textContent=o.l;
+    item.style.cssText='padding:10px 14px;cursor:pointer;font-size:13px;color:var(--text);'+(n[campo]===o.v?'background:var(--green-dim);color:var(--green);font-weight:700':'');
+    item.onmouseenter=function(){this.style.background='var(--surface2)';};
+    item.onmouseleave=function(){this.style.background=n[campo]===o.v?'var(--green-dim)':'';};
+    item.onclick=function(e){e.stopPropagation();n[campo]=o.v;save();menu.remove();renderNF();};
+    menu.appendChild(item);
+  });
+  document.body.appendChild(menu);
+  setTimeout(function(){document.addEventListener('click',function handler(){menu.remove();document.removeEventListener('click',handler);},{once:true});},100);
 }
 function limparFormNF(){var el=document.getElementById('nf-form-area');if(el)el.innerHTML='';}
 function addNF(){
