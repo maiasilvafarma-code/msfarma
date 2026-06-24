@@ -4492,6 +4492,25 @@ function renderProdutos(){
     +_kpi('Classe B — monitorar',abc.classeB+' produtos','ti-eye','var(--yellow)')
     +_kpi('Classe C — pedir mínimo',abc.classeC+' produtos','ti-arrow-down','var(--green)');
 
+  // Alerta margem baixa
+  const prodMargemBaixa=(abc.lista||abc.top100||[]).filter(function(p){var mg=p.margem!=null?p.margem:(p.custo&&p.preco?(p.preco-p.custo)/p.preco*100:null);return mg!=null&&mg<30;});
+  const alertMargem=document.getElementById('prod-alerta-margem');
+  if(alertMargem){
+    if(prodMargemBaixa.length>0){
+      alertMargem.innerHTML='<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'
+        +'<span style="font-size:20px">⚠️</span>'
+        +'<div style="flex:1"><strong style="color:var(--red)">'+prodMargemBaixa.length+' produto(s) com margem abaixo de 30%!</strong>'
+        +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'+prodMargemBaixa.slice(0,3).map(function(p){return p.desc;}).join(', ')+(prodMargemBaixa.length>3?' e mais '+(prodMargemBaixa.length-3)+'...':'')+'</div></div>'
+        +'<button class="btn" onclick="document.getElementById(\"prod-classe\").value=\"\";document.getElementById(\"prod-search\").value=\"margem<30\";renderProdutos()" style="font-size:12px;background:var(--red-dim);color:var(--red);border-color:var(--red)">Ver todos</button>'
+        +'</div>';
+    } else {
+      alertMargem.innerHTML='';
+    }
+  }
+  // Alerta margem baixa
+  const prodMargemBaixa=(abc.lista||abc.top100||[]).filter(function(p){var mg=p.margem!=null?p.margem:(p.custo&&p.preco?(p.preco-p.custo)/p.preco*100:null);return mg!=null&&mg<30;});
+  const alertMargem=document.getElementById('prod-alerta-margem');
+  if(alertMargem){if(prodMargemBaixa.length>0){alertMargem.innerHTML='<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px"><span style="font-size:20px">⚠️</span><div style="flex:1"><strong style="color:var(--red)">'+prodMargemBaixa.length+' produto(s) com margem abaixo de 30%!</strong><div style="font-size:12px;color:var(--text2);margin-top:2px">'+prodMargemBaixa.slice(0,3).map(function(p){return p.desc;}).join(', ')+(prodMargemBaixa.length>3?' e mais '+(prodMargemBaixa.length-3)+'...':'')+'</div></div></div>';}else{alertMargem.innerHTML='';}}
   // Alerta crítico Clenil
   const top=abc.top100[0];
   document.getElementById('prod-critico').innerHTML=
@@ -4576,6 +4595,7 @@ function renderProdutos(){
     +'<th class="col-val">Faturamento</th>'
     +'<th class="col-date" style="text-align:right">% receita</th>'
     +'<th class="col-date" style="text-align:right;color:var(--yellow)">Est. mínimo</th>'
+    +'<th class="col-val" style="color:var(--red)">Margem</th>'
     +'<th style="width:160px">Estratégia</th>'
     +'</tr></thead><tbody>'
     +lista.map((p,i)=>{
