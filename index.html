@@ -2898,11 +2898,12 @@ function openNewForm(){
       <div class="field"><label>Vencimento</label><input type="date" id="nf-due"></div>
     </div>
     <div class="form-footer">
-      <button class="btn" onclick="document.getElementById('nf-form-area').innerHTML=''">Cancelar</button>
+      <button class="btn" onclick="limparFormNF()">Cancelar</button>
       <button class="btn btn-green" onclick="addNF()"><i class="ti ti-plus"></i> Adicionar NF</button>
     </div>
   </div>`;
 }
+function limparFormNF(){var el=document.getElementById('nf-form-area');if(el)el.innerHTML='';}
 function addNF(){
   const num=document.getElementById('nf-num').value.trim();
   const sup=document.getElementById('nf-sup').value.trim();
@@ -2913,7 +2914,7 @@ function addNF(){
   const sitFinanceira=document.getElementById('nf-sit-fin')?document.getElementById('nf-sit-fin').value:'';
   const centroCompra=document.getElementById('nf-centro')?document.getElementById('nf-centro').value:'';
   if(!num||!sup||isNaN(val)||val<=0||!emi){alert('Preencha número, fornecedor, valor e emissão.');return;}
-  D.nf.unshift({id:Date.now(),num,sup,val,emi,due,paid:false});
+  D.nf.unshift({id:Date.now(),num,sup,val,emi,due,paid:false,formaPagto,sitFinanceira,centroCompra});
   nfMonth=emi.substring(0,7);
   save();document.getElementById('nf-form-area').innerHTML='';renderAll();
 }
