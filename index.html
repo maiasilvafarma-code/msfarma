@@ -2888,6 +2888,11 @@ function openNewForm(){
     <div class="fg fg-5">
       <div class="field"><label>Número NF</label><input type="text" id="nf-num" placeholder="NF-1-123456"></div>
       <div class="field"><label>Fornecedor</label><input type="text" id="nf-sup" placeholder="Nome do fornecedor"></div>
+      <div class="fg fg-3" style="margin-bottom:10px">
+        <div class="field"><label>Forma de Pagamento</label><select id="nf-forma-pagto" style="height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text);width:100%"><option value="">Selecione</option><option>Boleto</option><option>PIX</option><option>Transferência</option><option>Cartão</option><option>Bonificação</option></select></div>
+        <div class="field"><label>Situação Financeira</label><select id="nf-sit-fin" style="height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text);width:100%"><option value="">Selecione</option><option>Em aberto</option><option>Pago</option><option>Parcelado</option></select></div>
+        <div class="field"><label>Centro de Compra</label><select id="nf-centro" style="height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text);width:100%"><option value="">Selecione</option><option>Medicamentos</option><option>Perfumaria</option><option>Fraldas</option><option>Vitaminas</option><option>Naturais</option><option>Diversos</option></select></div>
+      </div>
       <div class="field"><label>Valor (R$)</label><input type="number" id="nf-val" step="0.01" min="0" placeholder="0,00"></div>
       <div class="field"><label>Emissão</label><input type="date" id="nf-emi" value="${today()}"></div>
       <div class="field"><label>Vencimento</label><input type="date" id="nf-due"></div>
@@ -2904,6 +2909,9 @@ function addNF(){
   const val=parseFloat(document.getElementById('nf-val').value);
   const emi=document.getElementById('nf-emi').value;
   const due=document.getElementById('nf-due').value;
+  const formaPagto=document.getElementById('nf-forma-pagto')?document.getElementById('nf-forma-pagto').value:'';
+  const sitFinanceira=document.getElementById('nf-sit-fin')?document.getElementById('nf-sit-fin').value:'';
+  const centroCompra=document.getElementById('nf-centro')?document.getElementById('nf-centro').value:'';
   if(!num||!sup||isNaN(val)||val<=0||!emi){alert('Preencha número, fornecedor, valor e emissão.');return;}
   D.nf.unshift({id:Date.now(),num,sup,val,emi,due,paid:false});
   nfMonth=emi.substring(0,7);
@@ -2926,13 +2934,31 @@ function renderNF(){
   const total=list.reduce((s,x)=>s+x.val,0);
   const abertas=list.filter(x=>!x.fechamento);
   const fechadas=list.filter(x=>x.fechamento);
-  document.getElementById('nf-metrics').innerHTML=`
-    <div class="mcard"><div class="mcard-label">Total notas</div><div class="mcard-value green">${fmtCur(total)}</div></div>
-    <div class="mcard"><div class="mcard-label">Em aberto</div><div class="mcard-value yellow">${abertas.length}</div></div>
-    <div class="mcard"><div class="mcard-label">Fechadas</div><div class="mcard-value green">${fechadas.length}</div></div>
-    <div class="mcard"><div class="mcard-label">Total NFs</div><div class="mcard-value">${list.length}</div></div>`;
+  const valorMedio=list.length>0?total/list.length:0;
+  // Fornecedor top
+  const fornMap={};list.forEach(function(x){if(!fornMap[x.sup])fornMap[x.sup]=0;fornMap[x.sup]+=x.val;});
+  const fornTop=Object.entries(fornMap).sort(function(a,b){return b[1]-a[1];})[0];
+  // Prazo médio
+  const comPrazo=list.filter(function(x){return x.emi&&x.entrada;});
+  const prazoMedio=comPrazo.length>0?comPrazo.reduce(function(s,x){return s+Math.round((new Date(x.entrada)-new Date(x.emi))/86400000);},0)/comPrazo.length:0;
+  document.getElementById('nf-metrics').innerHTML=
+    '<div class="mcard"><div class="mcard-label">💰 Total notas</div><div class="mcard-value green">'+fmtCur(total)+'</div></div>'
+    +'<div class="mcard"><div class="mcard-label">📊 Valor médio/NF</div><div class="mcard-value blue">'+fmtCur(valorMedio)+'</div></div>'
+    +'<div class="mcard"><div class="mcard-label">📋 Em aberto</div><div class="mcard-value yellow">'+abertas.length+'</div></div>'
+    +'<div class="mcard"><div class="mcard-label">✅ Fechadas</div><div class="mcard-value green">'+fechadas.length+'</div></div>'
+    +'<div class="mcard"><div class="mcard-label">📦 Total NFs</div><div class="mcard-value">'+list.length+'</div></div>'
+    +(fornTop?'<div class="mcard"><div class="mcard-label">🏆 Top fornecedor</div><div class="mcard-value" style="font-size:14px;font-weight:700">'+fornTop[0].split(' ')[0]+'</div><div style="font-size:11px;color:var(--green)">'+fmtCur(fornTop[1])+'</div></div>':'')
+    +(prazoMedio>0?'<div class="mcard"><div class="mcard-label">⏱ Prazo médio</div><div class="mcard-value '+(prazoMedio>3?'yellow':'green')+'">'+prazoMedio.toFixed(1)+' dias</div></div>':'');
+  // Adicionar colunas extras dinamicamente
+  const nfThead=document.querySelector('#sec-nf table thead tr');
+  if(nfThead&&!document.getElementById('nf-th-pagto')){
+    ['Forma Pagto','Sit. Financeira','Centro'].forEach(function(col,i){
+      var th=document.createElement('th');th.textContent=col;th.id='nf-th-'+i;
+      nfThead.insertBefore(th,nfThead.lastElementChild);
+    });
+  }
   const tbody=document.getElementById('nf-tbody');
-  if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="7"><i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;}
+  if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="10">`<i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;}
   tbody.innerHTML=list.map(n=>{
     return`<tr>
       <td><strong style="color:var(--green)">${n.num}</strong>${n.chave?` <span style="font-size:10px;background:var(--blue-dim);color:var(--blue);padding:1px 6px;border-radius:3px;font-weight:600;margin-left:4px">XML</span>`:''}</td>
@@ -2941,6 +2967,9 @@ function renderNF(){
       <td>${n.entrada?fmtDate(n.entrada):'—'}</td>
       <td>${n.fechamento?`<span class="badge b-paid">${fmtDate(n.fechamento)}</span>`:`<button class="btn-icon" onclick="fecharNF(${n.id})" title="Registrar fechamento" style="color:var(--yellow);font-size:12px">📅 Fechar</button>`}</td>
       <td style="text-align:right;font-weight:600">${fmtCur(n.val)}</td>
+      <td><span class="badge" style="font-size:10px">${n.formaPagto||'—'}</span></td>
+      <td><span class="badge ${n.sitFinanceira==='Pago'?'b-paid':n.sitFinanceira==='Parcelado'?'b-ok':''}" style="font-size:10px">${n.sitFinanceira||'—'}</span></td>
+      <td style="font-size:11px;color:var(--text2)">${n.centroCompra||'—'}</td>
       <td style="text-align:center">
         <div style="display:flex;gap:4px;justify-content:center">
           <button class="btn-icon" onclick="editNF(${n.id})" title="Editar NF" style="color:var(--blue)">✏️</button>
