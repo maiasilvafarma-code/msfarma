@@ -4492,25 +4492,6 @@ function renderProdutos(){
     +_kpi('Classe B — monitorar',abc.classeB+' produtos','ti-eye','var(--yellow)')
     +_kpi('Classe C — pedir mínimo',abc.classeC+' produtos','ti-arrow-down','var(--green)');
 
-  // Alerta margem baixa
-  const prodMargemBaixa=(abc.lista||abc.top100||[]).filter(function(p){var mg=p.margem!=null?p.margem:(p.custo&&p.preco?(p.preco-p.custo)/p.preco*100:null);return mg!=null&&mg<30;});
-  const alertMargem=document.getElementById('prod-alerta-margem');
-  if(alertMargem){
-    if(prodMargemBaixa.length>0){
-      alertMargem.innerHTML='<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'
-        +'<span style="font-size:20px">⚠️</span>'
-        +'<div style="flex:1"><strong style="color:var(--red)">'+prodMargemBaixa.length+' produto(s) com margem abaixo de 30%!</strong>'
-        +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'+prodMargemBaixa.slice(0,3).map(function(p){return p.desc;}).join(', ')+(prodMargemBaixa.length>3?' e mais '+(prodMargemBaixa.length-3)+'...':'')+'</div></div>'
-        +'<button class="btn" onclick="document.getElementById(\"prod-classe\").value=\"\";document.getElementById(\"prod-search\").value=\"margem<30\";renderProdutos()" style="font-size:12px;background:var(--red-dim);color:var(--red);border-color:var(--red)">Ver todos</button>'
-        +'</div>';
-    } else {
-      alertMargem.innerHTML='';
-    }
-  }
-  // Alerta margem baixa
-  const prodMargemBaixa=(abc.lista||abc.top100||[]).filter(function(p){var mg=p.margem!=null?p.margem:(p.custo&&p.preco?(p.preco-p.custo)/p.preco*100:null);return mg!=null&&mg<30;});
-  const alertMargem=document.getElementById('prod-alerta-margem');
-  if(alertMargem){if(prodMargemBaixa.length>0){alertMargem.innerHTML='<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px"><span style="font-size:20px">⚠️</span><div style="flex:1"><strong style="color:var(--red)">'+prodMargemBaixa.length+' produto(s) com margem abaixo de 30%!</strong><div style="font-size:12px;color:var(--text2);margin-top:2px">'+prodMargemBaixa.slice(0,3).map(function(p){return p.desc;}).join(', ')+(prodMargemBaixa.length>3?' e mais '+(prodMargemBaixa.length-3)+'...':'')+'</div></div></div>';}else{alertMargem.innerHTML='';}}
   // Alerta crítico Clenil
   const top=abc.top100[0];
   document.getElementById('prod-critico').innerHTML=
@@ -4595,7 +4576,6 @@ function renderProdutos(){
     +'<th class="col-val">Faturamento</th>'
     +'<th class="col-date" style="text-align:right">% receita</th>'
     +'<th class="col-date" style="text-align:right;color:var(--yellow)">Est. mínimo</th>'
-    +'<th class="col-val" style="color:var(--red)">Margem</th>'
     +'<th style="width:160px">Estratégia</th>'
     +'</tr></thead><tbody>'
     +lista.map((p,i)=>{
@@ -7709,6 +7689,15 @@ function renderDashboard(){
     ...D.boletos.filter(b=>!b.paid&&b.due&&b.due===hj).map(b=>({desc:b.sup,val:b.val,due:b.due,tipo:'Boleto 📋'})),
     ...D.saidas.filter(s=>!s.paid&&s.date&&s.date===hj).map(s=>({desc:s.desc,val:s.val,due:s.date,tipo:'Despesa 💸'}))
   ].sort((a,b)=>a.due.localeCompare(b.due));
+  // Ticket médio e ranking dias da semana
+  const fatDados=(()=>{try{var r=localStorage.getItem('msfarma-fatur-dia');return r?JSON.parse(r):null;}catch(e){return null;}})();
+  const ticketMedio=(()=>{if(!fatDados||!fatDados.dias||!fatDados.dias.length)return 0;var cliDados=(()=>{try{var r=localStorage.getItem('msfarma-clientes');return r?JSON.parse(r):null;}catch(e){return null;}})();if(cliDados&&cliDados.ticketMedio)return cliDados.ticketMedio;var total=fatDados.dias.reduce(function(s,d){return s+d.total;},0);var qtd=fatDados.dias.reduce(function(s,d){return s+(d.qtd||0);},0);return qtd>0?total/qtd:0;})();
+  const rankingDias=(()=>{if(!fatDados||!fatDados.dias||!fatDados.dias.length)return [];
+    var nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    var soma=[0,0,0,0,0,0,0];var cont=[0,0,0,0,0,0,0];
+    fatDados.dias.forEach(function(d){var dt=new Date(d.data+'T12:00:00');var dw=dt.getDay();soma[dw]+=d.total;cont[dw]++;});
+    return nomes.map(function(n,i){return{nome:n,media:cont[i]>0?soma[i]/cont[i]:0,total:soma[i],dias:cont[i]};}).sort(function(a,b){return b.media-a.media;});
+  })();
   const dias=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
   const mesesNome=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const hr=hoje.getHours();const pad=n=>String(n).padStart(2,'0');
@@ -7790,6 +7779,8 @@ function renderDashboard(){
     +'</div>'
 +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem">'
+    +(ticketMedio>0?'<div class="chart-card"><div class="chart-title">🎫 Ticket Médio por Cliente</div><div style="font-size:36px;font-weight:800;color:var(--green);margin-bottom:8px">'+fmtCur(ticketMedio)+'</div><div style="font-size:12px;color:var(--text2)">Baseado nos dados importados da Relação de Vendas</div></div>':'')
+    +(rankingDias.length>0?'<div class="chart-card"><div class="chart-title">📅 Ranking — Dias mais fortes</div>'+rankingDias.map(function(d,i){var pct=rankingDias[0].media>0?d.media/rankingDias[0].media*100:0;var cor=i===0?'var(--green)':i===1?'var(--blue)':i===2?'var(--yellow)':'var(--text3)';return'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div style="width:28px;font-weight:700;color:'+cor+'">'+d.nome+'</div><div style="flex:1;background:var(--surface2);border-radius:99px;height:6px;overflow:hidden"><div style="background:'+cor+';height:100%;width:'+pct.toFixed(0)+'%;border-radius:99px"></div></div><div style="font-size:12px;font-weight:600;color:'+cor+';min-width:80px;text-align:right">'+fmtCur(d.media)+'</div></div>';}).join('')+'</div>':'')
     +'<div class="chart-card"><div class="chart-title"><i class="ti ti-chart-bar" style="font-size:13px;color:var(--green)"></i> Faturamento — 5 meses</div>'
     +'<div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding:0 4px;margin-bottom:8px">'
     +meses.map(function(mes){
