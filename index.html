@@ -2450,7 +2450,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <div class="form-footer"><button class="btn btn-green" onclick="addCartao()"><i class="ti ti-plus"></i> Adicionar cartão</button></div>
       </div>
     </div>
-    <div id="cart-list"></div>
+    <div id="cart-alertas"></div><div id="cart-list"></div>
   </div>
 
   <!-- PRODUTOS / CURVA ABC -->
@@ -5486,8 +5486,8 @@ function savePRONAMPE(d){localStorage.setItem(PRON_KEY,JSON.stringify(d));}
 function renderPRONAMPE(){
   const el=document.getElementById('pronampe-content');
   if(!el)return;
-  const dados=loadPRONAMPE()||{status:'simulando',valor:(loadPRONAMPE()&&loadPRONAMPE().valor?loadPRONAMPE().valor:51000),parcelas:60,dataContrato:'',parcelasPagas:0};
-  const selic=14.5;
+  const dados=loadPRONAMPE()||{status:'simulando',valor:51000,parcelas:60,dataContrato:'',parcelasPagas:0,selic:14.75};
+  const selic=14.75;
   const taxaAnual=selic+6;
   const taxaMes=taxaAnual/12/100;
   const pmt=function(pv,r,n){return r===0?pv/n:pv*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);};
@@ -7456,6 +7456,9 @@ function addCartao(){
   ['c-banco','c-limite','c-titular','c-fatura','c-venc','c-melhor'].forEach(id=>document.getElementById(id).value='');
   showToast('✓ Cartão adicionado!','green');
 }
+function fecharModalCartao(id){var el=document.getElementById(id);if(el)el.remove();}
+function abrirModalImportarFatura(){var cartoes=D.cartoes||[];if(!cartoes.length){showToast("Cadastre um cartão primeiro.","yellow");return;}var m=document.createElement("div");m.id="modal-importar-fatura";m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px";m.innerHTML="<div style=\"background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;width:100%;max-width:440px\"><div style=\"font-size:16px;font-weight:700;margin-bottom:16px\">📥 Importar Fatura Fechada</div><div class=\"field\"><label>Cartão</label><select id=\"if-cartao\" style=\"width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)\">"+cartoes.map(function(c){return"<option value=\""+c.id+"\">"+c.banco+" "+c.bandeira+" — "+c.titular+"</option>";}).join("")+"</select></div><div class=\"field\"><label>Mês de referência</label><input type=\"month\" id=\"if-mes\"></div><div class=\"field\"><label>Valor da fatura (R$)</label><input type=\"number\" id=\"if-val\" placeholder=\"0,00\" step=\"0.01\"></div><div class=\"field\"><label>Data de pagamento</label><input type=\"date\" id=\"if-data\"></div><div class=\"field\"><label>Observação</label><input type=\"text\" id=\"if-obs\" placeholder=\"Ex: Fatura fechada maio/26\"></div><div class=\"form-footer\"><button class=\"btn\" onclick=\"fecharModalCartao('modal-importar-fatura')\">Cancelar</button><button class=\"btn btn-green\" onclick=\"confirmarImportarFatura()\">✓ Importar</button></div></div>";document.body.appendChild(m);}
+function confirmarImportarFatura(){var cartaoId=parseInt(document.getElementById("if-cartao").value);var c=(D.cartoes||[]).find(function(x){return x.id===cartaoId;});if(!c)return;var mes=document.getElementById("if-mes").value;var val=parseFloat(document.getElementById("if-val").value)||0;var data=document.getElementById("if-data").value;var obs=document.getElementById("if-obs").value.trim();if(!mes||!val){showToast("Preencha mês e valor.","yellow");return;}var fatHist=JSON.parse(localStorage.getItem("msfarma-fat-hist")||"[]");fatHist.push({cartaoId:cartaoId,cartao:c.banco+" "+c.bandeira,mes:mes,val:val,data:data,obs:obs});localStorage.setItem("msfarma-fat-hist",JSON.stringify(fatHist));fecharModalCartao("modal-importar-fatura");showToast("✓ Fatura importada!","green");}
 function delCartao(id){
   if(!confirm('Remover cartão?'))return;
   D.cartoes=(D.cartoes||[]).filter(c=>c.id!==id);save();renderCartoes();
