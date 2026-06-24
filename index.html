@@ -2959,7 +2959,7 @@ function renderNF(){
     });
   }
   const tbody=document.getElementById('nf-tbody');
-  if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="10"><i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;};return;}
+  if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="10"><i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;}
   tbody.innerHTML=list.map(n=>{
     return`<tr>
       <td><strong style="color:var(--green)">${n.num}</strong>${n.chave?` <span style="font-size:10px;background:var(--blue-dim);color:var(--blue);padding:1px 6px;border-radius:3px;font-weight:600;margin-left:4px">XML</span>`:''}</td>
@@ -2968,9 +2968,9 @@ function renderNF(){
       <td>${n.entrada?fmtDate(n.entrada):'—'}</td>
       <td>${n.fechamento?`<span class="badge b-paid">${fmtDate(n.fechamento)}</span>`:`<button class="btn-icon" onclick="fecharNF(${n.id})" title="Registrar fechamento" style="color:var(--yellow);font-size:12px">📅 Fechar</button>`}</td>
       <td style="text-align:right;font-weight:600">${fmtCur(n.val)}</td>
-      <td><span class="badge" style="font-size:10px">${n.formaPagto||'—'}</span></td>
-      <td><span class="badge ${n.sitFinanceira==='Pago'?'b-paid':n.sitFinanceira==='Parcelado'?'b-ok':''}" style="font-size:10px">${n.sitFinanceira||'—'}</span></td>
-      <td style="font-size:11px;color:var(--text2)">${n.centroCompra||'—'}</td>
+      <td><span class="badge" style="font-size:10px">${n.formaPagto||"—"}</span></td>
+      <td><span class="badge" style="font-size:10px">${n.sitFinanceira||"—"}</span></td>
+      <td style="font-size:11px;color:var(--text2)">${n.centroCompra||"—"}</td>
       <td style="text-align:center">
         <div style="display:flex;gap:4px;justify-content:center">
           <button class="btn-icon" onclick="editNF(${n.id})" title="Editar NF" style="color:var(--blue)">✏️</button>
