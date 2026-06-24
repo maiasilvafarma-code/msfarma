@@ -5166,7 +5166,10 @@ function salvarReserva(){
 // 2. CMV & MARGEM
 function renderCMV(){
   const m=curMonth();
-  const rec=D.entradas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
+  const _fatRaw=localStorage.getItem('msfarma-fatur-dia');
+  const _fatParsed=_fatRaw?JSON.parse(_fatRaw):null;
+  const _fatMes=_fatParsed&&_fatParsed.dias?_fatParsed.dias.filter(function(d){return d.data.startsWith(m);}).reduce(function(s,d){return s+d.total;},0):0;
+  const rec=_fatMes>0?_fatMes:D.entradas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
   const meses=[];
   for(let i=4;i>=0;i--){
     const d=new Date();d.setMonth(d.getMonth()-i);
