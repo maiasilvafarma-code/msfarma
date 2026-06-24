@@ -2977,6 +2977,22 @@ function renderNF(){
     +'<div class="mcard"><div class="mcard-label">📦 Total NFs</div><div class="mcard-value">'+list.length+'</div></div>'
     +(fornTop?'<div class="mcard"><div class="mcard-label">🏆 Top fornecedor</div><div class="mcard-value" style="font-size:14px;font-weight:700">'+fornTop[0].split(' ')[0]+'</div><div style="font-size:11px;color:var(--green)">'+fmtCur(fornTop[1])+'</div></div>':'')
     +(prazoMedio>0?'<div class="mcard"><div class="mcard-label">⏱ Prazo médio</div><div class="mcard-value '+(prazoMedio>3?'yellow':'green')+'">'+prazoMedio.toFixed(1)+' dias</div></div>':'');
+  // Adicionar cabeçalhos das novas colunas
+  setTimeout(function(){
+    var thead=document.querySelector('#sec-nf thead tr');
+    if(thead&&!document.getElementById('nf-th-forma')){
+      var actTh=thead.querySelector('.col-act');
+      if(actTh){
+        ['Forma Pagto','Sit. Financeira','Centro'].forEach(function(t,i){
+          var th=document.createElement('th');
+          th.id='nf-th-'+i;
+          th.textContent=t;
+          th.style.cssText='font-size:11px;white-space:nowrap;min-width:90px';
+          thead.insertBefore(th,actTh);
+        });
+      }
+    }
+  },100);
   const tbody=document.getElementById('nf-tbody');
   if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="10"><i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;}
   tbody.innerHTML=list.map(n=>{
