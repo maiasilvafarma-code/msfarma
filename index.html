@@ -7028,6 +7028,34 @@ function renderFolha(){
     }).join('')
     +'</tbody></table></div></div>';
 
+  // Simulador 13º e Férias
+  var cltAtivos=folha.filter(function(f){return f.ativo&&f.tipo==='CLT';});
+  if(cltAtivos.length>0){
+    var mesAtual=new Date().getMonth()+1;
+    var simHtml='<div class="chart-card" style="margin-top:1.25rem"><div class="chart-title">🎄 Simulador — 13º Salário e Férias</div>';
+    simHtml+='<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Provisão mensal recomendada por funcionário CLT. Guarde esse valor todo mês para não ser pego de surpresa.</div>';
+    simHtml+='<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Funcionário</th><th class="col-val">Salário base</th><th class="col-val">Provisão 13º/mês</th><th class="col-val">Provisão férias/mês</th><th class="col-val">Total reservar/mês</th><th class="col-val">Acumulado 13º</th><th class="col-val">Acumulado férias</th></tr></thead><tbody>';
+    var total13=0,totalFer=0,totalRes=0;
+    cltAtivos.forEach(function(f){
+      var base=f.salarioBase*(1+(f.periculosidade||0)/100);
+      var prov13=base/12;
+      var provFer=(base/12)*1.3333;
+      var totalMes=prov13+provFer;
+      var acum13=prov13*mesAtual;
+      var acumFer=provFer*mesAtual;
+      total13+=prov13;totalFer+=provFer;totalRes+=totalMes;
+      simHtml+='<tr><td style="font-weight:600">'+f.nome+'</td><td style="text-align:right">'+fmtCur(base)+'</td><td style="text-align:right;color:var(--green)">'+fmtCur(prov13)+'</td><td style="text-align:right;color:var(--blue)">'+fmtCur(provFer)+'</td><td style="text-align:right;font-weight:700;color:var(--yellow)">'+fmtCur(totalMes)+'</td><td style="text-align:right;color:var(--green)">'+fmtCur(acum13)+'</td><td style="text-align:right;color:var(--blue)">'+fmtCur(acumFer)+'</td></tr>';
+    });
+    simHtml+='<tr style="background:var(--surface2);font-weight:700;border-top:2px solid var(--border2)"><td>TOTAL</td><td></td><td style="text-align:right;color:var(--green)">'+fmtCur(total13)+'</td><td style="text-align:right;color:var(--blue)">'+fmtCur(totalFer)+'</td><td style="text-align:right;color:var(--yellow)">'+fmtCur(totalRes)+'</td><td style="text-align:right;color:var(--green)">'+fmtCur(total13*mesAtual)+'</td><td style="text-align:right;color:var(--blue)">'+fmtCur(totalFer*mesAtual)+'</td></tr>';
+    simHtml+='</tbody></table></div>';
+    simHtml+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px">';
+    simHtml+='<div style="background:var(--green-dim);border:1px solid var(--green-border);border-radius:var(--r);padding:14px;text-align:center"><div style="font-size:11px;color:var(--green);margin-bottom:4px">RESERVAR TODO MÊS</div><div style="font-size:24px;font-weight:800;color:var(--green)">'+fmtCur(totalRes)+'</div></div>';
+    simHtml+='<div style="background:var(--blue-dim);border:1px solid var(--blue-border);border-radius:var(--r);padding:14px;text-align:center"><div style="font-size:11px;color:var(--blue);margin-bottom:4px">13º ACUMULADO ATÉ MÊS '+mesAtual+'</div><div style="font-size:24px;font-weight:800;color:var(--blue)">'+fmtCur(total13*mesAtual)+'</div></div>';
+    simHtml+='<div style="background:var(--yellow-dim);border:1px solid var(--yellow-border);border-radius:var(--r);padding:14px;text-align:center"><div style="font-size:11px;color:var(--yellow);margin-bottom:4px">FÉRIAS ACUMULADAS ATÉ MÊS '+mesAtual+'</div><div style="font-size:24px;font-weight:800;color:var(--yellow)">'+fmtCur(totalFer*mesAtual)+'</div></div>';
+    simHtml+='</div></div>';
+    html+=simHtml;
+  }
+
   document.getElementById('folha-content').innerHTML=html;
 }
 
