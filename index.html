@@ -5006,7 +5006,9 @@ function renderSaude(){
 function renderSaudeScore(){
   // Calcula score de saúde 0-100
   const m=curMonth();
-  const rec=D.entradas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
+  const recEntradas=D.entradas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
+  const fatMes=(()=>{try{var fd=JSON.parse(localStorage.getItem('msfarma-fatur-dia')||'null');if(fd&&fd.dias){var tot=fd.dias.filter(function(d){return d.data.startsWith(m);}).reduce(function(s,d){return s+d.total;},0);if(tot>0)return tot;}return recEntradas;}catch(e){return recEntradas;}})();
+  const rec=fatMes;
   const desp=D.saidas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
   const bOver=D.boletos.filter(b=>statusBoleto(b)==='overdue').length;
   const custoFixo=31039.11;
