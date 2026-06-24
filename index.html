@@ -7431,12 +7431,13 @@ function renderCartoes(){
     +'<div class="mcard"><div class="mcard-label">% utilizado</div><div class="mcard-value '+(util>80?'red':util>50?'yellow':'green')+'">'+util.toFixed(0)+'%</div></div>'
     +'<div class="mcard"><div class="mcard-label">Limite disponível</div><div class="mcard-value green">'+fmtCur(totalLimite-totalFatura)+'</div></div>';
 
+  const fatHist=JSON.parse(localStorage.getItem('msfarma-fat-hist')||'[]');
+  const alertEl=document.getElementById('cart-alertas');
+  if(alertEl){var vencidos=cartoes.filter(function(c){return c.venc&&daysDiff(c.venc)<=5;});if(vencidos.length){alertEl.innerHTML='<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;margin-bottom:12px"><div style="font-weight:700;color:var(--red);margin-bottom:6px">🔴 Atenção — Faturas vencendo!</div>'+vencidos.map(function(c){var d=daysDiff(c.venc);return'<div style="font-size:13px;margin-bottom:3px">• <strong>'+c.banco+'</strong> ('+c.bandeira+') — '+fmtCur(c.fatura)+' — Venc. '+fmtDate(c.venc)+(d<0?' <span style="color:var(--red)">('+Math.abs(d)+'d em atraso)</span>':d===0?' <span style="color:var(--red)">(HOJE)</span>':' <span style="color:var(--yellow)">('+d+'d)</span>')+'</div>';}).join('')+'</div>';}else{alertEl.innerHTML='';}}
   const listEl=document.getElementById('cart-list');
-  if(!cartoes.length){
-    listEl.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text3)"><i class="ti ti-credit-card" style="font-size:36px;display:block;margin-bottom:10px;opacity:.3"></i>Nenhum cartão cadastrado.<br><span style="font-size:12px">Clique em "Adicionar cartão" acima.</span></div>';
-    return;
-  }
-  listEl.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden">'
+  if(!cartoes.length){listEl.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text3)">💳 Nenhum cartão cadastrado.</div>';return;}
+  listEl.innerHTML='<div style="text-align:right;margin-bottom:10px"><button class="btn" onclick="abrirModalImportarFatura()" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue)">📥 Importar Fatura Fechada</button></div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden">'
     +'<table class="data-table"><thead><tr>'
     +'<th>Banco / Emissor</th><th>Bandeira</th><th>Titular</th>'
     +'<th class="col-val">Limite</th><th class="col-val">Fatura</th>'
