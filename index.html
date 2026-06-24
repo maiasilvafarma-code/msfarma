@@ -2906,15 +2906,20 @@ function openNewForm(){
 function editNFCampo(id,campo,td){
   var n=D.nf.find(function(x){return x.id===id;});
   if(!n)return;
-  var opcoes={'formaPagto':['Boleto','PIX','Transferência','Cartão','Bonificação'],'sitFinanceira':['Em aberto','Pago','Parcelado'],'centroCompra':['Medicamentos','Perfumaria','Fraldas','Vitaminas','Naturais','Diversos']};
+  var opcoes={
+    formaPagto:[{v:'',l:'— Selecione'},{v:'Boleto',l:'📋 Boleto'},{v:'PIX',l:'⚡ PIX'},{v:'Transferência',l:'🏦 Transferência'},{v:'Cartão',l:'💳 Cartão'},{v:'Bonificação',l:'🎁 Bonificação'}],
+    sitFinanceira:[{v:'',l:'— Selecione'},{v:'Em aberto',l:'🟡 Em aberto'},{v:'Pago',l:'✅ Pago'},{v:'Parcelado',l:'🔵 Parcelado'}],
+    centroCompra:[{v:'',l:'— Selecione'},{v:'Medicamentos',l:'💊 Medicamentos'},{v:'Perfumaria',l:'🌸 Perfumaria'},{v:'Fraldas',l:'👶 Fraldas'},{v:'Vitaminas',l:'🌿 Vitaminas'},{v:'Naturais',l:'🍃 Naturais'},{v:'Diversos',l:'📦 Diversos'}]
+  };
   var sel=document.createElement('select');
-  sel.style.cssText='height:28px;background:var(--surface2);border:1px solid var(--green);border-radius:4px;padding:0 6px;font-size:11px;color:var(--text);outline:none;cursor:pointer';
-  sel.innerHTML='<option value="">—</option>'+opcoes[campo].map(function(o){return'<option value="'+o+'"'+(n[campo]===o?' selected':'')+'>'+o+'</option>';}).join('');
+  sel.style.cssText='height:30px;background:var(--surface);border:2px solid var(--green);border-radius:6px;padding:0 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer;min-width:120px;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+  sel.innerHTML=opcoes[campo].map(function(o){return'<option value="'+o.v+'"'+(n[campo]===o.v?' selected':'')+'>'+o.l+'</option>';}).join('');
   td.innerHTML='';
   td.appendChild(sel);
   sel.focus();
-  sel.onchange=function(){n[campo]=this.value;save();renderNF();};
-  sel.onblur=function(){renderNF();};
+  function salvar(){n[campo]=sel.value;save();renderNF();}
+  sel.onchange=salvar;
+  sel.onblur=salvar;
 }
 function limparFormNF(){var el=document.getElementById('nf-form-area');if(el)el.innerHTML='';}
 function addNF(){
@@ -2963,14 +2968,6 @@ function renderNF(){
     +'<div class="mcard"><div class="mcard-label">📦 Total NFs</div><div class="mcard-value">'+list.length+'</div></div>'
     +(fornTop?'<div class="mcard"><div class="mcard-label">🏆 Top fornecedor</div><div class="mcard-value" style="font-size:14px;font-weight:700">'+fornTop[0].split(' ')[0]+'</div><div style="font-size:11px;color:var(--green)">'+fmtCur(fornTop[1])+'</div></div>':'')
     +(prazoMedio>0?'<div class="mcard"><div class="mcard-label">⏱ Prazo médio</div><div class="mcard-value '+(prazoMedio>3?'yellow':'green')+'">'+prazoMedio.toFixed(1)+' dias</div></div>':'');
-  // Adicionar colunas extras dinamicamente
-  const nfThead=document.querySelector('#sec-nf table thead tr');
-  if(nfThead&&!document.getElementById('nf-th-pagto')){
-    ['Forma Pagto','Sit. Financeira','Centro'].forEach(function(col,i){
-      var th=document.createElement('th');th.textContent=col;th.id='nf-th-'+i;
-      nfThead.insertBefore(th,nfThead.lastElementChild);
-    });
-  }
   const tbody=document.getElementById('nf-tbody');
   if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="10"><i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;}
   tbody.innerHTML=list.map(n=>{
