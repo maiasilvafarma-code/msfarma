@@ -2903,6 +2903,19 @@ function openNewForm(){
     </div>
   </div>`;
 }
+function editNFCampo(id,campo,td){
+  var n=D.nf.find(function(x){return x.id===id;});
+  if(!n)return;
+  var opcoes={'formaPagto':['Boleto','PIX','Transferência','Cartão','Bonificação'],'sitFinanceira':['Em aberto','Pago','Parcelado'],'centroCompra':['Medicamentos','Perfumaria','Fraldas','Vitaminas','Naturais','Diversos']};
+  var sel=document.createElement('select');
+  sel.style.cssText='height:28px;background:var(--surface2);border:1px solid var(--green);border-radius:4px;padding:0 6px;font-size:11px;color:var(--text);outline:none;cursor:pointer';
+  sel.innerHTML='<option value="">—</option>'+opcoes[campo].map(function(o){return'<option value="'+o+'"'+(n[campo]===o?' selected':'')+'>'+o+'</option>';}).join('');
+  td.innerHTML='';
+  td.appendChild(sel);
+  sel.focus();
+  sel.onchange=function(){n[campo]=this.value;save();renderNF();};
+  sel.onblur=function(){renderNF();};
+}
 function limparFormNF(){var el=document.getElementById('nf-form-area');if(el)el.innerHTML='';}
 function addNF(){
   const num=document.getElementById('nf-num').value.trim();
@@ -2968,9 +2981,9 @@ function renderNF(){
       <td>${n.entrada?fmtDate(n.entrada):'—'}</td>
       <td>${n.fechamento?`<span class="badge b-paid">${fmtDate(n.fechamento)}</span>`:`<button class="btn-icon" onclick="fecharNF(${n.id})" title="Registrar fechamento" style="color:var(--yellow);font-size:12px">📅 Fechar</button>`}</td>
       <td style="text-align:right;font-weight:600">${fmtCur(n.val)}</td>
-      <td><span class="badge" style="font-size:10px">${n.formaPagto||"—"}</span></td>
-      <td><span class="badge" style="font-size:10px">${n.sitFinanceira||"—"}</span></td>
-      <td style="font-size:11px;color:var(--text2)">${n.centroCompra||"—"}</td>
+      <td onclick="editNFCampo(${n.id},'formaPagto',this)" style="cursor:pointer" title="Clique para editar"><span class="badge" style="font-size:10px">${n.formaPagto||"—"}</span></td>
+      <td onclick="editNFCampo(${n.id},'sitFinanceira',this)" style="cursor:pointer" title="Clique para editar"><span class="badge ${n.sitFinanceira==='Pago'?'b-paid':''}" style="font-size:10px">${n.sitFinanceira||"—"}</span></td>
+      <td onclick="editNFCampo(${n.id},'centroCompra',this)" style="cursor:pointer" title="Clique para editar"><span style="font-size:11px;color:var(--text2)">${n.centroCompra||"—"}</span></td>
       <td style="text-align:center">
         <div style="display:flex;gap:4px;justify-content:center">
           <button class="btn-icon" onclick="editNF(${n.id})" title="Editar NF" style="color:var(--blue)">✏️</button>
