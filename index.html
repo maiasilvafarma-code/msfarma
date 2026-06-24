@@ -2959,7 +2959,7 @@ function renderNF(){
     });
   }
   const tbody=document.getElementById('nf-tbody');
-  if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="10">`<i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;}
+  if(!list.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="10"><i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma nota fiscal encontrada.</td></tr>`;return;};return;}
   tbody.innerHTML=list.map(n=>{
     return`<tr>
       <td><strong style="color:var(--green)">${n.num}</strong>${n.chave?` <span style="font-size:10px;background:var(--blue-dim);color:var(--blue);padding:1px 6px;border-radius:3px;font-weight:600;margin-left:4px">XML</span>`:''}</td>
