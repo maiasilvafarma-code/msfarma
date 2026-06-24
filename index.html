@@ -2917,9 +2917,7 @@ function editNFCampo(id,campo,td){
   td.innerHTML='';
   td.appendChild(sel);
   sel.focus();
-  function salvar(){n[campo]=sel.value;save();renderNF();}
-  sel.onchange=salvar;
-  sel.onblur=salvar;
+  sel.onchange=function(){n[campo]=this.value;save();renderNF();};
 }
 function limparFormNF(){var el=document.getElementById('nf-form-area');if(el)el.innerHTML='';}
 function addNF(){
