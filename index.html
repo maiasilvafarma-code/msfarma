@@ -5638,7 +5638,7 @@ function simularPRONAMPE(){
 }
 
 function setPronPrazo(n){
-  const dados=loadPRONAMPE()||{{valor:(loadPRONAMPE()&&loadPRONAMPE().valor?loadPRONAMPE().valor:51000)}
+  const dados=loadPRONAMPE()||{valor:(loadPRONAMPE()&&loadPRONAMPE().valor?loadPRONAMPE().valor:51000)};
   dados.parcelas=n;
   savePRONAMPE(dados);
   renderPRONAMPE();
