@@ -7776,7 +7776,10 @@ function renderDashboard(){
   const mesesNome=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
   // DADOS
-  const rec=D.entradas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
+  const _fatRawD=localStorage.getItem('msfarma-fatur-dia');
+  const _fatParsedD=_fatRawD?JSON.parse(_fatRawD):null;
+  const _fatMesD=_fatParsedD&&_fatParsedD.dias?_fatParsedD.dias.filter(function(d){return d.data.startsWith(m);}).reduce(function(s,d){return s+d.total;},0):0;
+  const rec=_fatMesD>0?_fatMesD:D.entradas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
   const desp=D.saidas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
   const bolPend=D.boletos.filter(b=>!b.paid&&b.due&&daysDiff(b.due)>=0);
   const bolVenc=D.boletos.filter(b=>statusBoleto(b)==='overdue');
