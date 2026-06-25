@@ -5649,6 +5649,7 @@ function makeColumnsResizable(table){
   table.style.tableLayout='auto';
   const ths=table.querySelectorAll('th');
   ths.forEach(function(th){
+    if(th.id==='b-th-chk')return;
     // Remove old handles
     th.querySelectorAll('.col-resize-handle').forEach(function(h){h.remove();});
     th.style.position='relative';
