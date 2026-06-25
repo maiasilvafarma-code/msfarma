@@ -3424,6 +3424,16 @@ function renderBoletos(){
       +'</div></td></tr>';
   });
   tbody.innerHTML=rows;
+  // Adicionar coluna checkbox no header
+  setTimeout(function(){
+    var thead=document.querySelector('#sec-boletos table thead tr');
+    if(thead&&!document.getElementById('b-th-chk')){
+      var th=document.createElement('th');
+      th.id='b-th-chk';
+      th.style.cssText='width:36px;min-width:36px';
+      thead.insertBefore(th,thead.firstElementChild);
+    }
+  },50);
 }
 
 // ENTRADAS ───────────────────────────────────────────
