@@ -80,7 +80,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .data-table .col-num{width:100px}.data-table .col-sup{width:140px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.data-table .col-date{width:85px}.data-table .col-val{width:100px;text-align:right}.data-table .col-status{width:90px}.data-table .col-act{width:110px;text-align:center}
 /* BADGES */
 .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:4px}
-.b-pending{color:var(--yellow)}.b-paid{color:var(--green)}.b-overdue{color:var(--red)}.b-ok{color:var(--blue)}
+.b-pending{color:var(--yellow)}.b-paid{color:var(--green)}.b-overdue{color:var(--red)}.b-ok{color:var(--blue)}.b-negociado{color:#a78bfa;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3)}
 /* BUTTONS */
 .btn{height:34px;padding:0 14px;border-radius:var(--r);border:1px solid var(--border2);background:none;cursor:pointer;font-size:13px;color:var(--text2);display:inline-flex;align-items:center;gap:6px;font-family:var(--font);white-space:nowrap;transition:all .15s}
 .btn:hover{background:var(--surface3);border-color:var(--border2);color:var(--text)}
@@ -895,7 +895,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <div class="metrics" id="b-metrics" style="margin-bottom:1rem"><div class="mcard"><div class="mcard-label">Total pendente</div><div class="mcard-value yellow">R$ 20.126,06</div></div><div class="mcard"><div class="mcard-label">Pendentes</div><div class="mcard-value yellow">28</div></div><div class="mcard"><div class="mcard-label">Atrasados</div><div class="mcard-value red">4</div></div><div class="mcard"><div class="mcard-label">Pagos</div><div class="mcard-value green">2</div></div><div class="mcard"><div class="mcard-label">Total pago</div><div class="mcard-value green">R$ 2.989,67</div></div></div>
         <div class="search-bar" style="margin-bottom:0">
           <div class="search-input-wrap"><i class="ti ti-search"></i><input type="text" id="b-search" placeholder="Buscar fornecedor, observação..." oninput="renderBoletos()"></div>
-          <select class="status-select" id="b-status-sel" onchange="renderBoletos()"><option value="">Todos os status</option><option value="pending">Pendente</option><option value="overdue">Atrasado</option><option value="paid">Pago</option></select>
+          <select class="status-select" id="b-status-sel" onchange="renderBoletos()"><option value="">Todos os status</option><option value="pending">Pendente</option><option value="overdue">Atrasado</option><option value="paid">Pago</option><option value="negociado">Negociado</option></select>
           <button class="btn" onclick="checkAlerts()"><i class="ti ti-bell" style="font-size:14px"></i> Verificar alertas</button>
         </div>
       </div>
@@ -2823,7 +2823,8 @@ function statusNF(n){
   if(n.due&&daysDiff(n.due)<0)return'Vencida';
   return'Pendente';
 }
-function statusBoleto(b){
+function statusBoleto(b){if(b.negociado)return "negociado";
+
   if(b.paid)return'paid';
   const d=daysDiff(b.due);
   if(d<0)return'overdue';if(d<=3)return'danger';if(d<=7)return'warning';return'ok';
@@ -3129,6 +3130,56 @@ function confirmarPagBoleto(id){
     showToast('✓ Boleto '+b.sup+' marcado como pago!','green');
   }
 }
+function abrirModalRenegociar(id){
+  var b=D.boletos.find(function(x){return x.id===id;});
+  if(!b)return;
+  var m=document.createElement('div');
+  m.id='modal-renegociar';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;width:100%;max-width:480px">'
+    +'<div style="font-size:16px;font-weight:700;margin-bottom:4px">🤝 Renegociar Boleto</div>'
+    +'<div style="font-size:12px;color:var(--text2);margin-bottom:16px">'+b.sup+' — '+fmtCur(b.val)+'</div>'
+    +'<div class="field"><label>Valor total negociado (R$)</label><input type="number" id="ren-val" value="'+b.val+'" step="0.01" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;color:var(--text);outline:none"></div>'
+    +'<div class="field"><label>Número de parcelas</label><input type="number" id="ren-parc" value="1" min="1" max="24" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;color:var(--text);outline:none"></div>'
+    +'<div class="field"><label>Data da 1ª parcela</label><input type="date" id="ren-data" value="'+new Date().toISOString().slice(0,10)+'" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;color:var(--text);outline:none"></div>'
+    +'<div class="field"><label>Observação</label><input type="text" id="ren-obs" placeholder="Ex: Renegociado após queda de vendas (WhatsApp)" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;color:var(--text);outline:none"></div>'
+    +'<div class="form-footer">'
+    +'<button class="btn" onclick="fecharModalCartao('modal-renegociar')">Cancelar</button>'
+    +'<button class="btn" style="background:rgba(139,92,246,0.15);color:#a78bfa;border-color:rgba(139,92,246,0.3)" onclick="confirmarRenegociacao('+id+')">🤝 Confirmar Renegociação</button>'
+    +'</div></div>';
+  document.body.appendChild(m);
+}
+function confirmarRenegociacao(id){
+  var b=D.boletos.find(function(x){return x.id===id;});
+  if(!b)return;
+  var val=parseFloat(document.getElementById('ren-val').value)||b.val;
+  var parc=parseInt(document.getElementById('ren-parc').value)||1;
+  var data=document.getElementById('ren-data').value;
+  var obs=document.getElementById('ren-obs').value.trim();
+  if(!data){showToast('Informe a data da 1ª parcela.','yellow');return;}
+  var valParc=val/parc;
+  // Marca boleto original como negociado
+  b.negociado=true;
+  b.obs=(obs?obs:'Renegociado');
+  // Cria novas parcelas
+  for(var i=0;i<parc;i++){
+    var dt=new Date(data+'T12:00:00');
+    dt.setMonth(dt.getMonth()+i);
+    D.boletos.push({
+      id:Date.now()+i,
+      sup:b.sup,
+      val:Math.round(valParc*100)/100,
+      due:dt.toISOString().slice(0,10),
+      paid:false,
+      bar:'',
+      obs:'Parcela '+(i+1)+'/'+parc+' — Renegociado'+(obs?' — '+obs:'')
+    });
+  }
+  save();
+  fecharModalCartao('modal-renegociar');
+  renderBoletos();
+  showToast('✅ Renegociação registrada! '+parc+' parcela(s) criada(s).','green');
+}
 function delBoleto(id){if(!confirm('Remover boleto?'))return;D.boletos=D.boletos.filter(x=>x.id!==id);save();renderAll();}
 function setBMonth(m){bMonth=m;renderBoletos();setTimeout(applyResizableToAllTables,100);}
 
@@ -3171,6 +3222,7 @@ function renderBoletos(){
   if(sf==='pending')list=list.filter(x=>!x.paid&&statusBoleto(x)!=='overdue');
   if(sf==='overdue')list=list.filter(x=>statusBoleto(x)==='overdue');
   if(sf==='paid')list=list.filter(x=>x.paid);
+  if(sf==='negociado')list=list.filter(x=>x.negociado&&!x.paid);
 
   const pend=list.filter(b=>!b.paid);
   const totalPend=pend.reduce((s,b)=>s+b.val,0);
@@ -3290,7 +3342,8 @@ function renderBoletos(){
       +'<button onclick="payBoleto('+b.id+')" title="'+payTitle+'"'
       +' style="height:28px;padding:0 10px;border:1px solid '+(b.paid?'var(--border)':'var(--green-border)')+';background:'+(b.paid?'none':'var(--green-dim)')+';border-radius:var(--r);cursor:pointer;color:'+(b.paid?'var(--text3)':'var(--green)')+';font-size:11px;font-family:var(--font);display:flex;align-items:center;gap:4px">'
       +(b.paid?'↩ Desfazer':'✓ Pagar')+'</button>'
-      +'<button onclick="delBoleto('+b.id+')" title="Remover"'
+      +(statusBoleto(b)==='overdue'||b.negociado?'<button onclick="abrirModalRenegociar('+b.id+')" style="height:28px;padding:0 10px;border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.15);border-radius:var(--r);cursor:pointer;color:#a78bfa;font-size:11px;font-family:var(--font);display:flex;align-items:center;gap:4px">🤝 Renegociar</button>':'')
+    +'<button onclick="delBoleto('+b.id+')" title="Remover"'
       +' style="height:28px;width:28px;border:1px solid var(--red-border);background:var(--red-dim);border-radius:var(--r);cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center">'
       +'🗑</button>'
       +'</div></td></tr>';
