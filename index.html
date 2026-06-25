@@ -3144,7 +3144,7 @@ function abrirModalRenegociar(id){
     +'<div class="field"><label>Data da 1ª parcela</label><input type="date" id="ren-data" value="'+new Date().toISOString().slice(0,10)+'" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;color:var(--text);outline:none"></div>'
     +'<div class="field"><label>Observação</label><input type="text" id="ren-obs" placeholder="Ex: Renegociado após queda de vendas (WhatsApp)" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;color:var(--text);outline:none"></div>'
     +'<div class="form-footer">'
-    +'<button class="btn" onclick="fecharModalCartao('modal-renegociar')">Cancelar</button>'
+    +'<button class="btn" onclick="fecharModalCartao(&quot;modal-renegociar&quot;)">Cancelar</button>'
     +'<button class="btn" style="background:rgba(139,92,246,0.15);color:#a78bfa;border-color:rgba(139,92,246,0.3)" onclick="confirmarRenegociacao('+id+')">🤝 Confirmar Renegociação</button>'
     +'</div></div>';
   document.body.appendChild(m);
