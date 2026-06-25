@@ -3130,6 +3130,84 @@ function confirmarPagBoleto(id){
     showToast('✓ Boleto '+b.sup+' marcado como pago!','green');
   }
 }
+var _boletosRen=[];
+function toggleSelecionarBoleto(id){
+  var i=_boletosRen.indexOf(id);
+  if(i>=0){_boletosRen.splice(i,1);}else{_boletosRen.push(id);}
+  var btn=document.getElementById('btn-ren-'+id);
+  if(btn){
+    if(_boletosRen.indexOf(id)>=0){btn.style.background='rgba(139,92,246,0.6)';btn.style.color='#fff';btn.textContent='\u2705 Selecionado';}
+    else{btn.style.background='rgba(139,92,246,0.15)';btn.style.color='#a78bfa';btn.textContent='\uD83E\uDD1D Renegociar';}
+  }
+  atualizarBotaoFlutuanteRen();
+}
+function atualizarBotaoFlutuanteRen(){
+  var ex=document.getElementById('btn-flutuante-ren');if(ex)ex.remove();
+  if(_boletosRen.length===0)return;
+  var total=_boletosRen.reduce(function(s,id){var b=D.boletos.find(function(x){return x.id===id;});return s+(b?b.val:0);},0);
+  var btn=document.createElement('div');
+  btn.id='btn-flutuante-ren';
+  btn.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9998;background:#7c3aed;color:#fff;border-radius:12px;padding:14px 24px;cursor:pointer;font-weight:700;font-size:14px;box-shadow:0 4px 20px rgba(124,58,237,0.5)';
+  btn.textContent='Renegociar '+_boletosRen.length+' boleto(s) — '+fmtCur(total);
+  btn.onclick=function(){abrirModalRenegociarMulti();};
+  document.body.appendChild(btn);
+}
+function abrirModalRenegociarMulti(){
+  if(_boletosRen.length===0)return;
+  var bolSel=_boletosRen.map(function(id){return D.boletos.find(function(x){return x.id===id;});}).filter(Boolean);
+  var totalVal=Math.round(bolSel.reduce(function(s,b){return s+b.val;},0)*100)/100;
+  var m=document.createElement('div');
+  m.id='modal-renegociar-multi';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var listaHTML=bolSel.map(function(b){return'<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">'+b.sup+' - '+fmtCur(b.val)+'</div>';}).join('');
+  m.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto">'
+    +'<div style="font-size:16px;font-weight:700;margin-bottom:12px">Renegociacao de Boletos</div>'
+    +'<div style="background:var(--surface2);border-radius:var(--r);padding:10px;margin-bottom:16px">'+listaHTML
+    +'<div style="font-size:13px;font-weight:700;color:#a78bfa;margin-top:8px">Total: '+fmtCur(totalVal)+'</div></div>'
+    +'<div class="field"><label>Numero de parcelas</label><input type="number" id="ren-parc" value="3" min="1" max="24" oninput="gerarLinhasParcelasRen('+totalVal+')" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;color:var(--text);outline:none"></div>'
+    +'<div id="ren-parcelas-lista"></div>'
+    +'<div class="field"><label>Observacao</label><input type="text" id="ren-obs" placeholder="Ex: Renegociado apos queda de vendas" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;color:var(--text);outline:none"></div>'
+    +'<div class="form-footer"><button class="btn" onclick="fecharModalCartao(&quot;modal-renegociar-multi&quot;)">Cancelar</button>'
+    +'<button class="btn" style="background:rgba(139,92,246,0.2);color:#a78bfa;border-color:rgba(139,92,246,0.4)" onclick="confirmarRenegociacaoMulti('+totalVal+')">Confirmar</button></div></div>';
+  document.body.appendChild(m);
+  setTimeout(function(){gerarLinhasParcelasRen(totalVal);},100);
+}
+function gerarLinhasParcelasRen(totalVal){
+  var parc=parseInt(document.getElementById('ren-parc').value)||1;
+  var valParc=Math.round(totalVal/parc*100)/100;
+  var hoje=new Date();
+  var html='<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">Parcelas:</div>';
+  for(var i=0;i<parc;i++){
+    var dt=new Date(hoje.getFullYear(),hoje.getMonth()+i+1,10);
+    html+='<div style="display:grid;grid-template-columns:40px 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px">'
+      +'<span style="font-size:12px;font-weight:600">'+(i+1)+'/'+parc+'</span>'
+      +'<input type="number" id="ren-val-'+i+'" value="'+valParc+'" style="height:34px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 8px;font-size:12px;color:var(--text);outline:none">'
+      +'<input type="date" id="ren-dt-'+i+'" value="'+dt.toISOString().slice(0,10)+'" style="height:34px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 8px;font-size:12px;color:var(--text);outline:none">'
+      +'</div>';
+  }
+  document.getElementById('ren-parcelas-lista').innerHTML=html+'</div>';
+}
+function confirmarRenegociacaoMulti(totalVal){
+  var parc=parseInt(document.getElementById('ren-parc').value)||1;
+  var obs=document.getElementById('ren-obs').value.trim();
+  var parcelas=[];
+  for(var i=0;i<parc;i++){
+    var v=parseFloat(document.getElementById('ren-val-'+i).value)||0;
+    var dt=document.getElementById('ren-dt-'+i).value;
+    if(!dt){showToast('Informe a data da parcela '+(i+1),'yellow');return;}
+    parcelas.push({val:v,due:dt});
+  }
+  var sup=D.boletos.find(function(x){return x.id===_boletosRen[0];});
+  var supNome=sup?sup.sup:'Renegociacao';
+  _boletosRen.forEach(function(id){var b=D.boletos.find(function(x){return x.id===id;});if(b){b.negociado=true;b.obs=obs||'Renegociado';}});
+  parcelas.forEach(function(p,i){D.boletos.push({id:Date.now()+i+Math.round(Math.random()*999),sup:supNome,val:p.val,due:p.due,paid:false,bar:'',obs:'Parcela '+(i+1)+'/'+parc+(obs?' - '+obs:'')});});
+  _boletosRen=[];
+  save();
+  fecharModalCartao('modal-renegociar-multi');
+  var fl=document.getElementById('btn-flutuante-ren');if(fl)fl.remove();
+  renderBoletos();
+  showToast('Renegociacao registrada! '+parc+' parcela(s) criada(s).','green');
+}
 function abrirModalRenegociar(id){
   var b=D.boletos.find(function(x){return x.id===id;});
   if(!b)return;
@@ -3342,7 +3420,7 @@ function renderBoletos(){
       +'<button onclick="payBoleto('+b.id+')" title="'+payTitle+'"'
       +' style="height:28px;padding:0 10px;border:1px solid '+(b.paid?'var(--border)':'var(--green-border)')+';background:'+(b.paid?'none':'var(--green-dim)')+';border-radius:var(--r);cursor:pointer;color:'+(b.paid?'var(--text3)':'var(--green)')+';font-size:11px;font-family:var(--font);display:flex;align-items:center;gap:4px">'
       +(b.paid?'↩ Desfazer':'✓ Pagar')+'</button>'
-      +(statusBoleto(b)==='overdue'||b.negociado?'<button onclick="abrirModalRenegociar('+b.id+')" style="height:28px;padding:0 10px;border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.15);border-radius:var(--r);cursor:pointer;color:#a78bfa;font-size:11px;font-family:var(--font);display:flex;align-items:center;gap:4px">🤝 Renegociar</button>':'')
+      +(statusBoleto(b)==='overdue'||b.negociado?'<button onclick="toggleSelecionarBoleto('+b.id+')" style="height:28px;padding:0 10px;border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.15);border-radius:var(--r);cursor:pointer;color:#a78bfa;font-size:11px;font-family:var(--font);display:flex;align-items:center;gap:4px">🤝 Renegociar</button>':'')
     +'<button onclick="delBoleto('+b.id+')" title="Remover"'
       +' style="height:28px;width:28px;border:1px solid var(--red-border);background:var(--red-dim);border-radius:var(--r);cursor:pointer;color:var(--red);display:flex;align-items:center;justify-content:center">'
       +'🗑</button>'
