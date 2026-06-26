@@ -3404,7 +3404,7 @@ function renderBoletos(){
     const payTitle=b.paid?'Desfazer':'Pagar';
 
     rows+='<tr style="'+(b.paid?'opacity:.5':'')+'">'
-      +(statusBoleto(b)==='overdue'?'<td style="width:36px;text-align:center;vertical-align:middle"><input type="checkbox" id="chk-ren-'+b.id+'" onchange="toggleSelecionarBoleto('+b.id+',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#7c3aed"></td>':'<td style="width:36px"></td>')
+      +'<td style="width:36px;text-align:center;vertical-align:middle"><input type="checkbox" id="chk-ren-'+b.id+'" onchange="toggleSelecionarBoleto('+b.id+',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#7c3aed"></td>'
       +'<td><strong>'+b.sup+'</strong>'+noteHtml+'</td>'
       +(b.nfRef?'<td><span style="font-size:11px;background:var(--blue-dim);color:var(--blue);padding:2px 7px;border-radius:4px;font-weight:600;white-space:nowrap">'+b.nfRef+(b.nDup?' · '+b.nDup:'')+'</span></td>':'<td style="color:var(--text3);font-size:11px">—</td>')
       +'<td class="col-codbar" style="font-family:monospace;font-size:11px;color:var(--text2);display:none">'+barHtml+'</td>'
