@@ -5334,88 +5334,63 @@ function renderDia5(){
   const metaDia5=27863.25;
   const diasAteD5=diaHoje<=5?(5-diaHoje):(diasNoMes-diaHoje+5);
   const reservaDiaria=diasAteD5>0?metaDia5/diasAteD5:metaDia5;
-  const percentMes=(diaHoje/diasNoMes*100).toFixed(0);
-  const deveriaTermos=metaDia5*(diaHoje/diasNoMes);
   const savedReserva=parseFloat(localStorage.getItem('farmacia-reserva-dia5')||'0');
   const falta=Math.max(metaDia5-savedReserva,0);
-
-  let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem">';
-
-  // Card principal
-  html+='<div class="chart-card">'
-    +'<div class="chart-title"><i class="ti ti-piggy-bank" style="font-size:13px;color:var(--green)"></i> Conta Reserva — Dia 05</div>'
-    +'<div style="background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--r);padding:14px;margin-bottom:12px">'
-    +'<div style="font-size:12px;color:var(--red);margin-bottom:2px">Meta total para o Dia 05</div>'
-    +'<div style="font-size:28px;font-weight:700;color:var(--red)">'+fmtCur(metaDia5)+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:2px">Folha + pró-labore + aluguel + VT/VA + outros</div>'
+  const pct=Math.min(savedReserva/metaDia5*100,100).toFixed(0);
+  const barColor=savedReserva>=metaDia5?'var(--green)':savedReserva>=metaDia5*0.7?'var(--yellow)':'var(--red)';
+  const statusLabel=pct>=100?'🟢 Protegido':pct>=71?'🟡 Quase lá':pct>=41?'🟠 Atenção':'🔴 Crítico';
+  const statusColor=pct>=100?'var(--green)':pct>=71?'var(--yellow)':pct>=41?'#f97316':'var(--red)';
+  const custoDiario=metaDia5/30;
+  const diasProtegidos=custoDiario>0?Math.floor(savedReserva/custoDiario):0;
+  const despFixas=[
+    {nome:'Folha CLT',val:8500},{nome:'Pró-labore Janaina',val:3000},
+    {nome:'Pró-labore Adriana',val:3000},{nome:'Aluguel',val:6000},
+    {nome:'VT/VA',val:800},{nome:'Marketing',val:500},
+    {nome:'Energia/Água',val:1200},{nome:'Internet/Tel',val:300}
+  ];
+  const despTemp=[
+    {nome:'Multas/Taxas CRF',val:500},{nome:'Anuidade CRF',val:400},
+    {nome:'Parcelamentos',val:3563.25}
+  ];
+  const totalFixo=despFixas.reduce(function(s,d){return s+d.val;},0);
+  const totalTemp=despTemp.reduce(function(s,d){return s+d.val;},0);
+  var html='';
+  html+='<div class="chart-card" style="margin-bottom:1rem">'
+    +'<div class="chart-title"><i class="ti ti-piggy-bank" style="font-size:13px;color:var(--green)"></i> Reserva Dia 05 — <span style="color:'+statusColor+'">'+statusLabel+'</span></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">'
+    +'<div style="text-align:center;padding:12px;background:var(--surface2);border-radius:var(--r)"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Meta total</div><div style="font-size:18px;font-weight:700;color:var(--red)">'+fmtCur(metaDia5)+'</div></div>'
+    +'<div style="text-align:center;padding:12px;background:var(--surface2);border-radius:var(--r)"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Guardado</div><div style="font-size:18px;font-weight:700;color:var(--green)">'+fmtCur(savedReserva)+'</div></div>'
+    +'<div style="text-align:center;padding:12px;background:var(--surface2);border-radius:var(--r)"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Falta</div><div style="font-size:18px;font-weight:700;color:var(--yellow)">'+fmtCur(falta)+'</div></div>'
+    +'<div style="text-align:center;padding:12px;background:var(--surface2);border-radius:var(--r)"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Dias protegidos</div><div style="font-size:18px;font-weight:700;color:'+statusColor+'">'+diasProtegidos+'d</div></div>'
     +'</div>'
     +'<div style="margin-bottom:12px">'
-    +'<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Reserva atual (informe o valor separado na conta):</div>'
-    +'<div style="display:flex;gap:8px;align-items:center">'
-    +'<input type="number" id="inp-reserva" value="'+savedReserva+'" step="100" min="0" placeholder="0,00"'
-    +' style="flex:1;height:36px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:14px;color:var(--text);outline:none;font-weight:600">'
+    +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--text2)">Progresso da reserva</span><span style="font-weight:700;color:'+statusColor+'">'+pct+'%</span></div>'
+    +'<div style="background:var(--surface2);border-radius:99px;height:20px;overflow:hidden">'
+    +'<div style="background:'+barColor+';height:100%;width:'+pct+'%;border-radius:99px;transition:width .5s;display:flex;align-items:center;justify-content:center">'
+    +(pct>10?'<span style="font-size:11px;font-weight:700;color:#fff">'+pct+'%</span>':'')
+    +'</div></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px"><span>R$ 0</span><span>'+fmtCur(metaDia5*0.25)+'</span><span>'+fmtCur(metaDia5*0.5)+'</span><span>'+fmtCur(metaDia5*0.75)+'</span><span>'+fmtCur(metaDia5)+'</span></div>'
+    +'</div>'
+    +'<div style="padding:10px 14px;border-radius:var(--r);background:var(--surface2);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+    +'<span style="font-size:14px;font-weight:700;color:'+statusColor+'">'+statusLabel+'</span>'
+    +'<span style="font-size:12px;color:var(--text2)">📅 Dias protegidos: <strong style="color:'+statusColor+'">'+diasProtegidos+' dias</strong></span>'
+    +'<span style="font-size:12px;color:var(--text2)">📥 Guardar/dia: <strong>'+fmtCur(reservaDiaria)+'</strong></span>'
+    +'</div>'
+    +'<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Atualizar reserva:</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<input type="number" id="inp-reserva" value="'+savedReserva+'" step="100" min="0" style="flex:1;height:36px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:14px;color:var(--text);outline:none">'
     +'<button class="btn btn-green" onclick="salvarReserva()">✓ Salvar</button>'
     +'</div></div>'
-    +'<div style="background:var(--surface2);border-radius:99px;height:12px;overflow:hidden;margin-bottom:6px">'
-    +'<div style="background:'+(savedReserva>=metaDia5?'var(--green)':savedReserva>=metaDia5*0.7?'var(--yellow)':'var(--red)')+';height:100%;width:'+Math.min(savedReserva/metaDia5*100,100).toFixed(0)+'%;border-radius:99px;transition:width .5s"></div></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)">'
-    +'<span>'+fmtCur(savedReserva)+' guardados</span><span>'+fmtCur(falta)+' faltam</span></div>'
-    +'</div>';
-
-  // Card meta diária
-  html+='<div class="chart-card">'
-    +'<div class="chart-title"><i class="ti ti-calendar-event" style="font-size:13px;color:var(--yellow)"></i> Meta de depósito diário</div>'
-    +'<div style="background:var(--yellow-dim);border:1px solid var(--yellow-border);border-radius:var(--r);padding:16px;margin-bottom:12px;text-align:center">'
-    +'<div style="font-size:12px;color:var(--yellow);margin-bottom:4px">Guardar por dia até o Dia 05</div>'
-    +'<div style="font-size:32px;font-weight:700;color:var(--yellow)">'+fmtCur(falta>0?falta/Math.max(diasAteD5,1):0)+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">'+diasAteD5+' dias restantes até o próximo Dia 05</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">'
+    +'<div class="chart-card"><div class="chart-title">🏢 Despesas Fixas — '+fmtCur(totalFixo)+'/mês</div>'
+    +despFixas.map(function(d){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">'+d.nome+'</span><span style="font-weight:600">'+fmtCur(d.val)+'</span></div>';}).join('')
     +'</div>'
-    +'<div style="font-size:13px;color:var(--text2);line-height:1.8">'
-    +'<div>📅 Hoje: Dia '+diaHoje+' ('+percentMes+'% do mês)</div>'
-    +'<div>🎯 Deveria ter guardado: <strong>'+fmtCur(deveriaTermos)+'</strong></div>'
-    +'<div>💰 Guardado: <strong style="color:'+(savedReserva>=deveriaTermos?'var(--green)':'var(--red)')+'">'+fmtCur(savedReserva)+'</strong></div>'
-    +'<div style="margin-top:8px;padding:8px;background:var(--surface2);border-radius:var(--r);font-size:12px">'
-    +'💡 <strong>Dica:</strong> Abra uma conta poupança separada. Todo fim de dia, transfira '+fmtCur(reservaDiaria)+'. No Dia 04 já tem o valor completo!</div>'
+    +'<div class="chart-card"><div class="chart-title">⚡ Despesas Temporárias — '+fmtCur(totalTemp)+'/mês</div>'
+    +despTemp.map(function(d){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">'+d.nome+'</span><span style="font-weight:600;color:var(--yellow)">'+fmtCur(d.val)+'</span></div>';}).join('')
+    +'<div style="margin-top:10px;padding:8px;background:var(--yellow-dim);border-radius:var(--r);font-size:11px;color:var(--yellow)">⚠️ Temporárias podem ser retiradas da reserva quando encerradas</div>'
     +'</div></div>';
-  html+='</div>';
-
-  // Composição do Dia 05
-  html+='<div class="chart-card">'
-    +'<div class="chart-title"><i class="ti ti-list" style="font-size:13px;color:var(--red)"></i> Composição do Dia 05 — todo mês</div>'
-    +'<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Despesa</th><th class="col-val">Valor</th><th style="width:200px">Participação</th></tr></thead><tbody>'
-    +[
-      {nome:'Folha de pagamento (5 func.)',val:11757.65},
-      {nome:'Pró-labore Adriana + Janaina',val:6000},
-      {nome:'Aluguel',val:1600},
-      {nome:'Vale Transporte + Alimentação',val:1395.60},
-      {nome:'Tráfego Pago',val:1000},
-      {nome:'Rastreador',val:110},
-      {nome:'CRF — Anuidade',val:125.71},
-      {nome:'CRF — Multa (parcela)',val:478.70},
-    ].map(item=>{
-      const pct=(item.val/metaDia5*100).toFixed(1);
-      return'<tr>'
-        +'<td>'+item.nome+'</td>'
-        +'<td style="text-align:right;font-weight:600;color:var(--red)">'+fmtCur(item.val)+'</td>'
-        +'<td><div style="background:var(--surface2);border-radius:99px;height:6px;overflow:hidden">'
-        +'<div style="background:var(--red);height:100%;width:'+pct+'%;border-radius:99px"></div></div>'
-        +'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+pct+'%</div></td>'
-        +'</tr>';
-    }).join('')
-    +'<tr style="background:var(--surface2);border-top:2px solid var(--border2)">'
-    +'<td style="font-weight:700;padding:10px 14px">TOTAL DIA 05</td>'
-    +'<td style="text-align:right;font-weight:700;color:var(--red);padding:10px 14px">'+fmtCur(metaDia5)+'</td>'
-    +'<td></td></tr>'
-    +'</tbody></table></div></div>';
   return html;
 }
-function salvarReserva(){
-  const v=parseFloat(document.getElementById('inp-reserva').value)||0;
-  localStorage.setItem('farmacia-reserva-dia5',v.toString());
-  setSaudeTab('dia5');
-  showToast('✓ Reserva atualizada: '+fmtCur(v),'green');
-}
-
 // 2. CMV & MARGEM
 function renderCMV(){
   const m=curMonth();
