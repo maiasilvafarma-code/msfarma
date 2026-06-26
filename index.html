@@ -5594,24 +5594,34 @@ function calcPreco(){
   const custo=parseFloat(document.getElementById('prec-custo').value)||0;
   const tipo=document.getElementById('prec-tipo').value;
   const customMg=parseFloat(document.getElementById('prec-margem').value)||0;
-  const margens={etico:15,generico:75,higiene:40,suple:60,vitamina:45,fralda:20,perfumaria:45,custom:customMg};
-  const margem=margens[tipo]||15;
+  const faixas={
+    etico:{combate:10,normal:15,premium:20},
+    generico:{combate:50,normal:75,premium:90},
+    fralda:{combate:12,normal:20,premium:25},
+    higiene:{combate:30,normal:40,premium:50},
+    perfumaria:{combate:35,normal:45,premium:55},
+    vitamina:{combate:35,normal:45,premium:55},
+    suple:{combate:45,normal:60,premium:75},
+    custom:{combate:customMg,normal:customMg,premium:customMg}
+  };
+  const f=faixas[tipo]||faixas.etico;
+  const margem=f.normal;
   if(!custo){document.getElementById('prec-resultado').innerHTML='';return;}
-  const pvMin=custo*(1+margem/100);
-  const pvIdeal=custo*(1+(margem+10)/100);
-  const pvAgressivo=custo*(1+(margem+20)/100);
+  const pvMin=custo*(1+f.combate/100);
+  const pvIdeal=custo*(1+f.normal/100);
+  const pvAgressivo=custo*(1+f.premium/100);
   const lucroMin=pvMin-custo;
   document.getElementById('prec-resultado').innerHTML=
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px">'
     +[
-      {label:'Preço mínimo (não descer)',val:pvAgressivo,lucro:pvAgressivo-custo,cor:'var(--red)'},
-      {label:'Preço ideal ⭐',val:pvMin,lucro:lucroMin,cor:'var(--green)'},
-      {label:'Preço premium',val:pvIdeal,lucro:pvIdeal-custo,cor:'var(--blue)'},
+      {label:'🟥 Combate',val:pvMin,lucro:pvMin-custo,mg:f.combate,cor:'var(--red)'},
+      {label:'🟨 Normal ⭐',val:pvIdeal,lucro:pvIdeal-custo,mg:f.normal,cor:'var(--yellow)'},
+      {label:'🟩 Premium',val:pvAgressivo,lucro:pvAgressivo-custo,mg:f.premium,cor:'var(--green)'},
     ].map(p=>'<div style="background:var(--surface2);border-radius:var(--r);padding:14px;text-align:center">'
       +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">'+p.label+'</div>'
       +'<div style="font-size:22px;font-weight:700;color:'+p.cor+'">'+fmtCur(p.val)+'</div>'
       +'<div style="font-size:12px;color:var(--text2);margin-top:4px">Lucro: <strong style="color:'+p.cor+'">'+fmtCur(p.lucro)+'</strong></div>'
-      +'<div style="font-size:11px;color:var(--text3)">Margem: '+margem.toFixed(0)+'%</div>'
+      +'<div style="font-size:11px;color:var(--text3)">Margem: '+p.mg.toFixed(0)+'%</div>'
       +'</div>').join('')
     +'</div>';
 }
