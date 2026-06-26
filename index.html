@@ -3387,8 +3387,7 @@ function renderBoletos(){
     const d=daysDiff(b.due);
     let stText,stClass;
     if(b.paid){stText='Pago';stClass='b-paid';}
-    else if(st==='overdue'){stText=Math.abs(d)+'d atraso';stClass='b-overdue';}else if(st==='danger'){stText=d===0?'Hoje':d+'d';stClass='b-overdue';}
-    else if(st==='danger'){stText=d===0?'Hoje':d+'d';stClass='b-overdue';}
+    else if(st==='overdue'){stText=Math.abs(d)+'d atraso';stClass='b-overdue';}
     else if(st==='warning'){stText=d+'d';stClass='b-ok';}
     else{stText=d+'d';stClass='';}
 
