@@ -5388,6 +5388,50 @@ function renderDia5(){
     +'<div class="chart-card"><div class="chart-title">⚡ Despesas Temporárias — '+fmtCur(totalTemp)+'/mês</div>'
     +despTemp.map(function(d){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">'+d.nome+'</span><span style="font-weight:600;color:var(--yellow)">'+fmtCur(d.val)+'</span></div>';}).join('')
     +'<div style="margin-top:10px;padding:8px;background:var(--yellow-dim);border-radius:var(--r);font-size:11px;color:var(--yellow)">⚠️ Temporárias podem ser retiradas da reserva quando encerradas</div>'
+    +'</div></div>'
+    // CARD SUBTOTAL + CUSTO DIÁRIO + METAS
+    +'<div class="chart-card" style="margin-bottom:1rem">'
+    +'<div class="chart-title">📊 Resumo financeiro da reserva</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
+    +'<div style="padding:12px;background:var(--surface2);border-radius:var(--r)">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">🏢 Custos fixos/mês</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--text)">'+fmtCur(totalFixo)+'</div></div>'
+    +'<div style="padding:12px;background:var(--surface2);border-radius:var(--r)">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">⚡ Temporários/mês</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--yellow)">'+fmtCur(totalTemp)+'</div></div>'
+    +'<div style="padding:12px;background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--r)">'
+    +'<div style="font-size:11px;color:var(--red);margin-bottom:4px">💰 Total reserva necessária</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--red)">'+fmtCur(totalFixo+totalTemp)+'</div></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'
+    +'<div style="padding:12px;background:var(--surface2);border-radius:var(--r)">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">📅 Custo operacional diário</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--text)">'+fmtCur(custoDiario)+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Base para cálculo dos dias protegidos</div></div>'
+    +'<div style="padding:12px;background:var(--surface2);border-radius:var(--r)">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">🛡️ Dias protegidos agora</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+statusColor+'">'+diasProtegidos+' dias</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">'+( diasProtegidos===0?'Sem proteção':diasProtegidos<7?'Proteção mínima':diasProtegidos<15?'Proteção razoável':diasProtegidos<30?'Boa proteção':'Excelente proteção')+'</div></div>'
+    +'</div>'
+    // Metas
+    +'<div class="chart-title" style="margin-bottom:8px">🎯 Níveis de reserva ideal</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
+    +[
+      {nivel:'Mínimo',meses:1,cor:'var(--red)',icon:'🔴'},
+      {nivel:'Saudável',meses:2,cor:'var(--yellow)',icon:'🟡'},
+      {nivel:'Excelente',meses:3,cor:'var(--green)',icon:'🟢'}
+    ].map(function(n){
+      var metaN=metaDia5*n.meses;
+      var pctN=Math.min(savedReserva/metaN*100,100).toFixed(0);
+      var atingido=savedReserva>=metaN;
+      return '<div style="padding:12px;background:var(--surface2);border-radius:var(--r);border:1px solid '+(atingido?n.cor:'var(--border)')+'">'+
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">'+n.icon+' '+n.nivel+'</div>'+
+        '<div style="font-size:14px;font-weight:700;color:'+n.cor+'">'+n.meses+' mês'+(n.meses>1?'es':'')+' — '+fmtCur(metaN)+'</div>'+
+        '<div style="background:var(--border);border-radius:99px;height:6px;margin:6px 0;overflow:hidden">'+
+        '<div style="background:'+n.cor+';height:100%;width:'+pctN+'%;border-radius:99px"></div></div>'+
+        '<div style="font-size:11px;color:'+(atingido?n.cor:'var(--text3)')+'">'+( atingido?'✅ Atingido!':pctN+'% — falta '+fmtCur(metaN-savedReserva))+'</div>'+
+        '</div>';
+    }).join('')
     +'</div></div>';
   return html;
 }
