@@ -5681,6 +5681,7 @@ function renderSazonalidade(){
 }
 
 // 5. CAPITAL DE GIRO
+function salvarCapital(){var v=parseFloat(document.getElementById('inp-capital').value)||0;localStorage.setItem('farmacia-capital-giro',v);if(typeof syncSupabase==='function')syncSupabase();renderCapitalGiro();showToast('✓ Capital atualizado: '+fmtCur(v),'green');}
 function renderCapitalGiro(){
   const custoFixo=31039.11;
   const custoDiario=custoFixo/30;
