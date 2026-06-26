@@ -5682,56 +5682,114 @@ function renderSazonalidade(){
 
 // 5. CAPITAL DE GIRO
 function renderCapitalGiro(){
-  const mediaRec=D.entradas.filter(x=>x.date>='2026-01').reduce((s,x)=>s+x.val,0)/5||0;
   const custoFixo=31039.11;
-  const metaGiro=custoFixo;
-  const savedGiro=parseFloat(localStorage.getItem('farmacia-capital-giro')||'0');
-  const mesesParaMeta=metaGiro>savedGiro?(metaGiro-savedGiro)/4173:0;
-
-  return'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem">'
-    +'<div class="chart-card">'
-    +'<div class="chart-title"><i class="ti ti-building-bank" style="font-size:13px;color:var(--blue)"></i> Meta de capital de giro</div>'
-    +'<div style="background:var(--blue-dim);border:1px solid var(--blue-border,#85b7eb);border-radius:var(--r);padding:14px;margin-bottom:12px">'
-    +'<div style="font-size:12px;color:var(--blue);margin-bottom:4px">Meta: 1 mês de custo fixo em reserva</div>'
-    +'<div style="font-size:28px;font-weight:700;color:var(--blue)">'+fmtCur(metaGiro)+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:2px">Protege de 1 mês ruim sem pressionar o caixa</div>'
+  const custoDiario=custoFixo/30;
+  const capital=parseFloat(localStorage.getItem('farmacia-capital-giro')||'0');
+  const chequeEsp=parseFloat(localStorage.getItem('msfarma-cheque-esp')||'20000');
+  const chequeUsado=parseFloat(localStorage.getItem('msfarma-saldo-atual')||'0')<0?Math.abs(parseFloat(localStorage.getItem('msfarma-saldo-atual')||'0')):8202.35;
+  const capitalLiquido=capital-chequeUsado;
+  const diasProtegidos=custoDiario>0?Math.floor(capital/custoDiario):0;
+  const mesesProtegidos=(capital/custoFixo).toFixed(1);
+  const dependencia=capital>0?Math.min(chequeUsado/capital*100,100).toFixed(0):100;
+  const bolVenc=D.boletos.filter(function(b){return !b.paid&&b.due&&daysDiff(b.due)<=7&&daysDiff(b.due)>=-1;}).reduce(function(s,b){return s+b.val;},0);
+  const capitalLivre=Math.max(capital-bolVenc,0);
+  const economiaPotencial=(capital*0.04).toFixed(2);
+  // Níveis
+  const niveis=[
+    {label:'🔴 Crítico',val:10000,desc:'Risco alto',cor:'var(--red)'},
+    {label:'🟡 Sobrevivência',val:31039,desc:'1 mês protegido',cor:'var(--yellow)'},
+    {label:'🟢 Saudável',val:46500,desc:'1,5 mês protegido',cor:'#22c55e'},
+    {label:'⭐ Excelente',val:62000,desc:'2 meses protegidos',cor:'var(--blue)'}
+  ];
+  const nivelAtual=niveis.filter(function(n){return capital>=n.val;}).pop()||{label:'🔴 Crítico',cor:'var(--red)',desc:'Risco alto'};
+  const pct=Math.min(capital/62000*100,100).toFixed(0);
+  const fases=[
+    {fase:'Fase 1',desc:'Sair do vermelho',meta:10000,cor:'var(--red)'},
+    {fase:'Fase 2',desc:'Eliminar dependência bancária',meta:20000,cor:'var(--yellow)'},
+    {fase:'Fase 3',desc:'1 mês de proteção',meta:31039,cor:'#22c55e'},
+    {fase:'Fase 4',desc:'Capital saudável',meta:46000,cor:'var(--blue)'}
+  ];
+  const faseAtual=fases.filter(function(f){return capital<f.meta;}).shift()||fases[3];
+  var html='';
+  // KPIs principais
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1rem">'
+    +'<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);text-align:center">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">💰 Capital de Giro</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--green)">'+fmtCur(capital)+'</div></div>'
+    +'<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);text-align:center">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">📅 Dias protegidos</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+nivelAtual.cor+'">'+diasProtegidos+'d</div></div>'
+    +'<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);text-align:center">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">💳 Cheque especial</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--red)">'+fmtCur(chequeUsado)+'</div></div>'
+    +'<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);text-align:center">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">🏦 Capital líquido</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+(capitalLiquido>=0?'var(--green)':'var(--red)')+'">'+fmtCur(capitalLiquido)+'</div></div>'
     +'</div>'
-    +'<div style="margin-bottom:12px">'
-    +'<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Capital de giro atual:</div>'
-    +'<div style="display:flex;gap:8px;align-items:center">'
-    +'<input type="number" id="inp-giro" value="'+savedGiro+'" step="500" min="0" placeholder="0,00"'
-    +' style="flex:1;height:36px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:14px;color:var(--text);outline:none">'
-    +'<button class="btn btn-green" onclick="salvarGiro()">✓ Salvar</button>'
+    // Barra de progresso e status
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:1rem">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+    +'<span style="font-size:14px;font-weight:700;color:'+nivelAtual.cor+'">'+nivelAtual.label+' — '+nivelAtual.desc+'</span>'
+    +'<span style="font-size:13px;color:var(--text2)">'+mesesProtegidos+' meses protegidos</span>'
+    +'</div>'
+    +'<div style="background:var(--surface2);border-radius:99px;height:20px;overflow:hidden;margin-bottom:8px">'
+    +'<div style="background:'+nivelAtual.cor+';height:100%;width:'+pct+'%;border-radius:99px;transition:width .5s;display:flex;align-items:center;justify-content:center">'
+    +(pct>10?'<span style="font-size:11px;font-weight:700;color:#fff">'+pct+'%</span>':'')
     +'</div></div>'
-    +'<div style="background:var(--surface2);border-radius:99px;height:10px;overflow:hidden;margin-bottom:6px">'
-    +'<div style="background:var(--blue);height:100%;width:'+Math.min(savedGiro/metaGiro*100,100).toFixed(0)+'%;border-radius:99px;transition:width .5s"></div></div>'
-    +'<div style="font-size:12px;color:var(--text3)">'+fmtCur(savedGiro)+' de '+fmtCur(metaGiro)+' ('+((savedGiro/metaGiro*100)||0).toFixed(0)+'%)</div>'
+    // Marcadores dos níveis
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">'
+    +niveis.map(function(n){
+      var a=capital>=n.val;
+      return'<div style="text-align:center;padding:6px;background:'+(a?'var(--surface2)':'var(--surface)')+';border:1px solid '+(a?n.cor:'var(--border)')+';border-radius:var(--r)">'
+        +'<div style="font-size:11px;font-weight:600;color:'+(a?n.cor:'var(--text3)')+'">'+n.label+'</div>'
+        +'<div style="font-size:12px;font-weight:700;color:'+(a?n.cor:'var(--text3)')+'">'+fmtCur(n.val)+'</div>'
+        +'<div style="font-size:10px;color:var(--text3)">'+n.desc+'</div>'
+        +'</div>';
+    }).join('')
     +'</div>'
+    // Input capital
+    +'<div style="display:flex;gap:8px;align-items:center">'
+    +'<input type="number" id="inp-capital" value="'+capital+'" step="500" min="0" style="flex:1;height:36px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:14px;color:var(--text);outline:none">'
+    +'<button class="btn btn-green" onclick="salvarCapital()">✓ Salvar capital</button>'
+    +'</div></div>'
+    // Indicadores avançados
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">'
+    // Dependência bancária
     +'<div class="chart-card">'
-    +'<div class="chart-title"><i class="ti ti-trending-up" style="font-size:13px;color:var(--green)"></i> Como chegar lá em 6 meses</div>'
-    +'<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:12px">'
-    +'Guardando <strong style="color:var(--green)">R$ 4.173/mês</strong> você atinge a meta em 6 meses.<br>'
-    +'Com faturamento de R$ 107k em Maio, isso representa apenas <strong>3,9% da receita</strong>.'
+    +'<div class="chart-title">🏦 Dependência Bancária</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">Capital de giro</span><span style="font-weight:600;color:var(--green)">'+fmtCur(capital)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">Cheque especial utilizado</span><span style="font-weight:600;color:var(--red)">'+fmtCur(chequeUsado)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">Dependência bancária</span><span style="font-weight:700;color:'+(dependencia>50?'var(--red)':'var(--green)')+'">'+dependencia+'%</span></div>'
+    +'<div style="padding:8px;margin-top:8px;background:var(--surface2);border-radius:var(--r);font-size:11px;color:var(--text3)">🎯 Objetivo: Capital de Giro > Cheque Especial utilizado</div>'
     +'</div>'
-    +(mesesParaMeta>0?'<div style="background:var(--green-dim);border:1px solid var(--green-border);border-radius:var(--r);padding:12px;margin-bottom:12px">'
-    +'<div style="font-size:12px;color:var(--green);margin-bottom:2px">Prazo estimado para atingir a meta</div>'
-    +'<div style="font-size:22px;font-weight:700;color:var(--green)">'+Math.ceil(mesesParaMeta)+' meses</div>'
-    +'<div style="font-size:11px;color:var(--text3)">guardando R$ 4.173/mês</div>'
-    +'</div>':'<div style="background:var(--green-dim);border:1px solid var(--green-border);border-radius:var(--r);padding:12px;margin-bottom:12px;font-size:13px;font-weight:600;color:var(--green)">🏆 Meta atingida!</div>')
-    +'<div style="font-size:12px;color:var(--text2);line-height:1.6">'
-    +'📌 <strong>Onde guardar:</strong> Conta poupança separada ou CDB com liquidez diária.<br>'
-    +'📌 <strong>Rendimento estimado:</strong> CDB 100% CDI rende ~1% ao mês = R$ 250/mês sobre R$ 25k.<br>'
-    +'📌 <strong>Regra:</strong> Esse dinheiro só é usado em emergência real. Não misturar com o caixa do dia a dia.'
-    +'</div></div></div>';
-}
-function salvarGiro(){
-  const v=parseFloat(document.getElementById('inp-giro').value)||0;
-  localStorage.setItem('farmacia-capital-giro',v.toString());
-  setSaudeTab('giro');
-  showToast('✓ Capital de giro atualizado: '+fmtCur(v),'green');
+    // Capital livre e economia
+    +'<div class="chart-card">'
+    +'<div class="chart-title">💡 Indicadores Estratégicos</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">Custo operacional diário</span><span style="font-weight:600">'+fmtCur(custoDiario)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">Boletos próximos 7 dias</span><span style="font-weight:600;color:var(--red)">'+fmtCur(bolVenc)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">Capital livre (após boletos)</span><span style="font-weight:700;color:var(--green)">'+fmtCur(capitalLivre)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span style="color:var(--text2)">💰 Economia potencial (4% desc.)</span><span style="font-weight:700;color:var(--green)">'+fmtCur(economiaPotencial)+'/ano</span></div>'
+    +'</div></div>'
+    // Fases estratégicas
+    +'<div class="chart-card">'
+    +'<div class="chart-title">🗺️ Fases Estratégicas — Roadmap MS Farma</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
+    +fases.map(function(f){
+      var atingido=capital>=f.meta;
+      var pctF=Math.min(capital/f.meta*100,100).toFixed(0);
+      return'<div style="padding:12px;background:var(--surface2);border-radius:var(--r);border:1px solid '+(atingido?f.cor:'var(--border)')+';">'
+        +'<div style="font-size:11px;font-weight:700;color:'+f.cor+';margin-bottom:4px">'+f.fase+(atingido?' ✅':''+(f===faseAtual?' 👈':''))+'</div>'
+        +'<div style="font-size:12px;color:var(--text2);margin-bottom:6px">'+f.desc+'</div>'
+        +'<div style="font-size:14px;font-weight:700;color:'+f.cor+'">'+fmtCur(f.meta)+'</div>'
+        +'<div style="background:var(--border);border-radius:99px;height:4px;margin:6px 0;overflow:hidden">'
+        +'<div style="background:'+f.cor+';height:100%;width:'+pctF+'%"></div></div>'
+        +'<div style="font-size:10px;color:var(--text3)">'+( atingido?'✅ Atingida!':pctF+'% — falta '+fmtCur(f.meta-capital))+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div></div>';
+  document.getElementById('saude-content').innerHTML=html;
 }
 
-// 6. FIDELIDADE
 function renderFidelidade(){
   return'<div class="chart-card" style="margin-bottom:1.25rem">'
     +'<div class="chart-title"><i class="ti ti-star" style="font-size:13px;color:var(--yellow)"></i> Programa de Fidelidade — MS Farma</div>'
