@@ -5289,6 +5289,14 @@ function renderSaudeScore(){
   ).filter(v=>v>limite).length;
   if(diasAcima===0){score+=20;itens.push({ok:true,txt:'Todos os dias dentro do limite de '+fmtCur(limite)})}
   else{itens.push({ok:false,txt:diasAcima+' dia(s) acima do limite de '+fmtCur(limite)})}
+  // Capital de giro
+  const capGiro=parseFloat(localStorage.getItem('farmacia-capital-giro')||'0');
+  const custoFixoScore=31039.11;
+  const mesesCapital=capGiro/custoFixoScore;
+  if(mesesCapital>=2){score+=15;itens.push({ok:true,txt:'Capital de giro excelente ('+mesesCapital.toFixed(1)+' meses protegidos)'})}
+  else if(mesesCapital>=1){score+=10;itens.push({ok:true,txt:'Capital de giro saudável ('+mesesCapital.toFixed(1)+' mês protegido)'})}
+  else if(mesesCapital>=0.5){score+=5;itens.push({ok:false,txt:'Capital de giro parcial ('+Math.floor(mesesCapital*30)+' dias protegidos)'})}
+  else{itens.push({ok:false,txt:'Capital de giro insuficiente — meta: R$ 31.039'})}
   // Backup
   const lastBackup=localStorage.getItem('farmacia-last-backup');
   const diasSemBackup=lastBackup?Math.floor((Date.now()-parseInt(lastBackup))/86400000):999;
@@ -5681,7 +5689,7 @@ function renderSazonalidade(){
 }
 
 // 5. CAPITAL DE GIRO
-function salvarCapital(){var v=parseFloat(document.getElementById('inp-capital').value)||0;localStorage.setItem('farmacia-capital-giro',v);renderCapitalGiro();showToast('Capital atualizado!','green');}
+function salvarCapital(){var v=parseFloat(document.getElementById('inp-capital').value)||0;localStorage.setItem('farmacia-capital-giro',v);if(typeof msfarmaSync!=='undefined'&&msfarmaSync.syncParaNuvem)msfarmaSync.syncParaNuvem();renderCapitalGiro();renderSaudeScore();showToast('✓ Capital atualizado: '+fmtCur(v),'green');}
 function renderCapitalGiro(){
   const custoFixo=31039.11;
   const custoDiario=custoFixo/30;
