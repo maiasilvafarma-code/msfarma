@@ -5442,68 +5442,110 @@ function renderCMV(){
   const _fatParsed=_fatRaw?JSON.parse(_fatRaw):null;
   const _fatMes=_fatParsed&&_fatParsed.dias?_fatParsed.dias.filter(function(d){return d.data.startsWith(m);}).reduce(function(s,d){return s+d.total;},0):0;
   const rec=_fatMes>0?_fatMes:D.entradas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
-  const meses=[];
-  for(let i=4;i>=0;i--){
-    const d=new Date();d.setMonth(d.getMonth()-i);
-    const ym=d.toISOString().substring(0,7);
-    const r=D.entradas.filter(x=>x.date&&x.date.startsWith(ym)).reduce((s,x)=>s+x.val,0);
-    const c=D.saidas.filter(x=>x.date&&x.date.startsWith(ym)).reduce((s,x)=>s+x.val,0);
-    if(r>0)meses.push({label:monthLabel(ym),rec:r,desp:c,margem:(r-c)/r*100,cmvEst:r*0.45});
-  }
-
-  return'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem">'
-    +'<div class="chart-card">'
-    +'<div class="chart-title"><i class="ti ti-percentage" style="font-size:13px;color:var(--blue)"></i> Margens por categoria de produto</div>'
-    +[
-      {cat:'Medicamentos Éticos',margem:'10–20%',cmv:'80–90%',ex:'Clenil, Daflon, Dorflex',cor:'var(--yellow)',acao:'Margem baixa — vender volume. Nunca dar desconto.'},
-      {cat:'Genéricos & Similares',margem:'80–90%',cmv:'10–20%',ex:'Neo Química, Geolab, EMS',cor:'var(--green)',acao:'Margem excelente! Priorizar venda. Manter sempre em estoque.'},
-      {cat:'Higiene & Beleza',margem:'40–60%',cmv:'40–60%',ex:'P&G, Softys, Kimberly',cor:'var(--blue)',acao:'Margem boa. Aproveitar para cross-sell com medicamentos.'},
-      {cat:'Suplementos',margem:'50–70%',cmv:'30–50%',ex:'Integralmedica, RN Suplementos',cor:'var(--purple,#a78bfa)',acao:'Boa margem. Clientes de delivery compram muito.'},
-    ].map(c=>'<div style="padding:10px 0;border-bottom:1px solid var(--border)">'
-      +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
-      +'<span style="font-weight:600;font-size:13px">'+c.cat+'</span>'
-      +'<span style="font-weight:700;color:'+c.cor+'">Margem: '+c.margem+'</span>'
+  const cmvPct=45;
+  const cmvVal=rec*cmvPct/100;
+  const margemBruta=100-cmvPct;
+  const margemBrutaVal=rec-cmvVal;
+  const categorias=[
+    {cat:'Medicamentos Éticos',margem:'10% – 18%',cor:'var(--yellow)',icon:'💊',
+     desc:'Produto de combate. Objetivo: trazer fluxo para a loja.',
+     acao:'Evitar descontos acima de 5%.'},
+    {cat:'Genéricos e Similares',margem:'60% – 85%',cor:'var(--green)',icon:'✅',
+     desc:'Principal fonte de lucro da farmácia. Priorizar substituição sempre que possível.',
+     acao:'Manter estoque dos campeões de venda.'},
+    {cat:'Fraldas',margem:'15% – 25%',cor:'var(--blue)',icon:'👶',
+     desc:'Produto de fluxo e fidelização. Competir no preço e ganhar no restante da compra.',
+     acao:'Acompanhar preço da concorrência.'},
+    {cat:'Higiene',margem:'30% – 45%',cor:'var(--blue)',icon:'🧴',
+     desc:'Excelente para venda complementar. Oferecer junto com medicamentos.',
+     acao:'Associar com medicamentos de uso contínuo.'},
+    {cat:'Perfumaria',margem:'35% – 55%',cor:'var(--purple,#a78bfa)',icon:'✨',
+     desc:'Boa rentabilidade. Priorizar kits e promoções sazonais.',
+     acao:'Kits e promoções sazonais aumentam ticket.'},
+    {cat:'Vitaminas e Naturais',margem:'35% – 50%',cor:'var(--green)',icon:'🌿',
+     desc:'Alta recorrência e fidelização. Aproveitar a Quarta Verde para aumentar volume.',
+     acao:'Quarta Verde é oportunidade de venda programada.'},
+    {cat:'Suplementos',margem:'50% – 70%',cor:'var(--purple,#a78bfa)',icon:'💪',
+     desc:'Boa margem. Clientes de delivery compram muito.',
+     acao:'Oferecer combos e kits de suplementação.'}
+  ];
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+  // Coluna esquerda - categorias
+  html+='<div>';
+  html+='<div class="chart-card" style="margin-bottom:1rem">';
+  html+='<div class="chart-title">🏷️ Margens por Categoria de Produto</div>';
+  html+=categorias.map(function(c){
+    return '<div style="padding:12px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+      +'<span style="font-weight:700;font-size:14px">'+c.icon+' '+c.cat+'</span>'
+      +'<span style="font-weight:700;font-size:13px;color:'+c.cor+'">'+c.margem+'</span>'
       +'</div>'
-      +'<div style="font-size:12px;color:var(--text2)">Ex: '+c.ex+'</div>'
-      +'<div style="font-size:11px;color:'+c.cor+';margin-top:3px">💡 '+c.acao+'</div>'
-      +'</div>').join('')
+      +'<div style="font-size:12px;color:var(--text2);margin-bottom:2px">'+c.desc+'</div>'
+      +'<div style="font-size:11px;color:'+c.cor+'">💡 '+c.acao+'</div>'
+      +'</div>';
+  }).join('')
+  +'</div>';
+  // Como aumentar margem
+  html+='<div class="chart-card">';
+  html+='<div class="chart-title">📈 Como Aumentar a Margem</div>';
+  html+=[
+    {icon:'💊',titulo:'Trocar ético por genérico',desc:'Quando houver equivalente disponível, ofereça a substituição. Cliente economiza e a margem aumenta.'},
+    {icon:'🛒',titulo:'Venda complementar',desc:'Associar medicamentos com vitaminas, higiene, suplementos e perfumaria.'},
+    {icon:'🚚',titulo:'Delivery aumenta ticket',desc:'Aproveitar o contato no WhatsApp para oferecer itens adicionais na entrega.'},
+    {icon:'🏷️',titulo:'Desconto com limite',desc:'Éticos: máximo 5%. Genéricos: negociar conforme margem. Fraldas: acompanhar concorrência.'}
+  ].map(function(a){
+    return '<div style="padding:10px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="font-weight:600;font-size:13px;margin-bottom:4px">'+a.icon+' '+a.titulo+'</div>'
+      +'<div style="font-size:12px;color:var(--text2)">'+a.desc+'</div>'
+      +'</div>';
+  }).join('')
+  +'</div></div>';
+  // Coluna direita - CMV + Estratégia
+  html+='<div>';
+  // CMV corrigido
+  html+='<div class="chart-card" style="margin-bottom:1rem">';
+  html+='<div class="chart-title">📊 CMV Estimado × Receita — '+( _fatMes>0?'Mês atual':'Maio/26')+'</div>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+    +'<span style="font-size:13px;color:var(--text2)">Receita</span>'
+    +'<span style="font-size:15px;font-weight:700;color:var(--green)">'+fmtCur(rec)+'</span>'
+    +'</div>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+    +'<span style="font-size:13px;color:var(--text2)">CMV estimado ('+cmvPct+'%)</span>'
+    +'<span style="font-size:15px;font-weight:700;color:var(--red)">'+fmtCur(cmvVal)+'</span>'
+    +'</div>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:8px;background:var(--green-dim);border-radius:var(--r)">'
+    +'<span style="font-size:13px;font-weight:600;color:var(--green)">Margem Bruta ('+margemBruta+'%)</span>'
+    +'<span style="font-size:15px;font-weight:700;color:var(--green)">'+fmtCur(margemBrutaVal)+'</span>'
+    +'</div>';
+  html+='<div style="background:var(--surface2);border-radius:99px;height:20px;overflow:hidden;margin-bottom:6px">'
+    +'<div style="background:var(--red);height:100%;width:'+cmvPct+'%;border-radius:99px 0 0 99px;display:inline-block"></div>'
+    +'<div style="background:var(--green);height:100%;width:'+margemBruta+'%;border-radius:0 99px 99px 0;display:inline-block"></div>'
     +'</div>'
-    +'<div class="chart-card">'
-    +'<div class="chart-title"><i class="ti ti-chart-bar" style="font-size:13px;color:var(--blue)"></i> CMV estimado × receita — últimos 5 meses</div>'
-    +meses.map(mes=>{
-      const cmvPct=45; // estimativa média
-      const margemPct=Math.max(mes.margem,0);
-      return'<div style="margin-bottom:12px">'
-        +'<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px">'
-        +'<span style="font-weight:600">'+mes.label+'</span>'
-        +'<span>Receita: <strong>'+fmtCur(mes.rec)+'</strong></span>'
-        +'<span style="color:'+(margemPct>=30?'var(--green)':'var(--yellow)')+'">Margem: '+margemPct.toFixed(1)+'%</span>'
-        +'</div>'
-        +'<div style="height:20px;background:var(--surface2);border-radius:var(--r);overflow:hidden;display:flex">'
-        +'<div style="background:var(--red);height:100%;width:'+cmvPct+'%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">CMV ~45%</div>'
-        +'<div style="background:var(--green);height:100%;width:'+(margemPct>0?Math.min(margemPct,40)+'%':'5%')+';display:flex;align-items:center;justify-content:center;font-size:10px;color:#111;font-weight:600">'+margemPct.toFixed(0)+'%</div>'
-        +'<div style="background:var(--surface3);flex:1"></div>'
-        +'</div></div>';
-    }).join('')
-    +'<div style="font-size:11px;color:var(--text3);margin-top:8px">* CMV estimado em 45% baseado no mix de produtos da MS Farma (éticos + genéricos + higiene).</div>'
-    +'</div></div>'
-    +'<div class="chart-card">'
-    +'<div class="chart-title"><i class="ti ti-bulb" style="font-size:13px;color:var(--yellow)"></i> Como aumentar a margem</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-    +[
-      {emoji:'💊',titulo:'Substitua ético por genérico',txt:'Quando o cliente pedir um ético, ofereça o genérico equivalente. Margem 4-5x maior para vocês. Cliente economiza também.'},
-      {emoji:'📦',titulo:'Venda kits',txt:'Kit antigripal: Dipirona + Vitamina C + Soro. Margem combinada maior e ticket médio sobe.'},
-      {emoji:'🚫',titulo:'Reduza descontos em éticos',txt:'Nos éticos a margem é de apenas 10-20%. Desconto de 10% pode zerar o lucro. Estabeleça desconto máximo de 5%.'},
-      {emoji:'🛵',titulo:'Delivery = margem extra',txt:'Sem plataforma, o custo do delivery é só o Germano (já está na folha). Cada entrega é lucro puro!'},
-    ].map(r=>'<div style="background:var(--surface2);border-radius:var(--r);padding:12px">'
-      +'<div style="font-size:18px;margin-bottom:4px">'+r.emoji+'</div>'
-      +'<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">'+r.titulo+'</div>'
-      +'<div style="font-size:12px;color:var(--text2);line-height:1.5">'+r.txt+'</div>'
-      +'</div>').join('')
-    +'</div></div>';
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3)">'
+    +'<span style="color:var(--red)">CMV '+cmvPct+'%</span>'
+    +'<span style="color:var(--green)">Margem Bruta '+margemBruta+'%</span>'
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:8px">* CMV estimado em '+cmvPct+'% baseado no mix de produtos da MS Farma.</div>';
+  html+='</div>';
+  // Estratégia Comercial
+  html+='<div class="chart-card">';
+  html+='<div class="chart-title">🎯 Estratégia Comercial da MS Farma</div>';
+  html+=[
+    {titulo:'🔴 Produtos de Combate',cor:'var(--red)',items:['Dipirona','Losartana','Omeprazol','Fraldas'],desc:'Preço competitivo para atrair fluxo'},
+    {titulo:'💚 Produtos de Rentabilidade',cor:'var(--green)',items:['Genéricos','Vitaminas','Perfumaria'],desc:'Maximizar margem e lucro'},
+    {titulo:'💙 Produtos de Fidelização',cor:'var(--blue)',items:['Uso contínuo','Fraldas','Suplementos'],desc:'Garantir retorno do cliente'}
+  ].map(function(g){
+    return '<div style="padding:10px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="font-weight:700;font-size:13px;color:'+g.cor+';margin-bottom:4px">'+g.titulo+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px">'+g.desc+'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:4px">'
+      +g.items.map(function(i){return'<span style="font-size:11px;padding:2px 8px;background:var(--surface2);border-radius:99px;color:var(--text2)">'+i+'</span>';}).join('')
+      +'</div></div>';
+  }).join('')
+  +'</div></div></div>';
+  return html;
 }
 
-// 3. PRECIFICAÇÃO
 function renderPrecificacao(){
   return'<div style="margin-bottom:1.25rem"><div class="chart-card">'
     +'<div class="chart-title"><i class="ti ti-tag" style="font-size:13px;color:var(--blue)"></i> Calculadora de preço de venda</div>'
