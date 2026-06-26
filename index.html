@@ -5594,12 +5594,12 @@ function calcPreco(){
   const custo=parseFloat(document.getElementById('prec-custo').value)||0;
   const tipo=document.getElementById('prec-tipo').value;
   const customMg=parseFloat(document.getElementById('prec-margem').value)||0;
-  const margens={etico:15,generico:65,higiene:37,suple:50,vitamina:42,fralda:20,perfumaria:42,custom:customMg};
+  const margens={etico:15,generico:75,higiene:40,suple:60,vitamina:45,fralda:20,perfumaria:45,custom:customMg};
   const margem=margens[tipo]||15;
   if(!custo){document.getElementById('prec-resultado').innerHTML='';return;}
-  const pvMin=custo/(1-margem/100);
-  const pvIdeal=custo/(1-(margem+5)/100);
-  const pvAgressivo=custo/(1-(margem-5)/100);
+  const pvMin=custo*(1+margem/100);
+  const pvIdeal=custo*(1+(margem+10)/100);
+  const pvAgressivo=custo*(1+(margem+20)/100);
   const lucroMin=pvMin-custo;
   document.getElementById('prec-resultado').innerHTML=
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px">'
