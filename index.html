@@ -5708,7 +5708,8 @@ function renderCapitalGiro(){
     {fase:'Fase 1',desc:'Sair do vermelho',meta:10000,cor:'var(--red)'},
     {fase:'Fase 2',desc:'Eliminar dependência bancária',meta:20000,cor:'var(--yellow)'},
     {fase:'Fase 3',desc:'1 mês de proteção',meta:31039,cor:'#22c55e'},
-    {fase:'Fase 4',desc:'Capital saudável',meta:46000,cor:'var(--blue)'}
+    {fase:'Fase 4',desc:'Capital saudável',meta:46000,cor:'var(--blue)'},
+    {fase:'Fase 5 ⭐',desc:'Capital estratégico — compras à vista e oportunidades',meta:62000,cor:'#a78bfa'}
   ];
   const faseAtual=fases.filter(function(f){return capital<f.meta;}).shift()||fases[3];
   var html='';
