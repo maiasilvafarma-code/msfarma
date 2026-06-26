@@ -9446,7 +9446,24 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
       for(const row of rows) {
         if(!SYNC_KEYS.includes(row.chave)) continue;
         const valStr = typeof row.valor === 'string' ? row.valor : JSON.stringify(row.valor);
-        localStorage.setItem(row.chave, valStr);
+        // Preserva campo negociado dos boletos ao carregar do Supabase
+        if(row.chave==='farmacia-fin-v2'){
+          try{
+            const localRaw=localStorage.getItem('farmacia-fin-v2');
+            if(localRaw){
+              const localD=JSON.parse(localRaw);
+              const remoteD=JSON.parse(valStr);
+              if(localD.boletos&&remoteD.boletos){
+                remoteD.boletos.forEach(function(rb){
+                  const lb=localD.boletos.find(function(x){return x.id===rb.id;});
+                  if(lb&&lb.negociado)rb.negociado=lb.negociado;
+                  if(lb&&lb.obs)rb.obs=lb.obs;
+                });
+              }
+              localStorage.setItem(row.chave,JSON.stringify(remoteD));
+            } else { localStorage.setItem(row.chave,valStr); }
+          }catch(e){localStorage.setItem(row.chave,valStr);}
+        } else { localStorage.setItem(row.chave,valStr); }
         updated++;
       }
       setStatus('ok');
