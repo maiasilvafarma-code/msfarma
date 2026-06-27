@@ -8137,7 +8137,8 @@ function consultarPMC(){
     })
   }).then(function(r){return r.json();}).then(function(data){
     var texto=data.content[0].text.replace(/```json|```/g,'').trim();
-    var p=JSON.parse(texto);
+    var p;
+    try{p=JSON.parse(texto);}catch(ex){res.innerHTML='<div style="color:var(--red);padding:12px">Erro ao processar resposta: '+ex.message+'</div>';console.error('JSON erro:',texto);return;}
     if(!p.encontrado){res.innerHTML='<div style="padding:12px;background:var(--surface2);border-radius:var(--r);color:var(--text3);font-size:13px">'+( p.mensagem||'Nao encontrado.')+'</div>';return;}
     var html='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;text-align:center">CMED/ANVISA - '+(p.competencia||'atual')+'</div>';
     p.medicamentos.forEach(function(med){
