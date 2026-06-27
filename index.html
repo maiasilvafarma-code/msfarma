@@ -8117,6 +8117,12 @@ function gerarPDF(){
 // NOTIFICAÇÕES ────────────────────────────────────────
 function abrirConsultaPMC(){
   var busca=document.getElementById('pmc-busca').value.trim();
+  if(!busca){showToast('Digite o nome do medicamento','yellow');return;}
+  var url='https://medicamentos.api.br/buscar?q='+encodeURIComponent(busca);
+  window.open(url,'_blank');
+}
+function abrirConsultaPMC_old(){
+  var busca=document.getElementById('pmc-busca').value.trim();
   var url='https://app.powerbi.com/view?r=eyJrIjoiYjZkZjEyM2YtNzNjYS00ZmQyLTliYTEtNDE2MDc4ZmE1NDEyIiwidCI6ImI2N2FmMjNmLWMzZjMtNGQzNS04MGM3LWI3MDg1ZmFmMzIwNiJ9';
   window.open(url,'_blank');
   if(busca)showToast('Busque por "'+busca+'" no painel ANVISA e selecione CE','blue');
