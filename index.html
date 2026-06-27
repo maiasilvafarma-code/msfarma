@@ -8064,29 +8064,88 @@ function gerarPDF(){
 
 // NOTIFICAÇÕES ────────────────────────────────────────
 function toggleNotificacoes(){
-  if(!('Notification' in window)){
-    showToast('Seu navegador não suporta notificações.','yellow');return;
+  var painelExistente=document.getElementById('painel-alertas');
+  if(painelExistente){painelExistente.remove();return;}
+  var bolVenc=D.boletos.filter(function(b){return !b.paid&&statusBoleto(b)==='overdue';});
+  var bol3d=D.boletos.filter(function(b){return !b.paid&&daysDiff(b.due)>=0&&daysDiff(b.due)<=3;});
+  var bolHoje=D.boletos.filter(function(b){return !b.paid&&daysDiff(b.due)===0;});
+  var totalVenc=bolVenc.reduce(function(s,b){return s+b.val;},0);
+  var chequeEsp=parseFloat(localStorage.getItem('msfarma-cheque-esp')||'20000');
+  var saldoAtual=parseFloat(localStorage.getItem('msfarma-saldo-atual')||'0');
+  var chequeUsado=saldoAtual<0?Math.abs(saldoAtual):8202.35;
+  var pctCheque=chequeEsp>0?(chequeUsado/chequeEsp*100).toFixed(0):0;
+  var meta=parseFloat(localStorage.getItem('farmacia-meta')||'0');
+  var fatRaw=localStorage.getItem('msfarma-fatur-dia');
+  var fatParsed=fatRaw?JSON.parse(fatRaw):null;
+  var m=curMonth();
+  var fatMes=fatParsed&&fatParsed.dias?fatParsed.dias.filter(function(d){return d.data.startsWith(m);}).reduce(function(s,d){return s+d.total;},0):0;
+  var pctMeta=meta>0?(fatMes/meta*100).toFixed(0):0;
+  var ultimaImport=localStorage.getItem('msfarma-ultima-import-vendas');
+  var diasSemImport=ultimaImport?Math.floor((Date.now()-parseInt(ultimaImport))/86400000):999;
+  var ultimaABC=localStorage.getItem('msfarma-ultima-import-abc');
+  var diasSemABC=ultimaABC?Math.floor((Date.now()-parseInt(ultimaABC))/86400000):999;
+  var lastBackup=localStorage.getItem('farmacia-last-backup');
+  var diasSemBackup=lastBackup?Math.floor((Date.now()-parseInt(lastBackup))/86400000):999;
+  var alertasCrit=[];
+  var alertasAtenc=[];
+  var alertasOk=[];
+  var lembretes=[];
+  if(bolVenc.length>0)alertasCrit.push({icon:'🚨',txt:bolVenc.length+' boleto(s) VENCIDO(S) — '+fmtCur(totalVenc)});
+  if(pctCheque>=80)alertasCrit.push({icon:'💳',txt:'Cheque especial em '+pctCheque+'% do limite ('+fmtCur(chequeUsado)+' de '+fmtCur(chequeEsp)+')'});
+  if(pctMeta<50&&meta>0)alertasCrit.push({icon:'🎯',txt:'Meta do mês em '+pctMeta+'% — faltam '+fmtCur(meta-fatMes)});
+  if(bolHoje.length>0)alertasAtenc.push({icon:'📅',txt:bolHoje.length+' boleto(s) vencem HOJE'});
+  if(bol3d.length>0)alertasAtenc.push({icon:'⚡',txt:bol3d.length+' boleto(s) vencem nos próximos 3 dias'});
+  if(pctMeta>=50&&pctMeta<80&&meta>0)alertasAtenc.push({icon:'🎯',txt:'Meta do mês em '+pctMeta+'% — continue!'});
+  if(diasSemImport>=4)lembretes.push({icon:'📥',txt:'Importar Relação de Vendas (último: há '+diasSemImport+' dias)',urgente:diasSemImport>=7});
+  else alertasOk.push({icon:'✅',txt:'Relação de Vendas importada recentemente'});
+  if(diasSemABC>=35)lembretes.push({icon:'📊',txt:'Importar Curva ABC do Infarma (último: há '+diasSemABC+' dias)',urgente:true});
+  if(diasSemBackup>=7)lembretes.push({icon:'💾',txt:'Fazer backup dos dados (último: há '+diasSemBackup+' dias)',urgente:diasSemBackup>=14});
+  else alertasOk.push({icon:'✅',txt:'Backup em dia'});
+  if(bolVenc.length===0)alertasOk.push({icon:'✅',txt:'Nenhum boleto vencido'});
+  var painel=document.createElement('div');
+  painel.id='painel-alertas';
+  painel.style.position='fixed';
+  painel.style.top='60px';
+  painel.style.right='16px';
+  painel.style.width='380px';
+  painel.style.maxHeight='80vh';
+  painel.style.overflowY='auto';
+  painel.style.background='var(--surface)';
+  painel.style.border='1px solid var(--border2)';
+  painel.style.borderRadius='var(--rl)';
+  painel.style.zIndex='999';
+  painel.style.boxShadow='0 8px 32px rgba(0,0,0,0.4)';
+  function secao(titulo,items,cor){
+    if(!items.length)return '';
+    var h='<div style="padding:10px 14px;border-bottom:1px solid var(--border)">'
+      +'<div style="font-size:11px;font-weight:700;color:'+cor+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'+titulo+'</div>';
+    items.forEach(function(a){
+      h+='<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">'
+        +'<span>'+a.icon+'</span>'
+        +'<span style="color:'+(a.urgente?'var(--yellow)':'var(--text)')+'">'+a.txt+'</span>'
+        +'</div>';
+    });
+    h+='</div>';
+    return h;
   }
-  if(Notification.permission==='granted'){
-    showToast('Notificações já estão ativas! ✓','green');
-    enviarNotificacao('💊 Farmácia','Notificações funcionando! Você será avisada sobre vencimentos.',false);
-    return;
-  }
-  if(Notification.permission==='denied'){
-    showToast('Notificações bloqueadas. Clique no cadeado na barra do navegador → Notificações → Permitir.','yellow');
-    return;
-  }
-  // default — pede permissão
-  Notification.requestPermission().then(p=>{
-    atualizarBotaoNotif();
-    if(p==='granted'){
-      showToast('✓ Notificações ativadas!','green');
-      enviarNotificacao('💊 Farmácia — Notificações ativas','Você será avisada sobre boletos e despesas no vencimento.',false);
-    } else {
-      showToast('Permissão negada. Você pode ativar nas configurações do navegador.','yellow');
+  var html='<div style="padding:12px 14px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-size:14px;font-weight:700">🔔 Central de Alertas</span>'
+    +'<button onclick="document.getElementById(&quot;painel-alertas&quot;).remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3)">✕</button>'
+    +'</div>';
+  html+=secao('🔴 Crítico',alertasCrit,'var(--red)');
+  html+=secao('🟡 Atenção',alertasAtenc,'var(--yellow)');
+  html+=secao('📥 Lembretes',lembretes,'var(--blue)');
+  html+=secao('✅ Tudo certo',alertasOk,'var(--green)');
+  painel.innerHTML=html;
+  document.body.appendChild(painel);
+  document.addEventListener('click',function fechar(ev){
+    if(!painel.contains(ev.target)&&ev.target.id!=='notif-btn'){
+      painel.remove();
+      document.removeEventListener('click',fechar);
     }
-  });
+  },true);
 }
+
 function solicitarNotificacoes(){
   // chamada silenciosa no load - só atualiza ícone
   atualizarBotaoNotif();
