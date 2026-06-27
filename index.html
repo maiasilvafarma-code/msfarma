@@ -2512,31 +2512,57 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   </div>
 
   <!-- EMPRESTIMOS MS FARMA -->
-      <div class="section" id="sec-pmc">
-    <div class="sec-title">💊 Consulta PMC — CMED/ANVISA</div>
-    <div style="max-width:600px;margin:0 auto">
-      <div class="form-card" style="margin-bottom:1rem">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">
-          🏷️ Preço Máximo ao Consumidor com <strong>ICMS 12% — Ceará</strong>. Dados baseados na tabela CMED/ANVISA.
-        </div>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="pmc-busca" placeholder="Ex: Losartana 50mg, Dipirona, Omeprazol..." 
-            style="flex:1;height:40px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:14px;color:var(--text);outline:none"
-            onkeydown="if(event.key===&quot;Enter&quot;)consultarPMC()">
-          <button class="btn btn-green" onclick="consultarPMC()">🔍 Consultar</button>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
-          <span style="font-size:11px;color:var(--text3)">Exemplos:</span>
-          <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Dipirona 500mg&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Dipirona 500mg</button>
-          <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Losartana 50mg&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Losartana 50mg</button>
-          <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Omeprazol 20mg&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Omeprazol 20mg</button>
-          <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Amoxicilina 500mg&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Amoxicilina 500mg</button>
-        </div>
+      <div class="section" <div class="section" id="sec-pmc">
+  <div class="sec-title">💊 Consulta PMC — CMED/ANVISA</div>
+  <div style="max-width:700px;margin:0 auto">
+    <div class="form-card" style="margin-bottom:1rem">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px">
+        🏷️ Preço Máximo ao Consumidor com <strong>ICMS 12% — Ceará</strong>. Consulta direta na tabela oficial CMED/ANVISA.
       </div>
-      <div id="pmc-resultado"></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input type="text" id="pmc-busca" placeholder="Ex: Losartana, Dipirona 500mg, Omeprazol..." 
+          style="flex:1;height:40px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:14px;color:var(--text);outline:none"
+          onkeydown="if(event.key===&quot;Enter&quot;)abrirConsultaPMC()">
+        <button class="btn btn-green" onclick="abrirConsultaPMC()">🔍 Consultar</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        <span style="font-size:11px;color:var(--text3)">Exemplos:</span>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Dipirona&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Dipirona</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Losartana&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Losartana</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Omeprazol&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Omeprazol</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Amoxicilina&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Amoxicilina</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Metformina&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Metformina</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <a href="https://app.powerbi.com/view?r=eyJrIjoiYjZkZjEyM2YtNzNjYS00ZmQyLTliYTEtNDE2MDc4ZmE1NDEyIiwidCI6ImI2N2FmMjNmLWMzZjMtNGQzNS04MGM3LWI3MDg1ZmFmMzIwNiJ9" target="_blank"
+          style="display:flex;align-items:center;gap:10px;padding:14px;background:var(--blue-dim);border:1px solid var(--blue-border);border-radius:var(--r);text-decoration:none">
+          <span style="font-size:24px">📊</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--blue)">Painel PMC Oficial ANVISA</div>
+            <div style="font-size:11px;color:var(--text3)">Power BI ANVISA — Filtrar por CE</div>
+          </div>
+        </a>
+        <a href="https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/cmed/precos" target="_blank"
+          style="display:flex;align-items:center;gap:10px;padding:14px;background:var(--green-dim);border:1px solid var(--green-border);border-radius:var(--r);text-decoration:none">
+          <span style="font-size:24px">📋</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--green)">Tabela CMED Oficial</div>
+            <div style="font-size:11px;color:var(--text3)">Download XLS/PDF atualizado</div>
+          </div>
+        </a>
+      </div>
+    </div>
+    <div id="pmc-resultado"></div>
+    <div style="padding:12px 16px;background:var(--surface2);border-radius:var(--r);font-size:12px;color:var(--text3);line-height:1.6">
+      <strong style="color:var(--text2)">💡 Como consultar o PMC do Ceará:</strong><br>
+      1. Clique em <strong>🔍 Consultar</strong> — abre o painel ANVISA com o produto buscado<br>
+      2. No painel, selecione <strong>Estado: CE</strong> no filtro à esquerda<br>
+      3. A alíquota ICMS do CE para medicamentos é <strong>12%</strong><br>
+      4. Os preços são válidos até o final de cada mês
     </div>
   </div>
-  <div class="section" id="sec-emprestimos">
+</div>
+id="sec-emprestimos">
         <div class="sec-title">
           <i class="ti ti-building-bank" style="font-size:20px;color:#60a5fa"></i> Empréstimos — MS Farma
         </div>
@@ -8089,6 +8115,12 @@ function gerarPDF(){
 }
 
 // NOTIFICAÇÕES ────────────────────────────────────────
+function abrirConsultaPMC(){
+  var busca=document.getElementById('pmc-busca').value.trim();
+  var url='https://app.powerbi.com/view?r=eyJrIjoiYjZkZjEyM2YtNzNjYS00ZmQyLTliYTEtNDE2MDc4ZmE1NDEyIiwidCI6ImI2N2FmMjNmLWMzZjMtNGQzNS04MGM3LWI3MDg1ZmFmMzIwNiJ9';
+  window.open(url,'_blank');
+  if(busca)showToast('Busque por "'+busca+'" no painel ANVISA e selecione CE','blue');
+}
 function consultarPMC(){
   var busca=document.getElementById('pmc-busca').value.trim();
   if(!busca)return;
