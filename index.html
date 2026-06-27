@@ -2522,16 +2522,16 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <input type="text" id="pmc-busca" placeholder="Ex: Losartana, Dipirona 500mg, Omeprazol..." 
           style="flex:1;height:40px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:14px;color:var(--text);outline:none"
-          onkeydown="if(event.key===&quot;Enter&quot;)abrirConsultaPMC()">
-        <button class="btn btn-green" onclick="abrirConsultaPMC()">🔍 Consultar</button>
+          onkeydown="if(event.key===&quot;Enter&quot;)consultarPMC()">
+        <button class="btn btn-green" onclick="consultarPMC()">🔍 Consultar</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
         <span style="font-size:11px;color:var(--text3)">Exemplos:</span>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Dipirona&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Dipirona</button>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Losartana&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Losartana</button>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Omeprazol&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Omeprazol</button>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Amoxicilina&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Amoxicilina</button>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Metformina&quot;;abrirConsultaPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Metformina</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Dipirona&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Dipirona</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Losartana&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Losartana</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Omeprazol&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Omeprazol</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Amoxicilina&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Amoxicilina</button>
+        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Metformina&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Metformina</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <a href="https://app.powerbi.com/view?r=eyJrIjoiYjZkZjEyM2YtNzNjYS00ZmQyLTliYTEtNDE2MDc4ZmE1NDEyIiwidCI6ImI2N2FmMjNmLWMzZjMtNGQzNS04MGM3LWI3MDg1ZmFmMzIwNiJ9" target="_blank"
@@ -8126,11 +8126,9 @@ function consultarPMC(){
   if(!busca)return;
   var res=document.getElementById('pmc-resultado');
   res.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3)">Consultando tabela CMED...</div>';
-  var apiKey=localStorage.getItem('msfarma-anthropic-key')||'';
-  if(!apiKey){res.innerHTML='<div style="color:var(--red);padding:12px">Configure a chave API nas configuracoes.</div>';return;}
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       model:'claude-sonnet-4-6',
       max_tokens:1000,
