@@ -8126,9 +8126,11 @@ function consultarPMC(){
   if(!busca)return;
   var res=document.getElementById('pmc-resultado');
   res.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3)">Consultando tabela CMED...</div>';
+  var apiKey=localStorage.getItem('msfarma-anthropic-key')||'';
+  if(!apiKey){res.innerHTML='<div style="color:var(--red);padding:12px">Configure a chave API nas configuracoes.</div>';return;}
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({
       model:'claude-sonnet-4-6',
       max_tokens:1000,
