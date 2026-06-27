@@ -2935,66 +2935,101 @@ function limparFormNF(){var el=document.getElementById('nf-form-area');if(el)el.
 
 function importarXML(files){
   if(!files||!files.length)return;
-  var imported=0, erros=0;
   Array.from(files).forEach(function(file){
     var reader=new FileReader();
     reader.onload=function(e){
       try{
         var parser=new DOMParser();
         var xml=parser.parseFromString(e.target.result,'text/xml');
-        var ide=xml.querySelector('ide');
-        var emit=xml.querySelector('emit');
-        var total=xml.querySelector('total ICMSTot')||xml.querySelector('ICMSTot');
-        var cobr=xml.querySelector('cobr dup')||xml.querySelector('dup');
-        var infNFe=xml.querySelector('infNFe');
-        if(!ide||!emit||!total){erros++;showToast('Arquivo inválido: '+file.name,'red');return;}
-        var nNF=ide.querySelector('nNF')?ide.querySelector('nNF').textContent:'';
-        var serie=ide.querySelector('serie')?ide.querySelector('serie').textContent:'';
-        var dhEmi=ide.querySelector('dhEmi')?ide.querySelector('dhEmi').textContent:ide.querySelector('dEmi')?ide.querySelector('dEmi').textContent:'';
+        var ns='http://www.portalfiscal.inf.br/nfe';
+        function q(sel){return xml.querySelector(sel);}
+        var nNF=q('nNF')?q('nNF').textContent:'';
+        var serie=q('serie')?q('serie').textContent:'55';
+        var dhEmi=q('dhEmi')?q('dhEmi').textContent:q('dEmi')?q('dEmi').textContent:'';
         var emiDate=dhEmi?dhEmi.substring(0,10):'';
-        var xNome=emit.querySelector('xNome')?emit.querySelector('xNome').textContent:'';
-        var vNF=total.querySelector('vNF')?parseFloat(total.querySelector('vNF').textContent):0;
-        var chave=infNFe?infNFe.getAttribute('Id')||'':'';
-        if(chave.startsWith('NFe'))chave=chave.substring(3);
-        // Vencimento
-        var dueDate='';
-        if(cobr){
-          var dVenc=cobr.querySelector('dVenc');
-          if(dVenc)dueDate=dVenc.textContent.substring(0,10);
-        }
-        if(!dueDate&&emiDate)dueDate=emiDate;
-        // Número formatado
-        var numFormatado='NF-55-'+nNF.padStart(6,'0');
+        var xNome=q('emit xNome')?q('emit xNome').textContent:'';
+        var vNF=q('vNF')?parseFloat(q('vNF').textContent):0;
+        var infNFe=q('infNFe');
+        var chave=infNFe?(infNFe.getAttribute('Id')||'').replace('NFe',''):'';
+        var numFormatado='NF-'+serie+'-'+nNF.padStart(6,'0');
         // Verifica duplicata
-        var jaExiste=D.nf.find(function(n){return n.chave===chave||(n.num===numFormatado&&n.sup===xNome);});
-        if(jaExiste){showToast('NF '+numFormatado+' já existe!','yellow');return;}
+        var jaExiste=D.nf.find(function(n){return n.chave===chave||(n.num===numFormatado&&n.sup===xNome.toUpperCase());});
+        if(jaExiste){showToast('NF '+numFormatado+' ja existe!','yellow');return;}
+        // Duplicatas (parcelas/boletos)
+        var dups=Array.from(xml.querySelectorAll('dup'));
+        var primVenc=dups.length>0?dups[0].querySelector('dVenc').textContent.substring(0,10):emiDate;
+        // Cria NF
+        var nfId=Date.now()+Math.random();
         D.nf.unshift({
-          id:Date.now()+Math.random(),
-          num:numFormatado,
-          sup:xNome.toUpperCase(),
-          val:vNF,
-          emi:emiDate,
-          due:dueDate,
-          entrada:emiDate,
-          fechamento:'',
-          chave:chave,
-          paid:false,
-          formaPagto:'',
-          sitFinanceira:'',
-          centroCompra:''
+          id:nfId,num:numFormatado,sup:xNome.toUpperCase(),
+          val:vNF,emi:emiDate,due:primVenc,
+          entrada:emiDate,fechamento:'',chave:chave,
+          paid:false,formaPagto:'',sitFinanceira:'',centroCompra:''
         });
-        imported++;
+        // Cria boletos das duplicatas
+        var totalDups=dups.length;
+        dups.forEach(function(dup,i){
+          var nDup=dup.querySelector('nDup')?dup.querySelector('nDup').textContent:(i+1).toString().padStart(3,'0');
+          var dVenc=dup.querySelector('dVenc')?dup.querySelector('dVenc').textContent.substring(0,10):emiDate;
+          var vDup=dup.querySelector('vDup')?parseFloat(dup.querySelector('vDup').textContent):vNF;
+          D.boletos.unshift({
+            id:Date.now()+i+Math.round(Math.random()*9999),
+            sup:xNome.toUpperCase(),
+            val:vDup,
+            due:dVenc,
+            paid:false,
+            bar:'',
+            cat:'Fornecedores',
+            nfRef:numFormatado,
+            nDup:nDup,
+            note:numFormatado+' — Parcela '+nDup+'/'+totalDups
+          });
+        });
         save();
-        showToast('✅ NF '+numFormatado+' importada!','green');
+        showToast('NF '+numFormatado+' importada! '+totalDups+' boleto(s) criado(s)','green');
         renderNF();
+        // Abre modal para inserir codigos de barras
+        if(totalDups>0) abrirModalCodigosBarras(numFormatado, xNome.toUpperCase(), dups.length);
       }catch(err){
-        erros++;
         console.error('Erro XML:',err);
         showToast('Erro ao importar: '+file.name,'red');
       }
     };
     reader.readAsText(file,'UTF-8');
   });
+}
+function abrirModalCodigosBarras(numNF, sup, totalDups){
+  var boletos=D.boletos.filter(function(b){return b.nfRef===numNF&&!b.bar;});
+  if(!boletos.length)return;
+  var linhas=boletos.map(function(b,i){
+    return '<div style="display:grid;grid-template-columns:80px 1fr;gap:8px;align-items:center;margin-bottom:8px">'
+      +'<span style="font-size:12px;font-weight:600;color:var(--text2)">Parcela '+b.nDup+'</span>'
+      +'<input type="text" id="bar-'+b.id+'" placeholder="Cole ou leia o codigo de barras..." '
+      +'style="height:34px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;font-size:12px;color:var(--text);outline:none;font-family:monospace">'
+      +'</div>';
+  }).join('');
+  var m=document.createElement('div');
+  m.id='modal-codigos-barras';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center';
+  m.innerHTML='<div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--rl);padding:24px;width:560px;max-width:95vw;max-height:80vh;overflow-y:auto">'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:4px">📋 Códigos de Barras — '+numNF+'</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-bottom:16px">'+sup+' — '+totalDups+' boleto(s)</div>'
+    +linhas
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">'
+    +'<button class="btn" onclick="fecharModalCartao('modal-codigos-barras')">Pular</button>'
+    +'<button class="btn btn-green" onclick="salvarCodigosBarras(''+numNF+'')">✓ Salvar códigos</button>'
+    +'</div></div>';
+  document.body.appendChild(m);
+}
+function salvarCodigosBarras(numNF){
+  var boletos=D.boletos.filter(function(b){return b.nfRef===numNF;});
+  boletos.forEach(function(b){
+    var inp=document.getElementById('bar-'+b.id);
+    if(inp&&inp.value.trim())b.bar=inp.value.trim();
+  });
+  save();
+  fecharModalCartao('modal-codigos-barras');
+  showToast('Codigos de barras salvos!','green');
 }
 
 function addNF(){
