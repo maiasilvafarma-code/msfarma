@@ -8129,6 +8129,12 @@ function abrirConsultaPMC_old(){
 }
 function consultarPMC(){
   var busca=document.getElementById('pmc-busca').value.trim();
+  if(!busca){showToast('Digite o nome do medicamento','yellow');return;}
+  var url='https://medicamentos.api.br/buscar?q='+encodeURIComponent(busca);
+  window.open(url,'_blank');
+  return;
+  // codigo antigo abaixo (desativado)
+  var busca=document.getElementById('pmc-busca').value.trim();
   if(!busca)return;
   var res=document.getElementById('pmc-resultado');
   res.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3)">Consultando tabela CMED...</div>';
