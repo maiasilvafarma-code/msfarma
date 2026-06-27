@@ -358,7 +358,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
 
   <!-- NF -->
   <div class="section" id="sec-nf">
-    <div id="nf-form-area"></div>
+    <div id="nf-form-area"></div><div style="margin-bottom:1rem;display:flex;gap:8px;align-items:center"><input type="file" id="inp-xml-nf" accept=".xml" multiple style="display:none" onchange="importarXML(this.files)"><button class="btn btn-green" onclick="document.getElementById('inp-xml-nf').click()">📥 Importar XML (NF-e)</button><span style="font-size:12px;color:var(--text3)">Selecione um ou mais arquivos XML de NF-e</span></div>
     <div id="nf-month-pills" class="month-pills"><button class="mpill active" onclick="setNFMonth(&#39;all&#39;)">Todos</button><button class="mpill current" onclick="setNFMonth(&#39;2026-06&#39;)">Jun/26</button><button class="mpill" onclick="setNFMonth(&#39;2026-05&#39;)">Mai/26</button><button class="mpill" onclick="setNFMonth(&#39;2026-04&#39;)">Abr/26</button></div>
     <div class="metrics" id="nf-metrics">
     <div class="mcard"><div class="mcard-label">Total notas</div><div class="mcard-value green">R$ 57.983,80</div></div>
@@ -2932,6 +2932,71 @@ function editNFCampo(id,campo,td){
   setTimeout(function(){document.addEventListener('click',function handler(){menu.remove();document.removeEventListener('click',handler);},{once:true});},100);
 }
 function limparFormNF(){var el=document.getElementById('nf-form-area');if(el)el.innerHTML='';}
+
+function importarXML(files){
+  if(!files||!files.length)return;
+  var imported=0, erros=0;
+  Array.from(files).forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var parser=new DOMParser();
+        var xml=parser.parseFromString(e.target.result,'text/xml');
+        var ide=xml.querySelector('ide');
+        var emit=xml.querySelector('emit');
+        var total=xml.querySelector('total ICMSTot')||xml.querySelector('ICMSTot');
+        var cobr=xml.querySelector('cobr dup')||xml.querySelector('dup');
+        var infNFe=xml.querySelector('infNFe');
+        if(!ide||!emit||!total){erros++;showToast('Arquivo inválido: '+file.name,'red');return;}
+        var nNF=ide.querySelector('nNF')?ide.querySelector('nNF').textContent:'';
+        var serie=ide.querySelector('serie')?ide.querySelector('serie').textContent:'';
+        var dhEmi=ide.querySelector('dhEmi')?ide.querySelector('dhEmi').textContent:ide.querySelector('dEmi')?ide.querySelector('dEmi').textContent:'';
+        var emiDate=dhEmi?dhEmi.substring(0,10):'';
+        var xNome=emit.querySelector('xNome')?emit.querySelector('xNome').textContent:'';
+        var vNF=total.querySelector('vNF')?parseFloat(total.querySelector('vNF').textContent):0;
+        var chave=infNFe?infNFe.getAttribute('Id')||'':'';
+        if(chave.startsWith('NFe'))chave=chave.substring(3);
+        // Vencimento
+        var dueDate='';
+        if(cobr){
+          var dVenc=cobr.querySelector('dVenc');
+          if(dVenc)dueDate=dVenc.textContent.substring(0,10);
+        }
+        if(!dueDate&&emiDate)dueDate=emiDate;
+        // Número formatado
+        var numFormatado='NF-55-'+nNF.padStart(6,'0');
+        // Verifica duplicata
+        var jaExiste=D.nf.find(function(n){return n.chave===chave||(n.num===numFormatado&&n.sup===xNome);});
+        if(jaExiste){showToast('NF '+numFormatado+' já existe!','yellow');return;}
+        D.nf.unshift({
+          id:Date.now()+Math.random(),
+          num:numFormatado,
+          sup:xNome.toUpperCase(),
+          val:vNF,
+          emi:emiDate,
+          due:dueDate,
+          entrada:emiDate,
+          fechamento:'',
+          chave:chave,
+          paid:false,
+          formaPagto:'',
+          sitFinanceira:'',
+          centroCompra:''
+        });
+        imported++;
+        save();
+        showToast('✅ NF '+numFormatado+' importada!','green');
+        renderNF();
+      }catch(err){
+        erros++;
+        console.error('Erro XML:',err);
+        showToast('Erro ao importar: '+file.name,'red');
+      }
+    };
+    reader.readAsText(file,'UTF-8');
+  });
+}
+
 function addNF(){
   const num=document.getElementById('nf-num').value.trim();
   const sup=document.getElementById('nf-sup').value.trim();
