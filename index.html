@@ -2943,20 +2943,21 @@ function importarXML(files){
         var xml=parser.parseFromString(e.target.result,'text/xml');
         var ns='http://www.portalfiscal.inf.br/nfe';
         function q(sel){return xml.querySelector(sel);}
-        var nNF=q('nNF')?q('nNF').textContent:'';
+        function qn(tag){var els=xml.getElementsByTagName(tag);return els.length?els[0]:null;}
+        var nNF=qn('nNF')?qn('nNF').textContent:'';
         var serie=q('serie')?q('serie').textContent:'55';
-        var dhEmi=q('dhEmi')?q('dhEmi').textContent:q('dEmi')?q('dEmi').textContent:'';
+        var dhEmi=qn('dhEmi')?qn('dhEmi').textContent:qn('dEmi')?qn('dEmi').textContent:'';
         var emiDate=dhEmi?dhEmi.substring(0,10):'';
-        var xNome=q('emit xNome')?q('emit xNome').textContent:'';
-        var vNF=q('vNF')?parseFloat(q('vNF').textContent):0;
-        var infNFe=q('infNFe');
+        var emitEls=xml.getElementsByTagName('emit');var xNome=emitEls.length&&emitEls[0].getElementsByTagName('xNome').length?emitEls[0].getElementsByTagName('xNome')[0].textContent:'';
+        var vNF=qn('vNF')?parseFloat(qn('vNF').textContent):0;
+        var infNFe=xml.getElementsByTagName('infNFe').length?xml.getElementsByTagName('infNFe')[0]:null;
         var chave=infNFe?(infNFe.getAttribute('Id')||'').replace('NFe',''):'';
         var numFormatado='NF-'+serie+'-'+nNF.padStart(6,'0');
         // Verifica duplicata
         var jaExiste=D.nf.find(function(n){return n.chave===chave||(n.num===numFormatado&&n.sup===xNome.toUpperCase());});
         if(jaExiste){showToast('NF '+numFormatado+' ja existe!','yellow');return;}
         // Duplicatas (parcelas/boletos)
-        var dups=Array.from(xml.querySelectorAll('dup'));
+        var dups=Array.from(xml.getElementsByTagName('dup'));
         var primVenc=dups.length>0?dups[0].querySelector('dVenc').textContent.substring(0,10):emiDate;
         // Cria NF
         var nfId=Date.now()+Math.random();
