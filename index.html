@@ -2945,7 +2945,7 @@ function importarXML(files){
         function q(sel){return xml.querySelector(sel);}
         function qn(tag){var els=xml.getElementsByTagName(tag);return els.length?els[0]:null;}
         var nNF=qn('nNF')?qn('nNF').textContent:'';
-        var serie=q('serie')?q('serie').textContent:'55';
+        var serie='55';
         var dhEmi=qn('dhEmi')?qn('dhEmi').textContent:qn('dEmi')?qn('dEmi').textContent:'';
         var emiDate=dhEmi?dhEmi.substring(0,10):'';
         var emitEls=xml.getElementsByTagName('emit');var xNome=emitEls.length&&emitEls[0].getElementsByTagName('xNome').length?emitEls[0].getElementsByTagName('xNome')[0].textContent:'';
