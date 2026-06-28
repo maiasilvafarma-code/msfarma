@@ -3020,6 +3020,7 @@ function importarXML(files){
         save();
         showToast('NF '+numFormatado+' importada! '+totalDups+' boleto(s) criado(s)','green');
         renderNF();
+        document.getElementById('inp-xml-nf').value='';
         // Abre modal para inserir codigos de barras
         if(totalDups>0) abrirModalCodigosBarras(numFormatado, xNome.toUpperCase(), dups.length);
       }catch(err){
