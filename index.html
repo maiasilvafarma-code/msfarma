@@ -9627,6 +9627,7 @@ function backupDownload(mostrarAlerta) {
 }
 
 
+function showToast(msg,type){var el=document.createElement('div');var colors={green:'var(--green-dim)',red:'var(--red-dim)',yellow:'var(--yellow-dim)'};var borders={green:'var(--green-border)',red:'var(--red-border)',yellow:'var(--yellow-border)'};var texts={green:'var(--green)',red:'var(--red)',yellow:'var(--yellow)'};el.style.cssText='position:fixed;bottom:24px;right:24px;background:'+colors[type||'green']+';border:1px solid '+borders[type||'green']+';color:'+texts[type||'green']+';padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.4)';el.textContent=msg;document.body.appendChild(el);setTimeout(function(){el.remove();},4000);}
 function importarCurvaAbcXls(file){
   if(!file)return;
   showToast('Lendo XLS Curva ABC...','green');
