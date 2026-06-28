@@ -8327,6 +8327,7 @@ function importarRelacaoVendasHtml(input){
       if(dias.length===0){alert('Nenhum dado encontrado.');input.value='';return;}
       const dados={periodo:periodoObj,dias:dias.map(d=>({data:d,total:Math.round(byDay[d]*100)/100})),importado:new Date().toISOString()};
       localStorage.setItem('msfarma-fatur-dia',JSON.stringify(dados));
+      localStorage.setItem('msfarma-ultima-import-vendas', Date.now().toString());
       input.value='';
       renderDashboard();
       const totalGeral=dias.reduce((s,d)=>s+(byDay[d]||0),0);
