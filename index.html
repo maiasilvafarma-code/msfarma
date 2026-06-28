@@ -9626,6 +9626,77 @@ function backupDownload(mostrarAlerta) {
   }
 }
 
+
+function importarCurvaAbcXls(file){
+  if(!file)return;
+  showToast('Lendo XLS Curva ABC...','green');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      if(typeof XLSX==='undefined'){showToast('Biblioteca XLS não carregada','red');return;}
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      // Detectar período na linha 2
+      let periodoLabel='';
+      const linhaPer=String(rows[2]?rows[2][0]:'');
+      const mPer=linhaPer.match(/Per[ií]odo[:\s]*([\d\/]+)\s*a\s*([\d\/]+)/i);
+      if(mPer){periodoLabel=mPer[1]+' a '+mPer[2];}
+      // Cabeçalho na linha 4 (índice 4), dados a partir da linha 6 (índice 6)
+      const produtos=[];
+      let totalVal=0;
+      for(let i=6;i<rows.length;i++){
+        const r=rows[i];
+        const cod=String(r[1]||'').trim();
+        const nome=String(r[2]||'').trim();
+        if(!cod||!nome||isNaN(parseInt(cod)))continue;
+        const und=String(r[4]||'UND').trim();
+        const valorStr=String(r[6]||'0').replace(/\./g,'').replace(',','.');
+        const valor=parseFloat(valorStr)||0;
+        const qtde=parseInt(r[10])||0;
+        if(valor<=0)continue;
+        totalVal+=valor;
+        produtos.push({codigo:cod,nome:nome,und:und,valorVenda:valor,qtde:qtde,pctAcum:0,classe:'C'});
+      }
+      // Classificar ABC pelo acumulado
+      let acum=0;
+      produtos.forEach(function(p){
+        acum+=p.valorVenda/totalVal*100;
+        p.pctAcum=Math.round(acum*100)/100;
+        p.classe=acum<=80?'A':acum<=95?'B':'C';
+      });
+      const classeA=produtos.filter(function(p){return p.classe==='A';});
+      const classeB=produtos.filter(function(p){return p.classe==='B';});
+      const classeC=produtos.filter(function(p){return p.classe==='C';});
+      const top100=produtos.slice(0,100).map(function(p){
+        return{cod:p.codigo,desc:p.nome,qtd:p.qtde,valor:parseFloat(p.valorVenda.toFixed(2)),pct:parseFloat((p.valorVenda/totalVal*100).toFixed(1)),classe:p.classe,estoqueMin:Math.max(Math.ceil(p.qtde/15*30),1),und:p.und};
+      });
+      const dadosAbc={
+        fonte:'curva-abc-xls',arquivo:file.name,
+        importadoEm:new Date().toISOString(),
+        periodo:periodoLabel||file.name.replace(/\.xlsx?$/i,''),
+        total:parseFloat(totalVal.toFixed(2)),
+        totalProdutos:produtos.length,
+        classeA:classeA.length,classeB:classeB.length,classeC:classeC.length,
+        valorA:parseFloat(classeA.reduce(function(s,p){return s+p.valorVenda;},0).toFixed(2)),
+        valorB:parseFloat(classeB.reduce(function(s,p){return s+p.valorVenda;},0).toFixed(2)),
+        valorC:parseFloat(classeC.reduce(function(s,p){return s+p.valorVenda;},0).toFixed(2)),
+        top100:top100,
+        sampleB:classeB.slice(0,60).map(function(p){return{cod:p.codigo,desc:p.nome,qtd:p.qtde,valor:parseFloat(p.valorVenda.toFixed(2)),pct:parseFloat((p.valorVenda/totalVal*100).toFixed(1)),classe:'B',estoqueMin:Math.max(Math.ceil(p.qtde/15*15),1),und:p.und};}),
+        sampleC:classeC.slice(0,40).map(function(p){return{cod:p.codigo,desc:p.nome,qtd:p.qtde,valor:parseFloat(p.valorVenda.toFixed(2)),pct:parseFloat((p.valorVenda/totalVal*100).toFixed(1)),classe:'C',estoqueMin:1,und:p.und};}),
+        produtos:produtos
+      };
+      localStorage.setItem('farmacia-abc-produtos',JSON.stringify(dadosAbc));
+      localStorage.setItem('msfarma-abc-dados',JSON.stringify(dadosAbc));
+      localStorage.setItem('msfarma-ultima-import-abc',Date.now().toString());
+      window._abcDinamico=dadosAbc;
+      document.getElementById('curva-abc-xls-input').value='';
+      showToast('Curva ABC importada: '+produtos.length+' produtos | A:'+classeA.length+' B:'+classeB.length+' C:'+classeC.length,'green');
+      if(document.getElementById('sec-produtos')&&document.getElementById('sec-produtos').classList.contains('active'))renderProdutos();
+    }catch(ex){showToast('Erro ao processar XLS: '+ex.message,'red');console.error(ex);}
+  };
+  reader.readAsArrayBuffer(file);
+}
 function backupVerificarAutomatico() {
   const ultimo = parseInt(localStorage.getItem(BACKUP_KEY) || '0');
   const diasPassados = (Date.now() - ultimo) / (1000 * 60 * 60 * 24);
