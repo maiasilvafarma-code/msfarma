@@ -296,7 +296,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <button class="main-tab" onclick="goTab(&#39;entregas&#39;)">🛵 Entregas</button>
     <button class="main-tab" onclick="goTab(&#39;pronampe&#39;)" style="color:#16a34a;font-weight:700">🏦 PRONAMPE</button>
             <button class="main-tab" onclick="goTab('emprestimos')">🏦 Empréstimos</button>
-          <button class="main-tab" onclick="goTab('pmc')">💊 PMC</button>
+          
           <button class="main-tab" onclick="goTab('clientes')">&#128101; Clientes</button>
     <button class="main-tab" onclick="backupManual()" title="Fazer backup agora" style="color:#fbbf24;">💾 Backup</button>
   </div>
@@ -2512,7 +2512,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   </div>
 
   <!-- EMPRESTIMOS MS FARMA -->
-      <div class="section" id="sec-pmc">
+      <div class="section" id="sec-pmc" style="display:none">
   <div class="sec-title">💊 Consulta PMC — CMED/ANVISA</div>
   <div style="max-width:700px;margin:0 auto">
     <div class="form-card" style="margin-bottom:1rem">
@@ -2878,7 +2878,7 @@ function goTab(t){
   if(t==='analise')renderAnalise&&renderAnalise();
   if(t==='saude')renderSaude&&renderSaude();
   if(t==='emprestimos')renderEmprestimos&&renderEmprestimos();
-  if(t==='pmc'){document.getElementById('pmc-resultado').innerHTML='';}
+  
   if(t==='clientes')renderClientes&&renderClientes();
   if(t==='entregas'){renderEntregas&&renderEntregas();}
   if(t==='pronampe'){renderPRONAMPE&&renderPRONAMPE();}
