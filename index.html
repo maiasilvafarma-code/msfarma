@@ -4562,7 +4562,9 @@ function renderAnalise(){
       msg:'O delivery aumentou muito o faturamento bruto, mas comissões de 25-30% das plataformas podem reduzir a margem real. Calcule o lucro líquido por canal.'});
   }
   // Meta
-  const necessarioPorDia=diasRestantes>0?faltam/diasRestantes:0;
+  const diasRestantes2=diasNoMes-diasPassados;
+  const faltam2=Math.max(meta-totalE,0);
+  const necessarioPorDia=diasRestantes2>0?faltam2/diasRestantes2:0;
   if(meta>0&&projecao<meta*0.8){
     alertas.push({nivel:'yellow',icon:'ti-target',
       titulo:'Projeção abaixo da meta ('+((projecao/meta)*100).toFixed(0)+'%)',
