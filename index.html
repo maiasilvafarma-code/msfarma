@@ -8775,7 +8775,7 @@ function renderUsoContinuo(){
       var priNome=(c.nome||'').split(' ')[0];
       var med=c.medicamento||'';
       var msgWa='Ol\u00e1 '+priNome+'! Seu medicamento '+med+' deve estar acabando. Que tal j\u00e1 fazer seu pedido na MS Farma? Entregamos no seu endere\u00e7o pelo WhatsApp!';
-      var waBtn=tel?'<a href="https://wa.me/55'+tel+'?text='+encodeURIComponent(msgWa)+'" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#25D366;border-radius:50%;text-decoration:none;font-size:14px">\U0001f4ac</a>':'<span style="color:var(--text2);font-size:11px">sem tel</span>';
+      var waBtn=tel?'<a href="https://wa.me/55'+tel+'?text='+encodeURIComponent(msgWa)+'" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 8px;background:#25D366;border-radius:13px;text-decoration:none;font-size:11px;font-weight:700;color:#fff;white-space:nowrap">WA</a>':'';
       var dtFmt=c.ultimaCompra?c.ultimaCompra.split('-').reverse().join('/'):'--';
       h+='<tr style="border-bottom:1px solid var(--border)">';
       h+='<td style="padding:5px 4px;text-align:center;font-size:18px;width:30px">'+sm+'</td>';
@@ -8784,9 +8784,9 @@ function renderUsoContinuo(){
       h+='<td style="padding:5px 8px;text-align:center;white-space:nowrap"><div style="font-size:11px;color:var(--text2)">'+dtFmt+' / '+c.ciclo+'d</div><div style="font-size:12px;font-weight:700;'+diasCor+'">'+diasTxt+'</div></td>';
       h+='<td style="padding:5px 6px;text-align:center"><div style="display:flex;gap:3px;justify-content:center;align-items:center">';
       h+=waBtn;
-      h+='<button onclick="registrarCompraUC('+idx+')" title="Compra hoje" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:var(--green);color:#000;border:none;border-radius:50%;cursor:pointer;font-size:12px">\u2713</button>';
-      h+='<button onclick="abrirModalUC('+idx+')" title="Editar" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:var(--surface2);color:var(--text);border:none;border-radius:50%;cursor:pointer;font-size:12px">\u270e</button>';
-      h+='<button onclick="excluirUC('+idx+')" title="Excluir" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:rgba(248,113,113,0.15);color:var(--red);border:none;border-radius:50%;cursor:pointer;font-size:12px">\U0001f5d1</button>';
+      h+='<button onclick="registrarCompraUC('+idx+')" title="Compra hoje" style="height:26px;padding:0 8px;background:var(--green);color:#000;border:none;border-radius:13px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap">OK</button>';
+      h+='<button onclick="abrirModalUC('+idx+')" title="Editar" style="height:26px;padding:0 8px;background:var(--surface2);color:var(--text);border:none;border-radius:13px;cursor:pointer;font-size:11px;white-space:nowrap">Ed</button>';
+      h+='<button onclick="excluirUC('+idx+')" title="Excluir" style="height:26px;padding:0 8px;background:rgba(248,113,113,0.15);color:var(--red);border:none;border-radius:13px;cursor:pointer;font-size:11px;white-space:nowrap">X</button>';
       h+='</div></td>';
       h+='</tr>';
     });
