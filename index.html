@@ -8748,10 +8748,10 @@ function renderUsoContinuo(){
   h+='</div></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.6rem;margin-bottom:1rem">';
   h+='<div style="background:var(--surface2);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--text2)">Total</div><div style="font-size:18px;font-weight:700;color:var(--text)">'+lista.length+'</div></div>';
-  h+='<div style="background:rgba(248,113,113,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--red)">\U0001f534 Vencidos</div><div style="font-size:18px;font-weight:700;color:var(--red)">'+vencidos+'</div></div>';
-  h+='<div style="background:rgba(251,191,36,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--yellow,#fbbf24)">\U0001f7e0 Avisar Hoje</div><div style="font-size:18px;font-weight:700;color:var(--yellow,#fbbf24)">'+urgentes+'</div></div>';
+  h+='<div style="background:rgba(248,113,113,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--red)">Vencidos</div><div style="font-size:18px;font-weight:700;color:var(--red)">'+vencidos+'</div></div>';
+  h+='<div style="background:rgba(251,191,36,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--yellow,#fbbf24)">Avisar Hoje</div><div style="font-size:18px;font-weight:700;color:var(--yellow,#fbbf24)">'+urgentes+'</div></div>';
   h+='<div style="background:rgba(96,165,250,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--blue)">\U0001f535 Aten\u00e7\u00e3o</div><div style="font-size:18px;font-weight:700;color:var(--blue)">'+atencao+'</div></div>';
-  h+='<div style="background:rgba(52,211,153,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--green)">\U0001f7e2 Em dia</div><div style="font-size:18px;font-weight:700;color:var(--green)">'+ok+'</div></div>';
+  h+='<div style="background:rgba(52,211,153,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--green)">Em dia</div><div style="font-size:18px;font-weight:700;color:var(--green)">'+ok+'</div></div>';
   h+='</div>';
   var ordem={vencido:0,urgente:1,atencao:2,ok:3,'sem-data':4};
   var sorted=lista.slice().sort(function(a,b){return(ordem[a._status]||9)-(ordem[b._status]||9);});
