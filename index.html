@@ -8740,7 +8740,7 @@ function renderUsoContinuo(){
   var ok=lista.filter(function(c){return c._status==='ok';}).length;
   var h='';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">';
-  h+='<div style="font-size:15px;font-weight:700;color:var(--text)">\U0001f48a Clientes de Uso Cont\u00ednuo</div>';
+  h+='<div style="font-size:15px;font-weight:700;color:var(--text)">💊 Clientes de Uso Cont\u00ednuo</div>';
   h+='<div style="display:flex;gap:.5rem;flex-wrap:wrap">';
   h+='<button class="btn btn-green" onclick="abrirModalUC(null)" style="font-size:12px;padding:5px 14px">+ Novo Cadastro</button>';
   h+='<label class="btn" style="font-size:12px;padding:5px 14px;background:var(--blue);color:#fff;cursor:pointer">📄 Importar TXT Infarma<input type="file" accept=".txt,.TXT" style="display:none" onchange="importarTxtUsoContinuo(this)"></label>';
@@ -8768,7 +8768,7 @@ function renderUsoContinuo(){
     h+='</tr></thead><tbody>';
     sorted.forEach(function(c,i){
       var idx=window._ucDados.indexOf(c);
-      var sm=c._status==='vencido'?'\U0001f534':c._status==='urgente'?'\U0001f7e0':c._status==='atencao'?'\U0001f535':c._status==='ok'?'\U0001f7e2':'\u26aa';
+      var sm=c._status==='vencido'?'🔴':c._status==='urgente'?'🟠':c._status==='atencao'?'🔵':c._status==='ok'?'🟢':'⚪';
       var diasTxt=c._diasRestantes===null?'--':c._diasRestantes<0?'Venceu '+Math.abs(c._diasRestantes)+'d':c._diasRestantes===0?'Hoje!':c._diasRestantes+'d';
       var diasCor=c._status==='vencido'?'color:var(--red);font-weight:700':c._status==='urgente'?'color:var(--yellow,#fbbf24);font-weight:700':c._status==='atencao'?'color:var(--blue)':'color:var(--green)';
       var tel=(c.telefone||'').replace(/\D/g,'');
