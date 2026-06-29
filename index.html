@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #120 - Importador Relacao de Vendas HTML + painel meta diaria por dia: faltava fechamento de função antes de parsearTextoEntregas -->
+<!-- Deploy #234 - Sub-aba Uso Continuo na aba Clientes -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2561,6 +2561,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div style="display:flex;gap:.5rem;margin-bottom:.75rem;border-bottom:1px solid var(--border);padding-bottom:.5rem">
       <button id="cli-tab-ranking" onclick="window._cliTab='ranking';renderClientes()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--green);color:#000;font-weight:600">&#128200; Clientes</button>
       <button id="cli-tab-vendedores" onclick="window._cliTab='vendedores';renderVendedores()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128104;&#8205;&#128188; Vendedores</button>
+      <button id="cli-tab-continuo" onclick="abrirUsoContinuo()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128138; Uso Cont&#237;nuo</button>
     </div>
     <div id="cli-kpis" class="metrics" style="grid-template-columns:repeat(5,1fr)"></div>
     <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
@@ -2579,6 +2580,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div id="cli-inativos-vip" style="display:none"></div><div id="cli-ranking"></div>
     <div id="cli-cesta" class="chart-card" style="margin-top:1.25rem;display:none"></div>
     <div id="cli-historico" class="chart-card" style="margin-top:1.25rem;display:none"></div>
+  <div id="sec-uso-continuo" style="display:none;margin-top:1rem"></div>
   </div>
     <div id="cli-vendedores" style="display:none"></div>
   <!-- MODAL META MENSAL -->
@@ -8568,6 +8570,198 @@ function importarClientesPdf(file){if(!file)return;showToast('Lendo PDF de Clien
 function parsearClientesPdf(allPageItems,nomeArquivo){try{var clientes={};var clienteAtual=null;var toNum=function(s){return parseFloat(String(s||0).replace(/\./g,"").replace(",","."))||0;};for(var pi=0;pi<allPageItems.length;pi++){var byY={};for(var ii=0;ii<allPageItems[pi].length;ii++){var item=allPageItems[pi][ii];if(!item.str||!item.str.trim())continue;var y=Math.round(item.transform[5]/3)*3;if(!byY[y])byY[y]=[];byY[y].push({x:item.transform[4],str:item.str});}var ys=Object.keys(byY).map(Number).sort(function(a,b){return b-a;});for(var yi=0;yi<ys.length;yi++){var items=byY[ys[yi]].sort(function(a,b){return a.x-b.x;});var linha=items.map(function(i){return i.str;}).join(" ").replace(/\s+/g," ").trim();if(!linha)continue;var mCli=linha.match(/Cliente\.?:\s*(\d+)[\s-]+(.+)/i);if(mCli){var cod=mCli[1].replace(/[^\d]/g,"");var nomeCli=mCli[2].replace(/\s+/g," ").trim();var chave=cod+"-"+nomeCli;if(!clientes[chave])clientes[chave]={codigo:cod,nome:nomeCli,telefone:"",vendedor:"",totalQtd:0,totalValor:0,totalValorCalc:0,produtos:{}};clienteAtual=chave;continue;}if(/Total\s*Cliente/i.test(linha)&&clienteAtual){var semPontos=linha.replace(/\.{2,}/g," ").replace(/:/g," ");var nums=semPontos.split(/\s+/).filter(function(p){return /^[\d]+([,\.][\d]+)?$/.test(p)&&p.length>0;});if(nums.length>=2){clientes[clienteAtual].totalQtd+=toNum(nums[nums.length-2]);clientes[clienteAtual].totalValor+=toNum(nums[nums.length-1]);}else if(nums.length===1){clientes[clienteAtual].totalValor+=toNum(nums[0]);}continue;}if(clienteAtual&&/^\d{3,6}\s/.test(linha)){var prt=linha.split(/\s+/);var idxTE=-1;for(var j=1;j<prt.length-1;j++){if(/^[BbDd]$/.test(prt[j])&&/^\d+$/.test(prt[j-1])){idxTE=j;break;}}if(idxTE<0){for(var j=1;j<prt.length;j++){if(/^[BbDd]$/.test(prt[j])){idxTE=j;break;}}}var qtdP=0,valP=0;if(idxTE>=0&&idxTE+2<prt.length){qtdP=toNum(prt[idxTE+1]);valP=toNum(prt[idxTE+2]);}else{var nums2=[];for(var j=prt.length-1;j>=0;j--){if(/^[\d]+,[\d]{2}$/.test(prt[j]))nums2.push(toNum(prt[j]));}if(nums2.length>=2){valP=nums2[1];qtdP=nums2[nums2.length-1];}else if(nums2.length===1){valP=nums2[0];}}var tels=(linha.match(/\b\d{7,11}\b/g)||[]);var telStr=tels.length?tels[0]:"";var descM=linha.match(/^\d+\s+(.+?)\s+(?:UND|UN|CX|FR|TB|GR|KG|ML|PAR|EMB|BLS|CPS|AMP|CAP|SRT|COMP|GEL|CRE|SAB|SOL|INJ)/i);var desc=descM?descM[1].trim():"";var vendM=linha.match(/(\d+[-]\s*[A-Z][A-Z\s]+)\s*$/);var vend=vendM?vendM[1].trim():"";if(telStr&&!clientes[clienteAtual].telefone)clientes[clienteAtual].telefone=telStr;if(vend&&!clientes[clienteAtual].vendedor)clientes[clienteAtual].vendedor=vend;if(valP>0){clientes[clienteAtual].totalValorCalc+=valP;}if(desc&&valP>0){if(!clientes[clienteAtual].produtos[prt[0]])clientes[clienteAtual].produtos[prt[0]]={codigo:prt[0],descricao:desc,qtd:0,valor:0};clientes[clienteAtual].produtos[prt[0]].qtd+=qtdP;clientes[clienteAtual].produtos[prt[0]].valor+=valP;}}}}var lista=Object.values(clientes).filter(function(c){return(c.totalValor||c.totalValorCalc)>0;}).map(function(c){var prods=Object.values(c.produtos).sort(function(a,b){return b.valor-a.valor;});var vFinal=c.totalValor>0?c.totalValor:c.totalValorCalc;return{codigo:c.codigo,nome:c.nome,telefone:c.telefone,vendedor:c.vendedor,totalQtd:Math.round(c.totalQtd)||prods.reduce(function(s,p){return s+p.qtd;},0),totalValor:parseFloat(vFinal.toFixed(2)),topProdutos:prods.slice(0,5)};}).sort(function(a,b){return b.totalValor-a.totalValor;});if(!lista.length){showToast("Nenhum cliente encontrado no PDF.","red");console.log("Debug clientes:",Object.keys(clientes).length);return;}var mesChave=new Date().toISOString().substring(0,7);var mDate=nomeArquivo.match(/(\d{2})[._\s-](\d{2})[._\s-](\d{4})/);if(mDate){mesChave=mDate[3]+"-"+mDate[2];}else{var mNames=["JANEIRO","FEVEREIRO","MARCO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];var fnUp=nomeArquivo.toUpperCase();for(var mi=0;mi<mNames.length;mi++){if(fnUp.indexOf(mNames[mi])>=0){var anoM=nomeArquivo.match(/\d{4}/);var ano=anoM?anoM[0]:new Date().getFullYear().toString();mesChave=ano+"-"+String(mi+1).padStart(2,"0");break;}}}var totalFat=lista.reduce(function(s,c){return s+c.totalValor;},0);var dados={fonte:"clientes-pdf",arquivo:nomeArquivo,importadoEm:new Date().toISOString(),mes:mesChave,totalClientes:lista.length,totalFaturamento:parseFloat(totalFat.toFixed(2)),ticketMedio:parseFloat((lista.length?totalFat/lista.length:0).toFixed(2)),clientes:lista};localStorage.setItem("msfarma-clientes",JSON.stringify(dados));var hist=JSON.parse(localStorage.getItem("msfarma-clientes-hist")||"{}");hist[mesChave]=dados;localStorage.setItem("msfarma-clientes-hist",JSON.stringify(hist));showToast("\u2713 "+lista.length+" clientes importados! R$ "+totalFat.toLocaleString("pt-BR",{minimumFractionDigits:2}),"green");if(typeof renderClientes==="function")renderClientes();}catch(ex){showToast("Erro: "+ex.message,"red");console.error("parsearClientesPdf erro:",ex);}}
 function gerarMsgWhatsApp(priNome,topProdutos,contexto){var prods=(topProdutos||[]).map(function(p){return(p.descricao||"").toUpperCase();});var txt="";var ehBebe=prods.some(function(p){return/FRALDA|SORO FISIOL|INFANTIL|BABY|BEBE|XPE INF/.test(p);});var ehCronico=prods.some(function(p){return/LOSART|METFORM|ATENOL|AMLOD|ENALAPRIL|CAPTOPRIL|SINVAST|ATORVAST|OMEPRAZ|GLIBENCL|CLONAZ|FLUOXET|LEVOTIR|PURAN|CLOPID|ROSUV|HIDROCLO/.test(p);});var ehAgudo=prods.some(function(p){return/AMOXICIL|AZITROMIC|CEFTRI|DOXICICL|CIPROFLOX|IVERMECT/.test(p);});var ehFraldaAdulto=prods.some(function(p){return/FRALDA.*ADULT|GERIATRIC|PANTS.*ADULT/.test(p);});var topNome=prods.length?topProdutos[0].descricao.split(" ").slice(0,4).join(" "):"";if(contexto==="inativo"){if(ehBebe)txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Notei que est\u00e1 sumido(a)! Precisando de fralda ou soro? Temos entrega em casa \uD83D\uDE9A";else if(ehCronico)txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Vi que faz um tempinho que n\u00e3o renova seus medicamentos. Est\u00e1 precisando de "+topNome+"? \uD83D\uDCAA";else if(ehFraldaAdulto)txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Passando para saber se precisa de fralda geri\u00e1trica. Temos \u00f3timos pre\u00e7os! \uD83D\uDE4F";else txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Notei que faz um tempo que voc\u00ea n\u00e3o nos visita. Sente falta de algum produto? Estamos aqui! \uD83D\uDE0A";}else if(contexto==="ficha"){if(ehBebe)txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Tudo bem com o beb\u00ea? Precisando de fralda, soro ou pomada? \uD83D\uDC76";else if(ehCronico)txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Passando para saber se est\u00e1 precisando renovar "+topNome+". J\u00e1 temos separado! \uD83D\uDC9A";else if(ehAgudo)txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Esperamos que esteja bem! Precisando de algo, estamos \u00e0 disposi\u00e7\u00e3o \uD83D\uDE0A";else txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Passando para saber se precisa de alguma coisa. Temos novidades! \uD83D\uDE0A";}else{txt="Ol\u00e1 "+priNome+"! Aqui \u00e9 da Farm\u00e1cia MS Farma \uD83D\uDC4B Passando para saber se precisa de alguma coisa! Estamos \u00e0 disposi\u00e7\u00e3o \uD83D\uDE0A";}return encodeURIComponent(txt);}
 function fecharFichaCliente(){document.getElementById("ficha-cli-overlay").style.display="none";}function abrirFichaCliente(evt,c,lista,hist,mesSel){evt.preventDefault();evt.stopPropagation();var overlay=document.getElementById("ficha-cli-overlay");var box=document.getElementById("ficha-cli-content");if(!overlay||!box)return;var fmtR=function(v){return"R$ "+(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2});};var mN=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];var fmt=function(m){if(!m)return"--";var p=m.split("-");return(mN[parseInt(p[1])-1]||p[1])+"/"+(p[0]?p[0].slice(2):"");};var histMeses=Object.keys(hist).sort();var mesesCli=[];histMeses.forEach(function(m){var d=hist[m];if(!d||!d.clientes)return;var found=d.clientes.filter(function(x){return x.nome===c.nome||x.codigo===c.codigo;});if(found.length){found.forEach(function(x){mesesCli.push({mes:m,label:fmt(m),totalValor:x.totalValor||0,totalQtd:x.totalQtd||0,topProdutos:x.topProdutos||[]});});}});var totalAnual=mesesCli.reduce(function(s,m){return s+m.totalValor;},0);var todosProds={};mesesCli.forEach(function(m){(m.topProdutos||[]).forEach(function(p){var k=p.descricao||p.codigo;if(!todosProds[k])todosProds[k]={descricao:k,qtd:0,valor:0};todosProds[k].qtd+=p.qtd||0;todosProds[k].valor+=p.valor||0;});});var prodsLista=Object.values(todosProds).sort(function(a,b){return b.valor-a.valor;}).slice(0,10);var ultimoMes=mesesCli.length?mesesCli[mesesCli.length-1].mes:"";var mesHoje=new Date().toISOString().substring(0,7);var mesesSem=0;if(ultimoMes&&ultimoMes!==mesHoje){var d1=new Date(ultimoMes+"-01"),d2=new Date(mesHoje+"-01");mesesSem=Math.round((d2-d1)/(1000*60*60*24*30));}var tel=(c.telefone||"").replace(/\D/g,"");var priNome=c.nome.split(" ")[0];var waTxt=gerarMsgWhatsApp(priNome,c.topProdutos,'ficha');var waLink=tel?"https://wa.me/55"+tel+"?text="+waTxt:"";var h="";h+="<div style=\"background:linear-gradient(135deg,var(--surface2),var(--surface3));padding:1.5rem;border-bottom:1px solid var(--border)\">";h+="<div style=\"display:flex;justify-content:space-between;align-items:flex-start\">";h+="<div><div style=\"font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem\">\uD83D\uDCC4 Ficha do Cliente</div>";h+="<div style=\"font-size:1.2rem;font-weight:700;color:var(--text)\">"+c.nome+"</div>";h+="<div style=\"font-size:12px;color:var(--text2);margin-top:.2rem\">C\u00f3d. "+c.codigo+" \u2022 "+(c.vendedor||"--")+"</div></div>";h+="<button onclick=\"fecharFichaCliente()\" style=\"background:none;border:none;color:var(--text2);font-size:1.5rem;cursor:pointer;line-height:1\">\u00d7</button></div>";h+="<div style=\"display:flex;gap:1rem;margin-top:.75rem;flex-wrap:wrap;align-items:center\">";if(c.telefone)h+="<span style=\"font-size:13px;color:var(--text2)\">\uD83D\uDCDE "+c.telefone+"</span>";if(waLink)h+="<a href=\""+waLink+"\" target=\"_blank\" style=\"font-size:12px;font-weight:700;color:#25D366;text-decoration:none;background:rgba(37,211,102,0.1);padding:4px 10px;border-radius:20px\">\uD83D\uDCAC WhatsApp</a>";h+="</div></div>";h+="<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;padding:1rem\">";function _kpiF(l,v,cor){return"<div style=\"background:var(--surface2);border-radius:10px;padding:.6rem;text-align:center\"><div style=\"font-size:10px;color:var(--text2);margin-bottom:.15rem\">"+l+"</div><div style=\"font-size:13px;font-weight:700;color:"+(cor||"var(--text)")+"\">" +v+"</div></div>";}h+=_kpiF("Total no Per\u00edodo",fmtR(totalAnual),"var(--green)");h+=_kpiF("Meses Ativo",mesesCli.length+" m\u00eas(es)","var(--blue)");h+=_kpiF("\u00daltima Compra",ultimoMes?fmt(ultimoMes):"--","var(--text)");h+=_kpiF("Sem Comprar",mesesSem>0?mesesSem+"m":"Recente",mesesSem>=2?"var(--red)":mesesSem===1?"var(--yellow)":"var(--green)");h+="</div>";if(mesesSem>=2)h+="<div style=\"margin:0 1rem .5rem;padding:.6rem 1rem;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:8px;font-size:12px;color:var(--red)\">\u26a0\ufe0f Inativo h\u00e1 "+mesesSem+" meses \u2014 entre em contato!</div>";if(mesesCli.length){h+="<div style=\"padding:0 1rem 1rem\">";h+="<div style=\"font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;margin-bottom:.5rem\">\uD83D\uDCC5 Hist\u00f3rico Mensal</div>";h+="<table style=\"width:100%;border-collapse:collapse;font-size:12px\"><thead><tr style=\"border-bottom:1px solid var(--border)\"><th style=\"text-align:left;padding:4px 8px;color:var(--text2)\">M\u00eas</th><th style=\"text-align:right;padding:4px 8px;color:var(--text2)\">Qtde</th><th style=\"text-align:right;padding:4px 8px;color:var(--text2)\">Total</th></tr></thead><tbody>";mesesCli.slice().reverse().forEach(function(m){h+="<tr style=\"border-bottom:1px solid var(--border)\"><td style=\"padding:4px 8px\">"+m.label+"</td><td style=\"padding:4px 8px;text-align:right;color:var(--text2)\">"+m.totalQtd+"</td><td style=\"padding:4px 8px;text-align:right;color:var(--green);font-weight:600\">"+fmtR(m.totalValor)+"</td></tr>";});h+="</tbody></table></div>";}if(prodsLista.length){h+="<div style=\"padding:0 1rem 1.5rem\">";h+="<div style=\"font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;margin-bottom:.5rem\">\uD83D\uDED2 Produtos Favoritos</div>";prodsLista.forEach(function(p,i){h+="<div style=\"display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:12px\"><span style=\"color:var(--text)\">"+(i+1)+". "+p.descricao+"</span><span style=\"color:var(--green);font-weight:600;margin-left:.5rem;white-space:nowrap\">"+fmtR(p.valor)+"</span></div>";});h+="</div>";}box.innerHTML=h;overlay.style.display="block";}
+
+// ===== USO CONTINUO =====
+window._ucDados = JSON.parse(localStorage.getItem('msfarma-uso-continuo')||'[]');
+
+function salvarUsoContinuo(){
+  localStorage.setItem('msfarma-uso-continuo', JSON.stringify(window._ucDados||[]));
+}
+
+function abrirUsoContinuo(){
+  var tabs=['cli-tab-ranking','cli-tab-vendedores','cli-tab-continuo'];
+  tabs.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el){el.style.background='var(--surface2)';el.style.color='var(--text2)';}
+  });
+  var bt=document.getElementById('cli-tab-continuo');
+  if(bt){bt.style.background='var(--purple,#a78bfa)';bt.style.color='#000';bt.style.fontWeight='700';}
+  document.getElementById('cli-kpis').style.display='none';
+  document.getElementById('cli-alertas').style.display='none';
+  document.getElementById('cli-inativos-vip').style.display='none';
+  document.getElementById('cli-ranking').style.display='none';
+  document.getElementById('cli-historico').style.display='none';
+  document.getElementById('sec-uso-continuo').style.display='';
+  renderUsoContinuo();
+}
+
+function voltarCliRanking(){
+  document.getElementById('cli-kpis').style.display='';
+  document.getElementById('cli-alertas').style.display='';
+  document.getElementById('cli-ranking').style.display='';
+  document.getElementById('sec-uso-continuo').style.display='none';
+  var bt=document.getElementById('cli-tab-continuo');
+  if(bt){bt.style.background='var(--surface2)';bt.style.color='var(--text2)';bt.style.fontWeight='';}
+  var bt2=document.getElementById('cli-tab-ranking');
+  if(bt2){bt2.style.background='var(--green)';bt2.style.color='#000';}
+  renderClientes&&renderClientes();
+}
+
+function renderUsoContinuo(){
+  window._ucDados = JSON.parse(localStorage.getItem('msfarma-uso-continuo')||'[]');
+  var lista = window._ucDados;
+  var hoje = new Date();
+  hoje.setHours(0,0,0,0);
+
+  // Calcular status de cada cliente
+  lista.forEach(function(c){
+    if(!c.ultimaCompra){c._diasRestantes=null;c._status='sem-data';return;}
+    var uc = new Date(c.ultimaCompra);
+    uc.setHours(0,0,0,0);
+    var ciclo = parseInt(c.ciclo)||30;
+    var reposto = new Date(uc.getTime() + ciclo*24*60*60*1000);
+    var diff = Math.round((reposto - hoje)/(24*60*60*1000));
+    c._diasRestantes = diff;
+    if(diff < 0) c._status = 'vencido';
+    else if(diff <= 5) c._status = 'urgente';
+    else if(diff <= 10) c._status = 'atencao';
+    else c._status = 'ok';
+  });
+
+  var vencidos = lista.filter(function(c){return c._status==='vencido';}).length;
+  var urgentes = lista.filter(function(c){return c._status==='urgente';}).length;
+  var atencao  = lista.filter(function(c){return c._status==='atencao';}).length;
+  var ok       = lista.filter(function(c){return c._status==='ok';}).length;
+
+  var h = '';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">';
+  h += '<div style="font-size:15px;font-weight:700;color:var(--text)">&#128138; Clientes de Uso Cont&#237;nuo</div>';
+  h += '<div style="display:flex;gap:.5rem;flex-wrap:wrap">';
+  h += '<button class="btn btn-green" onclick="abrirModalUC(null)" style="font-size:12px;padding:5px 14px">+ Novo Cadastro</button>';
+  h += '<button class="btn" onclick="voltarCliRanking()" style="font-size:12px;padding:5px 14px;background:var(--surface2);color:var(--text2)">&#8592; Voltar</button>';
+  h += '</div></div>';
+
+  // KPIs
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.6rem;margin-bottom:1rem">';
+  h += '<div style="background:var(--surface2);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--text2)">Total</div><div style="font-size:18px;font-weight:700;color:var(--text)">'+lista.length+'</div></div>';
+  h += '<div style="background:rgba(248,113,113,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--red)">&#128308; Vencidos</div><div style="font-size:18px;font-weight:700;color:var(--red)">'+vencidos+'</div></div>';
+  h += '<div style="background:rgba(251,191,36,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--yellow,#fbbf24)">&#128992; Avisar Hoje</div><div style="font-size:18px;font-weight:700;color:var(--yellow,#fbbf24)">'+urgentes+'</div></div>';
+  h += '<div style="background:rgba(96,165,250,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--blue)">&#128309; Aten&#231;&#227;o</div><div style="font-size:18px;font-weight:700;color:var(--blue)">'+atencao+'</div></div>';
+  h += '<div style="background:rgba(52,211,153,0.15);border-radius:10px;padding:.7rem;text-align:center"><div style="font-size:10px;color:var(--green)">&#128994; Em dia</div><div style="font-size:18px;font-weight:700;color:var(--green)">'+ok+'</div></div>';
+  h += '</div>';
+
+  // Ordenar: vencidos > urgente > atencao > ok
+  var ordem = {vencido:0,urgente:1,atencao:2,ok:3,'sem-data':4};
+  var sorted = lista.slice().sort(function(a,b){return (ordem[a._status]||9)-(ordem[b._status]||9);});
+
+  if(!sorted.length){
+    h += '<div style="text-align:center;padding:3rem;color:var(--text2)">Nenhum cliente cadastrado.<br>Clique em <strong>+ Novo Cadastro</strong> para come&#231;ar.</div>';
+  } else {
+    h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    h += '<thead><tr style="border-bottom:2px solid var(--border)">';
+    h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Status</th>';
+    h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Cliente</th>';
+    h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Telefone</th>';
+    h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Medicamento</th>';
+    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">Ciclo</th>';
+    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">&#218;lt. Compra</th>';
+    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">Dias</th>';
+    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">Ações</th>';
+    h += '</tr></thead><tbody>';
+
+    sorted.forEach(function(c, i){
+      var idx = window._ucDados.indexOf(c);
+      var semaforo = c._status==='vencido'?'&#128308;':c._status==='urgente'?'&#128992;':c._status==='atencao'?'&#128309;':c._status==='ok'?'&#128994;':'&#9898;';
+      var diasTxt = c._diasRestantes===null?'--':c._diasRestantes<0?'Venceu há '+(Math.abs(c._diasRestantes))+'d':c._diasRestantes===0?'Hoje!':c._diasRestantes+'d';
+      var diasCor = c._status==='vencido'?'color:var(--red);font-weight:700':c._status==='urgente'?'color:var(--yellow,#fbbf24);font-weight:700':c._status==='atencao'?'color:var(--blue)':'color:var(--green)';
+      var tel = (c.telefone||'').replace(/\D/g,'');
+      var priNome = (c.nome||'').split(' ')[0];
+      var med = c.medicamento||'';
+      var waTxt = encodeURIComponent('Ol&#225; '+priNome+'! &#128138; Seu medicamento *'+med+'* deve estar acabando. Que tal j&#225; fazer seu pedido na MS Farma? Entregamos no seu endere&#231;o pelo WhatsApp! &#128666;&#128138;');
+      var waBtn = tel?'<a href="https://wa.me/55'+tel+'?text='+waTxt+'" target="_blank" title="Enviar WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#25D366;border-radius:50%;text-decoration:none;font-size:14px">&#128172;</a>':'<span style="color:var(--text2);font-size:11px">sem tel</span>';
+      var dtFmt = c.ultimaCompra?c.ultimaCompra.split('-').reverse().join('/'):'--';
+      h += '<tr style="border-bottom:1px solid var(--border)">';
+      h += '<td style="padding:5px 8px;text-align:center;font-size:16px">'+semaforo+'</td>';
+      h += '<td style="padding:5px 8px;font-weight:600">'+c.nome+'</td>';
+      h += '<td style="padding:5px 8px;color:var(--text2)">'+( c.telefone||'--')+'</td>';
+      h += '<td style="padding:5px 8px;color:var(--text2)">'+med+'</td>';
+      h += '<td style="padding:5px 8px;text-align:center;color:var(--text2)">'+c.ciclo+'d</td>';
+      h += '<td style="padding:5px 8px;text-align:center;color:var(--text2)">'+dtFmt+'</td>';
+      h += '<td style="padding:5px 8px;text-align:center;'+diasCor+'">'+diasTxt+'</td>';
+      h += '<td style="padding:5px 8px;text-align:center"><div style="display:flex;gap:4px;justify-content:center;align-items:center">';
+      h += waBtn;
+      h += '<button onclick="registrarCompraUC('+idx+')" title="Registrar nova compra hoje" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--green);color:#000;border:none;border-radius:50%;cursor:pointer;font-size:13px">&#10003;</button>';
+      h += '<button onclick="abrirModalUC('+idx+')" title="Editar" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--surface2);color:var(--text);border:none;border-radius:50%;cursor:pointer;font-size:13px">&#9998;</button>';
+      h += '<button onclick="excluirUC('+idx+')" title="Excluir" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(248,113,113,0.15);color:var(--red);border:none;border-radius:50%;cursor:pointer;font-size:13px">&#128465;</button>';
+      h += '</div></td>';
+      h += '</tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+
+  document.getElementById('sec-uso-continuo').innerHTML = h;
+}
+
+function registrarCompraUC(idx){
+  if(!window._ucDados[idx])return;
+  window._ucDados[idx].ultimaCompra = new Date().toISOString().substring(0,10);
+  salvarUsoContinuo();
+  renderUsoContinuo();
+  showToast('&#10003; Compra registrada para '+window._ucDados[idx].nome,'green');
+}
+
+function excluirUC(idx){
+  if(!confirm('Excluir '+window._ucDados[idx].nome+' do Uso Cont&#237;nuo?'))return;
+  window._ucDados.splice(idx,1);
+  salvarUsoContinuo();
+  renderUsoContinuo();
+}
+
+function abrirModalUC(idx){
+  var c = idx!==null ? window._ucDados[idx] : null;
+  var overlay = document.createElement('div');
+  overlay.id = 'uc-modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface);border-radius:16px;padding:1.5rem;width:100%;max-width:420px;border:1px solid var(--border)';
+  box.innerHTML = '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:1.25rem">'+(c?'&#9998; Editar Cliente':'&#128138; Novo Cliente de Uso Cont&#237;nuo')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:.75rem">'
+    +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">NOME</label><input id="uc-nome" value="'+(c?c.nome:'')+'" placeholder="Nome completo" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+    +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">TELEFONE (WhatsApp)</label><input id="uc-tel" value="'+(c?c.telefone:'')+'" placeholder="85999999999" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+    +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">MEDICAMENTO</label><input id="uc-med" value="'+(c?c.medicamento:'')+'" placeholder="Ex: Losartana 50mg" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+    +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">CICLO (dias)</label><input id="uc-ciclo" type="number" value="'+(c?c.ciclo:30)+'" min="7" max="90" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+    +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">DATA DA ÚLTIMA COMPRA</label><input id="uc-data" type="date" value="'+(c?c.ultimaCompra:new Date().toISOString().substring(0,10))+'" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+    +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">OBSERVA&#199;ÃO</label><input id="uc-obs" value="'+(c?c.obs:'')+'" placeholder="Ex: Caixa com 30 cp" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:.5rem;margin-top:1.25rem;justify-content:flex-end">'
+    +'<button onclick="document.getElementById('uc-modal-overlay').remove()" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px">Cancelar</button>'
+    +'<button onclick="salvarModalUC('+(idx!==null?idx:'null')+')" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:700">Salvar</button>'
+    +'</div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+function salvarModalUC(idx){
+  var nome = document.getElementById('uc-nome').value.trim();
+  var tel  = document.getElementById('uc-tel').value.trim();
+  var med  = document.getElementById('uc-med').value.trim();
+  var ciclo= parseInt(document.getElementById('uc-ciclo').value)||30;
+  var data = document.getElementById('uc-data').value;
+  var obs  = document.getElementById('uc-obs').value.trim();
+  if(!nome||!med){showToast('Preencha nome e medicamento.','red');return;}
+  var obj = {nome:nome,telefone:tel,medicamento:med,ciclo:ciclo,ultimaCompra:data,obs:obs};
+  if(idx!==null && window._ucDados[idx]){
+    window._ucDados[idx] = obj;
+  } else {
+    window._ucDados.push(obj);
+  }
+  salvarUsoContinuo();
+  var ov = document.getElementById('uc-modal-overlay');
+  if(ov) ov.remove();
+  renderUsoContinuo();
+  showToast('&#10003; Salvo com sucesso!','green');
+}
+// ===== FIM USO CONTINUO =====
 function apagarHistClientes(){if(!confirm('Apagar todo o hist\u00f3rico de clientes?'))return;localStorage.removeItem('msfarma-clientes-hist');localStorage.removeItem('msfarma-clientes');renderClientes();showToast('Hist\u00f3rico apagado.','yellow');}
 function renderClientes(){var histStr=localStorage.getItem('msfarma-clientes-hist');var hist=histStr?JSON.parse(histStr):{};var meses=Object.keys(hist).sort();var mN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];var fmt=function(m){var p=m.split('-');return(mN[parseInt(p[1])-1]||p[1])+'/'+(p[0]?p[0].slice(2):'');};var selMes=document.getElementById('cli-mes-sel');if(selMes){var curVal=selMes.value||(meses.length?meses[meses.length-1]:'');selMes.innerHTML='<option value="">Todos os meses</option>'+meses.map(function(m){return'<option value="'+m+'"'+(m===curVal?' selected':'')+'>'+fmt(m)+'</option>';}).join('');if(!selMes.value&&meses.length)selMes.value=meses[meses.length-1];}var dadosStr=localStorage.getItem('msfarma-clientes');if(!dadosStr){var kp=document.getElementById('cli-kpis');if(kp)kp.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text2)">Nenhum dado. Use o bot\u00e3o "Importar PDF Infarma" com o relat\u00f3rio "Venda de Produto por Endere\u00e7o".</div>';var rk=document.getElementById('cli-ranking');if(rk)rk.innerHTML='';return;}var dados=JSON.parse(dadosStr);var mesSel=selMes?selMes.value:'';if(mesSel&&hist[mesSel])dados=hist[mesSel];var busca=(document.getElementById('cli-busca')||{}).value||'';var ordem=(document.getElementById('cli-ordem')||{}).value||'valor';var fmtR=function(v){return'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});};var lista=dados.clientes||[];
 // === FILTRO POR PERFIL (Passo 5) ===
