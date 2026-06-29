@@ -8574,6 +8574,136 @@ function fecharFichaCliente(){document.getElementById("ficha-cli-overlay").style
 // ===== USO CONTINUO =====
 window._ucDados = JSON.parse(localStorage.getItem('msfarma-uso-continuo')||'[]');
 
+
+function importarTxtUsoContinuo(input){
+  var file = input.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var txt = e.target.result;
+    var linhas = txt.split(/\r?\n/);
+    var clientes = {};
+    var clienteAtual = null;
+    var diaAtual = '';
+
+    for(var i=0;i<linhas.length;i++){
+      var l = linhas[i];
+      // Dia
+      var mDia = l.match(/Dia\s*:\s*(\d{2}\/\d{2}\/\d{4})/);
+      if(mDia){ diaAtual = mDia[1]; continue; }
+      // Cliente
+      var mCli = l.match(/Cliente\.\:\s*(\d+)-\s*(.+)/);
+      if(mCli){
+        var cod = mCli[1].trim();
+        var nome = mCli[2].trim();
+        var chave = cod+'-'+nome;
+        if(!clientes[chave]) clientes[chave]={cod:cod,nome:nome,tel:'',produtos:{}};
+        clienteAtual=chave;
+        continue;
+      }
+      // Produto
+      if(clienteAtual && /^\d{4,6}\s+/.test(l)){
+        var telM = l.match(/\b(\d{8,11})\b/);
+        if(telM && !clientes[clienteAtual].tel) clientes[clienteAtual].tel=telM[1];
+        var desc = l.substring(7,38).trim();
+        var mes = diaAtual ? diaAtual.substring(3,10) : '';
+        if(desc && mes){
+          if(!clientes[clienteAtual].produtos[desc]) clientes[clienteAtual].produtos[desc]=[];
+          if(clientes[clienteAtual].produtos[desc].indexOf(mes)<0)
+            clientes[clienteAtual].produtos[desc].push(mes);
+        }
+      }
+    }
+
+    // Candidatos: mesmo produto em 2+ meses
+    var candidatos = [];
+    Object.values(clientes).forEach(function(c){
+      Object.keys(c.produtos).forEach(function(desc){
+        if(c.produtos[desc].length >= 2){
+          candidatos.push({nome:c.nome,tel:c.tel,medicamento:desc,meses:c.produtos[desc].sort()});
+        }
+      });
+    });
+
+    if(!candidatos.length){
+      showToast('Nenhum candidato de uso contínuo encontrado.','yellow');
+      input.value='';
+      return;
+    }
+
+    // Mostrar modal de seleção
+    abrirModalSelecaoUC(candidatos, input);
+  };
+  reader.readAsText(file, 'latin1');
+}
+
+function abrirModalSelecaoUC(candidatos, input){
+  var ov = document.createElement('div');
+  ov.id = 'uc-sel-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface);border-radius:16px;padding:1.5rem;width:100%;max-width:700px;max-height:85vh;display:flex;flex-direction:column;border:1px solid var(--border)';
+
+  var existentes = (window._ucDados||[]).map(function(c){return c.nome+'|'+c.medicamento;});
+
+  var h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">';
+  h += '<div style="font-size:15px;font-weight:700;color:var(--text)">&#128138; '+candidatos.length+' candidatos encontrados</div>';
+  h += '<button onclick="document.getElementById('uc-sel-overlay').remove()" style="background:none;border:none;color:var(--text2);font-size:1.5rem;cursor:pointer">&times;</button>';
+  h += '</div>';
+  h += '<div style="font-size:12px;color:var(--text2);margin-bottom:.75rem">Selecione quem deseja adicionar ao Uso Contínuo:</div>';
+  h += '<div style="overflow-y:auto;flex:1;margin-bottom:1rem">';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h += '<thead><tr style="border-bottom:2px solid var(--border)"><th style="padding:5px 8px;text-align:left"><input type="checkbox" id="uc-sel-all" onchange="ucToggleAll(this)"> Todos</th><th style="padding:5px 8px;text-align:left;color:var(--text2)">Cliente</th><th style="padding:5px 8px;text-align:left;color:var(--text2)">Medicamento</th><th style="padding:5px 8px;text-align:left;color:var(--text2)">Meses</th><th style="padding:5px 8px;text-align:left;color:var(--text2)">Telefone</th></tr></thead><tbody>';
+
+  candidatos.forEach(function(c,i){
+    var jaExiste = existentes.indexOf(c.nome+'|'+c.medicamento) >= 0;
+    var corMes = c.meses.length >= 3 ? 'color:var(--green)' : 'color:var(--yellow,#fbbf24)';
+    h += '<tr style="border-bottom:1px solid var(--border)'+(jaExiste?';opacity:.4':'')+'">';
+    h += '<td style="padding:5px 8px"><input type="checkbox" class="uc-sel-cb" data-idx="'+i+'"'+(jaExiste?' disabled':' checked')+'></td>';
+    h += '<td style="padding:5px 8px;font-weight:600">'+c.nome+'</td>';
+    h += '<td style="padding:5px 8px;color:var(--text2)">'+c.medicamento+'</td>';
+    h += '<td style="padding:5px 8px;'+corMes+'">'+c.meses.join(', ')+'</td>';
+    h += '<td style="padding:5px 8px;color:var(--text2)">'+( c.tel||'--')+'</td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div style="display:flex;gap:.5rem;justify-content:flex-end">';
+  h += '<button onclick="document.getElementById('uc-sel-overlay').remove()" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px">Cancelar</button>';
+  h += '<button onclick="confirmarImportUC(window._ucCandidatos)" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:700">&#10003; Importar Selecionados</button>';
+  h += '</div>';
+
+  box.innerHTML = h;
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+  window._ucCandidatos = candidatos;
+  if(input) input.value='';
+}
+
+function ucToggleAll(cb){
+  document.querySelectorAll('.uc-sel-cb:not(:disabled)').forEach(function(el){el.checked=cb.checked;});
+}
+
+function confirmarImportUC(candidatos){
+  var selecionados = [];
+  document.querySelectorAll('.uc-sel-cb:checked:not(:disabled)').forEach(function(cb){
+    selecionados.push(candidatos[parseInt(cb.dataset.idx)]);
+  });
+  if(!selecionados.length){showToast('Nenhum selecionado.','yellow');return;}
+  var hoje = new Date().toISOString().substring(0,10);
+  var existentes = (window._ucDados||[]).map(function(c){return c.nome+'|'+c.medicamento;});
+  var adicionados = 0;
+  selecionados.forEach(function(c){
+    var chave = c.nome+'|'+c.medicamento;
+    if(existentes.indexOf(chave)<0){
+      window._ucDados.push({nome:c.nome,telefone:c.tel,medicamento:c.medicamento,ciclo:30,ultimaCompra:hoje,obs:'Importado Infarma'});
+      adicionados++;
+    }
+  });
+  salvarUsoContinuo();
+  document.getElementById('uc-sel-overlay').remove();
+  renderUsoContinuo();
+  showToast('✓ '+adicionados+' cliente(s) adicionados ao Uso Contínuo!','green');
+}
 function salvarUsoContinuo(){
   localStorage.setItem('msfarma-uso-continuo', JSON.stringify(window._ucDados||[]));
 }
@@ -8630,6 +8760,7 @@ function renderUsoContinuo(){
   h+='<div style="font-size:15px;font-weight:700;color:var(--text)">\U0001f48a Clientes de Uso Cont\u00ednuo</div>';
   h+='<div style="display:flex;gap:.5rem;flex-wrap:wrap">';
   h+='<button class="btn btn-green" onclick="abrirModalUC(null)" style="font-size:12px;padding:5px 14px">+ Novo Cadastro</button>';
+  h+='<label class="btn" style="font-size:12px;padding:5px 14px;background:var(--blue);color:#fff;cursor:pointer">&#128196; Importar TXT Infarma<input type="file" accept=".txt,.TXT" style="display:none" onchange="importarTxtUsoContinuo(this)"></label>';
   h+='<button class="btn" onclick="voltarCliRanking()" style="font-size:12px;padding:5px 14px;background:var(--surface2);color:var(--text2)">\u2190 Voltar</button>';
   h+='</div></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.6rem;margin-bottom:1rem">';
