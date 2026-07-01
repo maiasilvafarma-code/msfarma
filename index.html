@@ -10217,8 +10217,8 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
 
   async function syncParaNuvem() {
     setStatus('sync');
-    // Merge msfarma-fatur-dia com a nuvem antes de enviar
-    try {
+    // Merge desativado
+    if(false) try {
       const respMerge = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.msfarma-fatur-dia&select=valor', {
         headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
       });
