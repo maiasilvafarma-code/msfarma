@@ -10217,6 +10217,31 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
 
   async function syncParaNuvem() {
     setStatus('sync');
+    // Merge msfarma-fatur-dia com a nuvem antes de enviar
+    try {
+      const respMerge = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.msfarma-fatur-dia&select=valor', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      });
+      if(respMerge.ok) {
+        const rowsMerge = await respMerge.json();
+        if(rowsMerge && rowsMerge.length > 0) {
+          const nuvemRaw = typeof rowsMerge[0].valor === 'string' ? rowsMerge[0].valor : JSON.stringify(rowsMerge[0].valor);
+          const nuvemDados = JSON.parse(nuvemRaw);
+          const localRaw = localStorage.getItem('msfarma-fatur-dia');
+          if(localRaw) {
+            const localDados = JSON.parse(localRaw);
+            if(nuvemDados && nuvemDados.dias && localDados && localDados.dias) {
+              const diasMap = {};
+              nuvemDados.dias.forEach(function(d){ diasMap[d.data] = d; });
+              localDados.dias.forEach(function(d){ diasMap[d.data] = d; });
+              const diasMerge = Object.values(diasMap).sort(function(a,b){ return a.data.localeCompare(b.data); });
+              localDados.dias = diasMerge;
+              localStorage.setItem('msfarma-fatur-dia', JSON.stringify(localDados));
+            }
+          }
+        }
+      }
+    } catch(e) { console.warn('merge fatur-dia erro:', e); }
     let ok = true;
     for(const key of SYNC_KEYS) {
       const val = localStorage.getItem(key);
