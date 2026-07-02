@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #247 - Import vendas soma meses + fix aba PMC -->
+<!-- Deploy #248 - Backup diario com historico (trinca seguranca 1/3) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -10218,8 +10218,50 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     } catch(e) { return false; }
   }
 
+  async function backupDiario() {
+    const hoje = new Date().toISOString().slice(0,10);
+    const ultimo = localStorage.getItem('farmacia-ultimo-backup');
+    if(ultimo === hoje) return;
+    try {
+      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?select=chave,valor', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      });
+      if(!resp.ok) return;
+      const rows = await resp.json();
+      for(const row of rows) {
+        if(!SYNC_KEYS.includes(row.chave)) continue;
+        const histKey = 'hist:' + row.chave + ':' + hoje;
+        await supaUpsert(histKey, row.valor);
+      }
+      localStorage.setItem('farmacia-ultimo-backup', hoje);
+    } catch(e) { console.warn('backup diario erro:', e); }
+  }
+
+  async function restaurarBackup(chave, data) {
+    const histKey = 'hist:' + chave + ':' + data;
+    try {
+      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.' + encodeURIComponent(histKey) + '&select=valor', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      });
+      const rows = await resp.json();
+      if(!rows || !rows.length) { console.log('Backup nao encontrado:', histKey); return null; }
+      return typeof rows[0].valor === 'string' ? JSON.parse(rows[0].valor) : rows[0].valor;
+    } catch(e) { console.warn('restaurar erro:', e); return null; }
+  }
+
+  async function listarBackups(chave) {
+    try {
+      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=like.hist:' + encodeURIComponent(chave) + ':*&select=chave&order=chave.desc', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      });
+      const rows = await resp.json();
+      return (rows||[]).map(function(r){ return r.chave.replace('hist:' + chave + ':', ''); });
+    } catch(e) { console.warn('listar erro:', e); return []; }
+  }
+
   async function syncParaNuvem() {
     setStatus('sync');
+    await backupDiario();
     // Merge desativado
     if(false) try {
       const respMerge = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.msfarma-fatur-dia&select=valor', {
@@ -10323,7 +10365,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     }
   };
 
-  window.msfarmaSync = { syncParaNuvem: syncParaNuvem, carregarDaNuvem: carregarDaNuvem };
+  window.msfarmaSync = { syncParaNuvem: syncParaNuvem, carregarDaNuvem: carregarDaNuvem, restaurarBackup: restaurarBackup, listarBackups: listarBackups };
 
   document.addEventListener('DOMContentLoaded', function() {
     carregarDaNuvem().then(function(updated) {
