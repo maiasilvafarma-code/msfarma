@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #234 - Sub-aba Uso Continuo na aba Clientes -->
+<!-- Deploy #245 - Import vendas soma meses + fix aba PMC -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2880,7 +2880,7 @@ function goTab(t){
   if(t==='analise')renderAnalise&&renderAnalise();
   if(t==='saude')renderSaude&&renderSaude();
   if(t==='emprestimos')renderEmprestimos&&renderEmprestimos();
-  if(t==='pmc'){document.getElementById('pmc-resultado').innerHTML='';}
+  if(t==='pmc'){var prq=document.getElementById('pmc-resultado');if(prq)prq.innerHTML='';}
   if(t==='clientes')renderClientes&&renderClientes();
   if(t==='entregas'){renderEntregas&&renderEntregas();}
   if(t==='pronampe'){renderPRONAMPE&&renderPRONAMPE();}
@@ -8333,7 +8333,10 @@ function importarRelacaoVendasHtml(input){
       }
       const dias=Object.keys(byDay).sort();
       if(dias.length===0){alert('Nenhum dado encontrado.');input.value='';return;}
-      const dados={periodo:periodoObj,dias:dias.map(d=>({data:d,total:Math.round(byDay[d]*100)/100})),importado:new Date().toISOString()};
+      let antigos={};try{const ex=JSON.parse(localStorage.getItem('msfarma-fatur-dia'));if(ex&&ex.dias)ex.dias.forEach(function(x){antigos[x.data]=x.total});}catch(e){}
+      dias.forEach(function(d){antigos[d]=Math.round(byDay[d]*100)/100});
+      const todosDias=Object.keys(antigos).sort();
+      const dados={periodo:periodoObj,dias:todosDias.map(d=>({data:d,total:antigos[d]})),importado:new Date().toISOString()};
       localStorage.setItem('msfarma-fatur-dia',JSON.stringify(dados));
       localStorage.setItem('msfarma-ultima-import-vendas', Date.now().toString());
       input.value='';
