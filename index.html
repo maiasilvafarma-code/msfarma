@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #264 - Fix parser fatura PDF (formato real Santander) -->
+<!-- Deploy #265 - Leitura de fatura PDF Mercado Pago -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2435,6 +2435,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div class="sec-title"><i class="ti ti-credit-card" style="font-size:20px;color:var(--purple,#a78bfa)"></i> Cartões Corporativos</div>
     <div class="metrics" id="cart-metrics"></div>
     <input type="file" id="fatura-pdf-input" accept=".pdf" style="display:none" onchange="processarFaturaPdf(this.files[0])">
+    <input type="file" id="fatura-pdf-mp-input" accept=".pdf" style="display:none" onchange="processarFaturaPdfMP(this.files[0])">
     <div class="chart-card" style="margin-bottom:1.25rem">
       <div class="chart-title">+ Adicionar cartão
         <button class="btn btn-sm" onclick="toggleCartForm()" style="margin-left:auto"><i class="ti ti-chevron-down" id="cart-chevron" style="font-size:13px"></i></button>
@@ -8277,7 +8278,7 @@ function renderCartoes(){
   if(alertEl){var vencidos=cartoes.filter(function(c){return !c.pago&&c.venc&&daysDiff(c.venc)<=5;});if(vencidos.length){alertEl.innerHTML='<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;margin-bottom:12px"><div style="font-weight:700;color:var(--red);margin-bottom:6px">🔴 Atenção — Faturas vencendo!</div>'+vencidos.map(function(c){var d=daysDiff(c.venc);return'<div style="font-size:13px;margin-bottom:3px">• <strong>'+c.banco+'</strong> ('+c.bandeira+') — '+fmtCur(c.fatura)+' — Venc. '+fmtDate(c.venc)+(d<0?' <span style="color:var(--red)">('+Math.abs(d)+'d em atraso)</span>':d===0?' <span style="color:var(--red)">(HOJE)</span>':' <span style="color:var(--yellow)">('+d+'d)</span>')+'</div>';}).join('')+'</div>';}else{alertEl.innerHTML='';}}
   const listEl=document.getElementById('cart-list');
   if(!cartoes.length){listEl.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text3)">💳 Nenhum cartão cadastrado.</div>';return;}
-  listEl.innerHTML='<div style="text-align:right;margin-bottom:10px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="abrirModalLerFaturaPdf()" style="background:var(--green-dim);color:var(--green);border-color:var(--green)">📄 Ler Fatura PDF (Santander)</button><button class="btn" onclick="abrirModalImportarFatura()" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue)">📥 Lançar Manual</button></div>'
+  listEl.innerHTML='<div style="text-align:right;margin-bottom:10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" onclick="abrirModalLerFaturaPdf()" style="background:var(--green-dim);color:var(--green);border-color:var(--green)">📄 Ler Fatura PDF (Santander)</button><button class="btn" onclick="abrirModalLerFaturaPdfMP()" style="background:var(--yellow-dim);color:var(--yellow);border-color:var(--yellow)">📄 Ler Fatura PDF (Mercado Pago)</button><button class="btn" onclick="abrirModalImportarFatura()" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue)">📥 Lançar Manual</button></div>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden">'
     +'<table class="data-table"><thead><tr>'
     +'<th>Banco / Emissor</th><th>Bandeira</th><th>Titular</th>'
@@ -8397,6 +8398,89 @@ function parsearFaturaPdf(allPageItems,cartao){
     save();
     renderCartoes();
     showToast('Fatura lida: '+transacoes.length+' transacoes, total R$ '+totalFatura.toLocaleString('pt-BR',{minimumFractionDigits:2}),'green');
+  }catch(ex){showToast('Erro ao processar: '+ex.message,'red');console.error(ex);}
+}
+function abrirModalLerFaturaPdfMP(){
+  var cartoes=D.cartoes||[];
+  if(!cartoes.length){showToast('Cadastre um cartao primeiro.','yellow');return;}
+  var m=document.createElement('div');
+  m.id='modal-ler-fatura-pdf-mp';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;width:100%;max-width:440px"><div style="font-size:16px;font-weight:700;margin-bottom:16px">📄 Ler Fatura PDF — Mercado Pago</div><div style="font-size:12px;color:var(--text2);margin-bottom:12px">Funciona com faturas do app/site Mercado Pago (PDF exportado).</div><div class="field"><label>Cartão</label><select id="lfmp-cartao" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)">'+cartoes.map(function(c){return'<option value="'+c.id+'">'+c.banco+' '+c.bandeira+' — '+c.titular+'</option>';}).join('')+'</select></div><div class="form-footer"><button class="btn" onclick="fecharModalCartao(&#39;modal-ler-fatura-pdf-mp&#39;)">Cancelar</button><button class="btn btn-green" onclick="window._faturaPdfMPCartaoId=parseInt(document.getElementById(&#39;lfmp-cartao&#39;).value);document.getElementById(&#39;fatura-pdf-mp-input&#39;).click();fecharModalCartao(&#39;modal-ler-fatura-pdf-mp&#39;)">Selecionar PDF</button></div></div>';
+  document.body.appendChild(m);
+}
+function processarFaturaPdfMP(file){
+  if(!file)return;
+  var cartaoId=window._faturaPdfMPCartaoId;
+  var c=(D.cartoes||[]).find(function(x){return x.id===cartaoId;});
+  if(!c){showToast('Cartao nao selecionado.','red');return;}
+  showToast('Lendo PDF da fatura Mercado Pago...','green');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      if(typeof pdfjsLib==='undefined'){showToast('Biblioteca PDF nao carregada.','red');return;}
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      var lt=pdfjsLib.getDocument({data:e.target.result});
+      lt.promise.then(function(pdf){
+        var pages=[];
+        for(var i=1;i<=pdf.numPages;i++)pages.push(pdf.getPage(i).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items;});}));
+        Promise.all(pages).then(function(all){parsearFaturaPdfMP(all,c);});
+      }).catch(function(err){showToast('Erro PDF: '+err.message,'red');});
+    }catch(ex){showToast('Erro: '+ex.message,'red');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function parsearFaturaPdfMP(allPageItems,cartao){
+  try{
+    var linhas=[];
+    for(var pi=0;pi<allPageItems.length;pi++){
+      var byY={};
+      for(var ii=0;ii<allPageItems[pi].length;ii++){
+        var item=allPageItems[pi][ii];
+        if(!item.str||!item.str.trim())continue;
+        var y=Math.round(item.transform[5]/3)*3;
+        if(!byY[y])byY[y]=[];
+        byY[y].push({x:item.transform[4],str:item.str});
+      }
+      var ys=Object.keys(byY).map(Number).sort(function(a,b){return b-a;});
+      for(var yi=0;yi<ys.length;yi++){
+        var items=byY[ys[yi]].sort(function(a,b){return a.x-b.x;});
+        var linha=items.map(function(i){return i.str;}).join(' ').replace(/\s+/g,' ').trim();
+        if(linha)linhas.push(linha);
+      }
+    }
+    var fullText=linhas.join(' ');
+    function extrai(regex){var m=fullText.match(regex);return m?m[1]:null;}
+    function toNum(s){return s?parseFloat(s.replace(/\./g,'').replace(',','.')):0;}
+    var totalFaturaStr=extrai(/Total\s+R\$\s*([\d.,]+)/);
+    var venc=extrai(/Vencimento:\s*(\d{2}\/\d{2}\/\d{4})/);
+    var melhorDia=extrai(/Melhor dia de compra\s*(\d{2}\/\d{2}\/\d{4})/);
+    var fechamento=extrai(/Fechamento da fatura\s*(\d{2}\/\d{2}\/\d{4})/);
+    var proximoFech=extrai(/Pr[óo]ximo fechamento\s*(\d{2}\/\d{2}\/\d{4})/);
+    var totalFatura=toNum(totalFaturaStr);
+    if(!totalFatura){showToast('Nao consegui ler o total da fatura. Verifique se e o PDF do Mercado Pago.','red');return;}
+    function toIso(d){if(!d)return'';var p=d.split('/');return p[2]+'-'+p[1]+'-'+p[0];}
+    var vencIso=toIso(venc);
+    var transacoes=[];
+    linhas.forEach(function(l){
+      var m=l.match(/^(\d{2}\/\d{2})\s+(.+?)(?:\s+Parcela\s+(\d+)\s+de\s+(\d+))?\s+R\$\s*([\d.,]+)$/);
+      if(m&&!/^Total/.test(m[2])){
+        transacoes.push({data:m[1],desc:m[2].trim(),parcela:m[3]?m[3]+'/'+m[4]:null,valor:toNum(m[5])});
+      }
+    });
+    if(!cartao.historico)cartao.historico=[];
+    var mesRef=vencIso?vencIso.substring(0,7):'';
+    cartao.historico=cartao.historico.filter(function(h){return h.mes!==mesRef;});
+    cartao.historico.push({mes:mesRef,vencimento:vencIso,totalFatura:totalFatura,melhorDiaCompra:toIso(melhorDia),fechamento:toIso(fechamento),proximoFechamento:toIso(proximoFech),transacoes:transacoes,importadoEm:new Date().toISOString()});
+    cartao.fatura=totalFatura;
+    cartao.venc=vencIso;
+    cartao.melhorDiaCompra=toIso(melhorDia);
+    cartao.fechamento=toIso(fechamento);
+    cartao.pago=false;
+    cartao.dataPagamento=null;
+    save();
+    renderCartoes();
+    showToast('Fatura MP lida: '+transacoes.length+' transacoes, total R$ '+totalFatura.toLocaleString('pt-BR',{minimumFractionDigits:2})+(melhorDia?' | Melhor dia: '+melhorDia:''),'green');
   }catch(ex){showToast('Erro ao processar: '+ex.message,'red');console.error(ex);}
 }
 function abrirModalEditarCartao(id){
