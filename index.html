@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #261 - Produtos por bairro (top 5, requer coluna Descricao) -->
+<!-- Deploy #262 - PDF fatura Santander + marcar pago + editar cartao -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2434,6 +2434,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   <div class="section" id="sec-cartoes">
     <div class="sec-title"><i class="ti ti-credit-card" style="font-size:20px;color:var(--purple,#a78bfa)"></i> Cartões Corporativos</div>
     <div class="metrics" id="cart-metrics"></div>
+    <input type="file" id="fatura-pdf-input" accept=".pdf" style="display:none" onchange="processarFaturaPdf(this.files[0])">
     <div class="chart-card" style="margin-bottom:1.25rem">
       <div class="chart-title">+ Adicionar cartão
         <button class="btn btn-sm" onclick="toggleCartForm()" style="margin-left:auto"><i class="ti ti-chevron-down" id="cart-chevron" style="font-size:13px"></i></button>
@@ -8261,7 +8262,7 @@ function removerFunc(id){
 function renderCartoes(){
   const cartoes=D.cartoes||[];
   const totalLimite=cartoes.reduce((s,c)=>s+(c.limite||0),0);
-  const totalFatura=cartoes.reduce((s,c)=>s+(c.fatura||0),0);
+  const totalFatura=cartoes.reduce((s,c)=>s+(c.pago?0:(c.fatura||0)),0);
   const util=totalLimite>0?(totalFatura/totalLimite*100):0;
 
   document.getElementById('cart-metrics').innerHTML=
@@ -8273,10 +8274,10 @@ function renderCartoes(){
 
   const fatHist=JSON.parse(localStorage.getItem('msfarma-fat-hist')||'[]');
   const alertEl=document.getElementById('cart-alertas');
-  if(alertEl){var vencidos=cartoes.filter(function(c){return c.venc&&daysDiff(c.venc)<=5;});if(vencidos.length){alertEl.innerHTML='<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;margin-bottom:12px"><div style="font-weight:700;color:var(--red);margin-bottom:6px">🔴 Atenção — Faturas vencendo!</div>'+vencidos.map(function(c){var d=daysDiff(c.venc);return'<div style="font-size:13px;margin-bottom:3px">• <strong>'+c.banco+'</strong> ('+c.bandeira+') — '+fmtCur(c.fatura)+' — Venc. '+fmtDate(c.venc)+(d<0?' <span style="color:var(--red)">('+Math.abs(d)+'d em atraso)</span>':d===0?' <span style="color:var(--red)">(HOJE)</span>':' <span style="color:var(--yellow)">('+d+'d)</span>')+'</div>';}).join('')+'</div>';}else{alertEl.innerHTML='';}}
+  if(alertEl){var vencidos=cartoes.filter(function(c){return !c.pago&&c.venc&&daysDiff(c.venc)<=5;});if(vencidos.length){alertEl.innerHTML='<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;margin-bottom:12px"><div style="font-weight:700;color:var(--red);margin-bottom:6px">🔴 Atenção — Faturas vencendo!</div>'+vencidos.map(function(c){var d=daysDiff(c.venc);return'<div style="font-size:13px;margin-bottom:3px">• <strong>'+c.banco+'</strong> ('+c.bandeira+') — '+fmtCur(c.fatura)+' — Venc. '+fmtDate(c.venc)+(d<0?' <span style="color:var(--red)">('+Math.abs(d)+'d em atraso)</span>':d===0?' <span style="color:var(--red)">(HOJE)</span>':' <span style="color:var(--yellow)">('+d+'d)</span>')+'</div>';}).join('')+'</div>';}else{alertEl.innerHTML='';}}
   const listEl=document.getElementById('cart-list');
   if(!cartoes.length){listEl.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text3)">💳 Nenhum cartão cadastrado.</div>';return;}
-  listEl.innerHTML='<div style="text-align:right;margin-bottom:10px"><button class="btn" onclick="abrirModalImportarFatura()" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue)">📥 Importar Fatura Fechada</button></div>'
+  listEl.innerHTML='<div style="text-align:right;margin-bottom:10px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="abrirModalLerFaturaPdf()" style="background:var(--green-dim);color:var(--green);border-color:var(--green)">📄 Ler Fatura PDF (Santander)</button><button class="btn" onclick="abrirModalImportarFatura()" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue)">📥 Lançar Manual</button></div>'
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden">'
     +'<table class="data-table"><thead><tr>'
     +'<th>Banco / Emissor</th><th>Bandeira</th><th>Titular</th>'
@@ -8298,9 +8299,127 @@ function renderCartoes(){
         +'<div style="background:'+uc+';height:100%;width:'+Math.min(u,100).toFixed(0)+'%;border-radius:99px"></div></div>'
         +'<div style="font-size:10px;color:'+uc+';margin-top:2px">'+u.toFixed(0)+'%</div></td>'
         +'<td style="font-weight:600;color:'+dc+'">'+( c.venc?fmtDate(c.venc):'—')+'</td>'
-        +'<td style="text-align:center"><button class="btn-icon del" onclick="delCartao('+c.id+')">🗑</button></td>'
+        +'<td style="text-align:center">'+(c.pago?'<span class="badge" style="background:var(--green-dim);color:var(--green)">✓ Pago</span>':'<button class="btn" style="padding:3px 10px;font-size:11px" onclick="marcarFaturaPaga('+c.id+')">Marcar Pago</button>')+' <button class="btn-icon" onclick="abrirModalEditarCartao('+c.id+')" title="Editar">✏️</button> <button class="btn-icon del" onclick="delCartao('+c.id+')">🗑</button></td>'
         +'</tr>';
     }).join('')+'</tbody></table></div>';
+}
+function marcarFaturaPaga(id){
+  var c=(D.cartoes||[]).find(function(x){return x.id===id;});
+  if(!c)return;
+  c.pago=true;
+  c.dataPagamento=new Date().toISOString().slice(0,10);
+  save();
+  renderCartoes();
+  showToast('Fatura marcada como paga!','green');
+}
+function abrirModalLerFaturaPdf(){
+  var cartoes=D.cartoes||[];
+  if(!cartoes.length){showToast('Cadastre um cartao primeiro.','yellow');return;}
+  var m=document.createElement('div');
+  m.id='modal-ler-fatura-pdf';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;width:100%;max-width:440px"><div style="font-size:16px;font-weight:700;margin-bottom:16px">📄 Ler Fatura em PDF</div><div style="font-size:12px;color:var(--text2);margin-bottom:12px">Funciona com faturas do Internet Banking Santander (PDF exportado da tela de fatura).</div><div class="field"><label>Cartão</label><select id="lf-cartao" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)">'+cartoes.map(function(c){return'<option value="'+c.id+'">'+c.banco+' '+c.bandeira+' — '+c.titular+'</option>';}).join('')+'</select></div><div class="form-footer"><button class="btn" onclick="fecharModalCartao(&#39;modal-ler-fatura-pdf&#39;)">Cancelar</button><button class="btn btn-green" onclick="window._faturaPdfCartaoId=parseInt(document.getElementById(&#39;lf-cartao&#39;).value);document.getElementById(&#39;fatura-pdf-input&#39;).click();fecharModalCartao(&#39;modal-ler-fatura-pdf&#39;)">Selecionar PDF</button></div></div>';
+  document.body.appendChild(m);
+}
+function processarFaturaPdf(file){
+  if(!file)return;
+  var cartaoId=window._faturaPdfCartaoId;
+  var c=(D.cartoes||[]).find(function(x){return x.id===cartaoId;});
+  if(!c){showToast('Cartao nao selecionado.','red');return;}
+  showToast('Lendo PDF da fatura...','green');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      if(typeof pdfjsLib==='undefined'){showToast('Biblioteca PDF nao carregada.','red');return;}
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      var lt=pdfjsLib.getDocument({data:e.target.result});
+      lt.promise.then(function(pdf){
+        var pages=[];
+        for(var i=1;i<=pdf.numPages;i++)pages.push(pdf.getPage(i).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items;});}));
+        Promise.all(pages).then(function(all){parsearFaturaPdf(all,c);});
+      }).catch(function(err){showToast('Erro PDF: '+err.message,'red');});
+    }catch(ex){showToast('Erro: '+ex.message,'red');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function parsearFaturaPdf(allPageItems,cartao){
+  try{
+    var linhas=[];
+    for(var pi=0;pi<allPageItems.length;pi++){
+      var byY={};
+      for(var ii=0;ii<allPageItems[pi].length;ii++){
+        var item=allPageItems[pi][ii];
+        if(!item.str||!item.str.trim())continue;
+        var y=Math.round(item.transform[5]/3)*3;
+        if(!byY[y])byY[y]=[];
+        byY[y].push({x:item.transform[4],str:item.str});
+      }
+      var ys=Object.keys(byY).map(Number).sort(function(a,b){return b-a;});
+      for(var yi=0;yi<ys.length;yi++){
+        var items=byY[ys[yi]].sort(function(a,b){return a.x-b.x;});
+        var linha=items.map(function(i){return i.str;}).join(' ').replace(/\s+/g,' ').trim();
+        if(linha)linhas.push(linha);
+      }
+    }
+    var fullText=linhas.join(' ');
+    function extrai(regex){var m=fullText.match(regex);return m?m[1]:null;}
+    var venc=extrai(/Data do Vencimento:\s*(\d{2}\/\d{2}\/\d{4})/);
+    var totalFaturaStr=extrai(/Total desta Fatura:\s*R\$\s*([\d.,]+)/);
+    var faturaAnteriorStr=extrai(/Fatura Anterior:\s*([\d.,]+)/);
+    var limiteDispStr=extrai(/Limite dispon[ií]vel em[^:]*:\s*R\$\s*([\d.,]+)/);
+    function toNum(s){return s?parseFloat(s.replace(/\./g,'').replace(',','.')):0;}
+    var totalFatura=toNum(totalFaturaStr);
+    var faturaAnterior=toNum(faturaAnteriorStr);
+    var limiteDisp=toNum(limiteDispStr);
+    if(!totalFatura){showToast('Nao consegui ler o total da fatura. Verifique se e o PDF do Santander.','red');return;}
+    var vencIso='';
+    if(venc){var p=venc.split('/');vencIso=p[2]+'-'+p[1]+'-'+p[0];}
+    var transacoes=[];
+    linhas.forEach(function(l){
+      var m=l.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?[\d.]+,\d{2})\s+[\d.]+,\d{2,4}\s+[\d.]+,\d{2,4}$/);
+      if(m){
+        var d=m[1].split('/');
+        transacoes.push({data:d[2]+'-'+d[1]+'-'+d[0],desc:m[2].trim(),valor:toNum(m[3])});
+      }
+    });
+    if(!cartao.historico)cartao.historico=[];
+    var mesRef=vencIso?vencIso.substring(0,7):'';
+    cartao.historico=cartao.historico.filter(function(h){return h.mes!==mesRef;});
+    cartao.historico.push({mes:mesRef,vencimento:vencIso,totalFatura:totalFatura,faturaAnterior:faturaAnterior,limiteDisponivel:limiteDisp,transacoes:transacoes,importadoEm:new Date().toISOString()});
+    cartao.fatura=totalFatura;
+    cartao.venc=vencIso;
+    cartao.pago=false;
+    cartao.dataPagamento=null;
+    save();
+    renderCartoes();
+    showToast('Fatura lida: '+transacoes.length+' transacoes, total R$ '+totalFatura.toLocaleString('pt-BR',{minimumFractionDigits:2}),'green');
+  }catch(ex){showToast('Erro ao processar: '+ex.message,'red');console.error(ex);}
+}
+function abrirModalEditarCartao(id){
+  var c=(D.cartoes||[]).find(function(x){return x.id===id;});
+  if(!c)return;
+  var m=document.createElement('div');
+  m.id='modal-editar-cartao';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;width:100%;max-width:440px"><div style="font-size:16px;font-weight:700;margin-bottom:16px">✏️ Editar Cartão</div>'
+    +'<div class="field"><label>Banco/Emissor</label><input type="text" id="ec-banco" value="'+(c.banco||'').replace(/"/g,'&quot;')+'" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"></div>'
+    +'<div class="field"><label>Bandeira</label><select id="ec-band" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"><option'+(c.bandeira==='Mastercard'?' selected':'')+'>Mastercard</option><option'+(c.bandeira==='Visa'?' selected':'')+'>Visa</option><option'+(c.bandeira==='Elo'?' selected':'')+'>Elo</option><option'+(c.bandeira==='Amex'?' selected':'')+'>Amex</option></select></div>'
+    +'<div class="field"><label>Titular</label><input type="text" id="ec-titular" value="'+(c.titular||'').replace(/"/g,'&quot;')+'" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"></div>'
+    +'<div class="field"><label>Limite (R$)</label><input type="number" id="ec-limite" value="'+(c.limite||0)+'" step="0.01" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"></div>'
+    +'<div class="form-footer"><button class="btn" onclick="fecharModalCartao(&#39;modal-editar-cartao&#39;)">Cancelar</button><button class="btn btn-green" onclick="salvarEdicaoCartao('+id+')">✓ Salvar</button></div></div>';
+  document.body.appendChild(m);
+}
+function salvarEdicaoCartao(id){
+  var c=(D.cartoes||[]).find(function(x){return x.id===id;});
+  if(!c)return;
+  c.banco=document.getElementById('ec-banco').value.trim()||c.banco;
+  c.bandeira=document.getElementById('ec-band').value;
+  c.titular=document.getElementById('ec-titular').value.trim()||c.titular;
+  c.limite=parseFloat(document.getElementById('ec-limite').value)||c.limite;
+  save();
+  renderCartoes();
+  fecharModalCartao('modal-editar-cartao');
+  showToast('Cartao atualizado!','green');
 }
 function toggleCartForm(){
   const f=document.getElementById('cart-form');
