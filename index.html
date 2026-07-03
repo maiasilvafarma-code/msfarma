@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #259 - Faturamento por Bairro (Infarma Vendas por Itens) -->
+<!-- Deploy #260 - Bairros com historico por mes (nao substitui) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9345,26 +9345,35 @@ function importarBairrosXls(file){
       const lista=Object.keys(porBairro).map(function(b){return{bairro:b,valor:Math.round(porBairro[b].valor*100)/100,qtd:porBairro[b].qtd};}).sort(function(a,b){return b.valor-a.valor;});
       const dados={importadoEm:new Date().toISOString(),arquivo:file.name,mes:mesRef,totalGeral:Math.round(totalGeral*100)/100,totalIdentificado:Math.round(totalIdentificado*100)/100,semBairroCount:semBairro,totalLinhas:rows.length,bairros:lista};
       localStorage.setItem('farmacia-faturamento-bairro',JSON.stringify(dados));
+      if(mesRef){
+        let hist={};try{hist=JSON.parse(localStorage.getItem('farmacia-faturamento-bairro-hist')||'{}');}catch(e){}
+        hist[mesRef]=dados;
+        localStorage.setItem('farmacia-faturamento-bairro-hist',JSON.stringify(hist));
+      }
       document.getElementById('bairros-xls-input').value='';
-      showToast('Bairros importados: '+lista.length+' bairros identificados de '+rows.length+' vendas','green');
+      showToast('Bairros importados ('+(mesRef||'mes atual')+'): '+lista.length+' bairros de '+rows.length+' vendas','green');
       renderBairros();
     }catch(ex){alert('Erro: '+ex.message);}
   };
   reader.readAsArrayBuffer(file);
 }
-function renderBairros(){
+function renderBairros(mesEscolhido){
   const rk=document.getElementById('cli-ranking');if(rk)rk.style.display='none';
   const vd=document.getElementById('cli-vendedores');if(vd)vd.style.display='none';
   const bDiv=document.getElementById('cli-bairros');if(!bDiv)return;
   bDiv.style.display='';
+  let hist={};try{hist=JSON.parse(localStorage.getItem('farmacia-faturamento-bairro-hist')||'{}');}catch(e){}
+  const mesesDisp=Object.keys(hist).sort();
   let dados=null;
-  try{const s=localStorage.getItem('farmacia-faturamento-bairro');if(s)dados=JSON.parse(s);}catch(e){}
+  if(mesEscolhido&&hist[mesEscolhido]){dados=hist[mesEscolhido];}
+  else{try{const s=localStorage.getItem('farmacia-faturamento-bairro');if(s)dados=JSON.parse(s);}catch(e){}}
+  const seletorMeses=mesesDisp.length?('<select onchange="renderBairros(this.value)" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;margin-right:8px">'+mesesDisp.map(function(m){return'<option value="'+m+'"'+((dados&&dados.mes===m)?' selected':'')+'>'+m+'</option>';}).join('')+'</select>'):'';
   if(!dados){
     bDiv.innerHTML='<div class="chart-card"><div class="chart-title"><i class="ti ti-map-pin" style="font-size:13px;color:var(--blue)"></i> Faturamento por Bairro</div><div style="text-align:center;padding:2rem;color:var(--text3)">Importe o relatorio "Vendas por Itens" do Infarma (colunas Bairro e Valor Item) para ver o faturamento por regiao.<br><br><button class="btn btn-green" style="margin-top:12px" onclick="document.getElementById(&#39;bairros-xls-input&#39;).click()">📥 Importar Planilha</button></div></div>';
     return;
   }
   const pctIdentificado=dados.totalGeral>0?((dados.totalIdentificado/dados.totalGeral)*100).toFixed(1):0;
-  let html='<div class="chart-card" style="margin-bottom:1.25rem"><div class="chart-title" style="justify-content:space-between"><span><i class="ti ti-map-pin" style="font-size:13px;color:var(--blue)"></i> Faturamento por Bairro</span><button class="btn" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)" onclick="document.getElementById(&#39;bairros-xls-input&#39;).click()">📥 Reimportar</button></div>';
+  let html='<div class="chart-card" style="margin-bottom:1.25rem"><div class="chart-title" style="justify-content:space-between"><span><i class="ti ti-map-pin" style="font-size:13px;color:var(--blue)"></i> Faturamento por Bairro'+(dados.mes?' — '+dados.mes:'')+'</span><span>'+seletorMeses+'<button class="btn" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)" onclick="document.getElementById(&#39;bairros-xls-input&#39;).click()">📥 Importar mes</button></span></div>';
   html+='<div style="font-size:12px;color:var(--text2);margin-bottom:12px">'+dados.totalLinhas+' vendas analisadas | '+pctIdentificado+'% com bairro identificado (R$ '+dados.totalIdentificado.toLocaleString('pt-BR',{minimumFractionDigits:2})+' de R$ '+dados.totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})+')</div>';
   html+='<div style="overflow-x:auto"><table class="data-table" style="margin:-1px"><thead><tr><th>#</th><th>Bairro</th><th style="text-align:right">Faturamento</th><th style="text-align:right">%</th><th style="text-align:center">Vendas</th><th style="text-align:right">Ticket médio</th></tr></thead><tbody>';
   dados.bairros.slice(0,25).forEach(function(b,i){
