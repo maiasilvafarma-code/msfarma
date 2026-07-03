@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #263 - Fix coluna Acoes cortando botoes (Cartoes) -->
+<!-- Deploy #264 - Fix parser fatura PDF (formato real Santander) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -8363,15 +8363,19 @@ function parsearFaturaPdf(allPageItems,cartao){
     }
     var fullText=linhas.join(' ');
     function extrai(regex){var m=fullText.match(regex);return m?m[1]:null;}
-    var venc=extrai(/Data do Vencimento:\s*(\d{2}\/\d{2}\/\d{4})/);
-    var totalFaturaStr=extrai(/Total desta Fatura:\s*R\$\s*([\d.,]+)/);
-    var faturaAnteriorStr=extrai(/Fatura Anterior:\s*([\d.,]+)/);
-    var limiteDispStr=extrai(/Limite dispon[ií]vel em[^:]*:\s*R\$\s*([\d.,]+)/);
+    var totalFaturaStr=extrai(/Total Desta Fatura:\s*R\$\s*([\d.,]+)/i);
+    var faturaAnteriorStr=extrai(/Fatura Anterior\s*:\s*([\d.,]+)/);
     function toNum(s){return s?parseFloat(s.replace(/\./g,'').replace(',','.')):0;}
     var totalFatura=toNum(totalFaturaStr);
     var faturaAnterior=toNum(faturaAnteriorStr);
-    var limiteDisp=toNum(limiteDispStr);
+    var limiteDisp=0;
     if(!totalFatura){showToast('Nao consegui ler o total da fatura. Verifique se e o PDF do Santander.','red');return;}
+    var venc=null;
+    if(totalFaturaStr){
+      var escTotal=totalFaturaStr.replace(/\./g,'\\.').replace(',',',');
+      var vencRe=new RegExp('(\\d{2}\\/\\d{2}\\/\\d{4})\\s+R\\$\\s*'+escTotal);
+      venc=extrai(vencRe);
+    }
     var vencIso='';
     if(venc){var p=venc.split('/');vencIso=p[2]+'-'+p[1]+'-'+p[0];}
     var transacoes=[];
