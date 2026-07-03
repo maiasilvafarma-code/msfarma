@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #256 - Fix bug cheque especial zero + OFX auto saldo -->
+<!-- Deploy #257 - Faturamento por Bairro (Infarma Vendas por Itens) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2567,7 +2567,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <button id="cli-tab-ranking" onclick="window._cliTab='ranking';renderClientes()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--green);color:#000;font-weight:600">&#128200; Clientes</button>
       <button id="cli-tab-vendedores" onclick="window._cliTab='vendedores';renderVendedores()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128104;&#8205;&#128188; Vendedores</button>
       <button id="cli-tab-continuo" onclick="abrirUsoContinuo()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128138; Uso Cont&#237;nuo</button>
+      <button id="cli-tab-bairros" onclick="renderBairros()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128506; Bairros</button>
     </div>
+    <input type="file" id="bairros-xls-input" accept=".xls,.xlsx" style="display:none" onchange="importarBairrosXls(this.files[0])">
     <div id="cli-kpis" class="metrics" style="grid-template-columns:repeat(5,1fr)"></div>
     <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
       <input id="cli-busca" type="text" placeholder="Buscar cliente..." oninput="renderClientes()" style="flex:1;min-width:200px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px">
@@ -2583,6 +2585,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     </div>
     <div id="cli-alertas" style="margin-bottom:1rem"></div>
     <div id="cli-inativos-vip" style="display:none"></div><div id="cli-ranking"></div>
+    <div id="cli-bairros" style="display:none"></div>
     <div id="cli-cesta" class="chart-card" style="margin-top:1.25rem;display:none"></div>
     <div id="cli-historico" class="chart-card" style="margin-top:1.25rem;display:none"></div>
   <div id="sec-uso-continuo" style="display:none;margin-top:1rem"></div>
@@ -9243,6 +9246,7 @@ var tR2=document.getElementById('cli-tab-ranking'),tV2=document.getElementById('
 if(tR2){tR2.style.background='var(--green)';tR2.style.color='#000';tR2.style.fontWeight='600';}
 if(tV2){tV2.style.background='var(--surface2)';tV2.style.color='var(--text2)';tV2.style.fontWeight='400';}
 var vDiv2=document.getElementById('cli-vendedores');if(vDiv2)vDiv2.style.display='none';
+var bDiv2=document.getElementById('cli-bairros');if(bDiv2)bDiv2.style.display='none';
 var rk2=document.getElementById('cli-ranking');if(rk2)rk2.style.display='';
 var pf2=document.getElementById('cli-perfil-filtros');if(pf2)pf2.style.display='';
 // === META MENSAL ===
@@ -9297,6 +9301,80 @@ if(cestaDiv&&lista.length>0){
 }
 // === FIM ANÁLISE DE CESTA ===
 var hDiv=document.getElementById('cli-historico');if(hDiv&&meses.length>=2){hDiv.style.display='';var labels=meses.map(fmt);var tF=meses.map(function(m){return hist[m].totalFaturamento||0;});var tC=meses.map(function(m){return hist[m].totalClientes||0;});hDiv.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:1rem">\uD83D\uDCC5 Evolu\u00e7\u00e3o Mensal</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem"><div><div style="font-size:11px;color:var(--text2);margin-bottom:.5rem">FATURAMENTO</div><canvas id="chart-cli-fat" height="120"></canvas></div><div><div style="font-size:11px;color:var(--text2);margin-bottom:.5rem">N\u00ba CLIENTES</div><canvas id="chart-cli-cli" height="120"></canvas></div></div><div style="margin-top:1rem;text-align:right"><button class="btn" style="font-size:11px;background:var(--surface2);color:var(--red)" onclick="apagarHistClientes()">&#128465; Apagar histórico</button></div>';setTimeout(function(){var cF=document.getElementById('chart-cli-fat');if(cF){if(cF._chart)cF._chart.destroy();cF._chart=new Chart(cF,{type:'bar',data:{labels:labels,datasets:[{label:'Fat.',data:tF,backgroundColor:'rgba(52,211,153,0.6)',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:2});}}}},scales:{y:{ticks:{callback:function(v){return'R$ '+v.toLocaleString('pt-BR');}},grid:{color:'rgba(255,255,255,0.05)'}},x:{grid:{display:false}}}}});}var cC=document.getElementById('chart-cli-cli');if(cC){if(cC._chart)cC._chart.destroy();cC._chart=new Chart(cC,{type:'line',data:{labels:labels,datasets:[{label:'Clientes',data:tC,borderColor:'#60a5fa',tension:.3,fill:true,backgroundColor:'rgba(96,165,250,0.1)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.05)'}},x:{grid:{display:false}}}}});}},150);}else if(hDiv)hDiv.style.display='none';}
+function importarBairrosXls(file){
+  if(!file)return;
+  showToast('Lendo XLS de Bairros...','green');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      if(typeof XLSX==='undefined'){showToast('Biblioteca XLS nao carregada','red');return;}
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(rows.length===0){alert('Nenhum dado encontrado no arquivo.');return;}
+      function normalizarBairro(b){
+        let s=String(b||'').toUpperCase().trim();
+        s=s.replace(/\([^)]*\)/g,'').trim();
+        s=s.replace(/\bJD\b/g,'JARDIM');
+        s=s.replace(/\bPQ\b/g,'PARQUE');
+        s=s.replace(/\bCJ\b/g,'CONJUNTO');
+        s=s.replace(/\bRES\b/g,'RESIDENCIAL');
+        s=s.replace(/\s+/g,' ').trim();
+        return s;
+      }
+      let totalGeral=0,totalIdentificado=0,semBairro=0;
+      const porBairro={};
+      let mesRef='';
+      rows.forEach(function(r){
+        const valor=parseFloat(r['Valor Item'])||0;
+        totalGeral+=valor;
+        const bairroRaw=r['Bairro'];
+        const dt=r['Data Emissão']||r['Data Emissao'];
+        if(!mesRef&&dt){
+          const d=(dt instanceof Date)?dt:new Date(dt);
+          if(!isNaN(d))mesRef=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+        }
+        if(!bairroRaw||String(bairroRaw).trim()===''){semBairro++;return;}
+        const b=normalizarBairro(bairroRaw);
+        if(!b){semBairro++;return;}
+        totalIdentificado+=valor;
+        if(!porBairro[b])porBairro[b]={valor:0,qtd:0};
+        porBairro[b].valor+=valor;
+        porBairro[b].qtd++;
+      });
+      const lista=Object.keys(porBairro).map(function(b){return{bairro:b,valor:Math.round(porBairro[b].valor*100)/100,qtd:porBairro[b].qtd};}).sort(function(a,b){return b.valor-a.valor;});
+      const dados={importadoEm:new Date().toISOString(),arquivo:file.name,mes:mesRef,totalGeral:Math.round(totalGeral*100)/100,totalIdentificado:Math.round(totalIdentificado*100)/100,semBairroCount:semBairro,totalLinhas:rows.length,bairros:lista};
+      localStorage.setItem('farmacia-faturamento-bairro',JSON.stringify(dados));
+      document.getElementById('bairros-xls-input').value='';
+      showToast('Bairros importados: '+lista.length+' bairros identificados de '+rows.length+' vendas','green');
+      renderBairros();
+    }catch(ex){alert('Erro: '+ex.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function renderBairros(){
+  const rk=document.getElementById('cli-ranking');if(rk)rk.style.display='none';
+  const vd=document.getElementById('cli-vendedores');if(vd)vd.style.display='none';
+  const bDiv=document.getElementById('cli-bairros');if(!bDiv)return;
+  bDiv.style.display='';
+  let dados=null;
+  try{const s=localStorage.getItem('farmacia-faturamento-bairro');if(s)dados=JSON.parse(s);}catch(e){}
+  if(!dados){
+    bDiv.innerHTML='<div class="chart-card"><div class="chart-title"><i class="ti ti-map-pin" style="font-size:13px;color:var(--blue)"></i> Faturamento por Bairro</div><div style="text-align:center;padding:2rem;color:var(--text3)">Importe o relatorio "Vendas por Itens" do Infarma (colunas Bairro e Valor Item) para ver o faturamento por regiao.<br><br><button class="btn btn-green" style="margin-top:12px" onclick="document.getElementById(&#39;bairros-xls-input&#39;).click()">📥 Importar Planilha</button></div></div>';
+    return;
+  }
+  const pctIdentificado=dados.totalGeral>0?((dados.totalIdentificado/dados.totalGeral)*100).toFixed(1):0;
+  let html='<div class="chart-card" style="margin-bottom:1.25rem"><div class="chart-title" style="justify-content:space-between"><span><i class="ti ti-map-pin" style="font-size:13px;color:var(--blue)"></i> Faturamento por Bairro</span><button class="btn" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)" onclick="document.getElementById(&#39;bairros-xls-input&#39;).click()">📥 Reimportar</button></div>';
+  html+='<div style="font-size:12px;color:var(--text2);margin-bottom:12px">'+dados.totalLinhas+' vendas analisadas | '+pctIdentificado+'% com bairro identificado (R$ '+dados.totalIdentificado.toLocaleString('pt-BR',{minimumFractionDigits:2})+' de R$ '+dados.totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})+')</div>';
+  html+='<div style="overflow-x:auto"><table class="data-table" style="margin:-1px"><thead><tr><th>#</th><th>Bairro</th><th style="text-align:right">Faturamento</th><th style="text-align:right">%</th><th style="text-align:center">Vendas</th><th style="text-align:right">Ticket médio</th></tr></thead><tbody>';
+  dados.bairros.slice(0,25).forEach(function(b,i){
+    const pct=(b.valor/dados.totalIdentificado*100).toFixed(1);
+    const tkt=b.qtd>0?b.valor/b.qtd:0;
+    html+='<tr><td style="text-align:center;color:var(--text3)">'+(i+1)+'</td><td style="font-weight:600">'+b.bairro+'</td><td style="text-align:right;font-weight:700;color:var(--green)">R$ '+b.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td><td style="text-align:right;color:var(--text2)">'+pct+'%</td><td style="text-align:center">'+b.qtd+'</td><td style="text-align:right">R$ '+tkt.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  bDiv.innerHTML=html;
+}
 function renderVendedores(){
   var histStr=localStorage.getItem('msfarma-clientes-hist');
   var hist=histStr?JSON.parse(histStr):{};
@@ -9348,7 +9426,7 @@ function renderVendedores(){
   if(tR){tR.style.background='var(--surface2)';tR.style.color='var(--text2)';tR.style.fontWeight='400';}
   if(tV){tV.style.background='var(--green)';tV.style.color='#000';tV.style.fontWeight='600';}
   // Esconder ranking, mostrar vendedores
-  var rk=document.getElementById('cli-ranking');if(rk)rk.style.display='none';
+  var rk=document.getElementById('cli-ranking');if(rk)rk.style.display='none';var bDiv3=document.getElementById('cli-bairros');if(bDiv3)bDiv3.style.display='none';
   var pf=document.getElementById('cli-perfil-filtros');if(pf)pf.style.display='none';
   var al=document.getElementById('cli-alertas');if(al)al.innerHTML='';
   var vip=document.getElementById('cli-inativos-vip');if(vip)vip.style.display='none';
