@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #253 - OFX conciliacao soma periodos (nao substitui) -->
+<!-- Deploy #254 - CMV/Margem Contribuicao + KPIs Fornecedores -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2825,6 +2825,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div class="metrics" id="rel-metrics"></div>
     <div class="saldo-banner" id="rel-saldo"></div>
     <div id="rel-dre"></div>
+
+    <div class="chart-card" style="margin-bottom:1.25rem" id="rel-cmv"></div>
+
+    <div class="chart-card" style="margin-bottom:1.25rem" id="rel-fornecedores"></div>
     <div class="chart-grid">
       <div class="chart-card"><div class="chart-title"><i class="ti ti-chart-pie" style="font-size:13px;color:var(--green)"></i> Entradas por categoria</div><div class="chart-wrap"><canvas id="chart-e"></canvas></div></div>
       <div class="chart-card"><div class="chart-title"><i class="ti ti-chart-pie" style="font-size:13px;color:var(--red)"></i> Saídas por categoria</div><div class="chart-wrap"><canvas id="chart-s"></canvas></div></div>
@@ -3961,6 +3965,62 @@ function renderRelatorio(){
   charts.flow=new Chart(document.getElementById('chart-flow').getContext('2d'),{type:'bar',data:{labels:last6.map(x=>x.label),datasets:[{label:'Entradas',data:last6.map(x=>x.e),backgroundColor:'rgba(62,207,114,.6)',borderRadius:4},{label:'Saídas',data:last6.map(x=>x.s),backgroundColor:'rgba(248,113,113,.55)',borderRadius:4}]},options:{plugins:{legend:{position:'top',labels:{color:'#9a9a96',font:{size:11}}}},scales:{x:{ticks:{color:'#9a9a96'}},y:{ticks:{color:'#9a9a96',callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'rgba(255,255,255,0.05)'}}}}});
   const all=[...eM.map(x=>({...x,type:'E'})),...sM.map(x=>({...x,type:'S'}))].sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('rel-extrato').innerHTML=all.length?`<table class="data-table" style="margin:-1px"><thead><tr><th>Tipo</th><th class="col-sup">Descrição</th><th>Categoria</th><th class="col-date">Data</th><th class="col-val">Valor</th></tr></thead><tbody>`+all.map(x=>`<tr><td><span class="badge ${x.type==='E'?'b-paid':'b-overdue'}">${x.type==='E'?'Entrada':'Saída'}</span></td><td>${x.desc}</td><td style="color:var(--text2)">${x.cat}</td><td>${fmtDate(x.date)}</td><td style="text-align:right;font-weight:600;color:${x.type==='E'?'var(--green)':'var(--red)'}">${x.type==='E'?'+':'-'}${fmtCur(x.val)}</td></tr>`).join('')+'</tbody></table>':`<div style="text-align:center;padding:2rem;color:var(--text3)">Nenhum registro neste período.</div>`;
+  renderCmvMargemContribuicao(nfM,receitaFinal,m);
+  renderFornecedoresKpi(nfM,bM,m);
+}
+function renderCmvMargemContribuicao(nfM,receitaFinal,m){
+  const el=document.getElementById('rel-cmv');
+  if(!el)return;
+  const compras=nfM.reduce(function(s,n){return s+n.val;},0);
+  const margemContrib=receitaFinal-compras;
+  const pctMargem=receitaFinal>0?((margemContrib/receitaFinal)*100).toFixed(1):0;
+  const cor=margemContrib>=0?'var(--green)':'var(--red)';
+  el.innerHTML='<div class="chart-title"><i class="ti ti-package" style="font-size:13px;color:var(--blue)"></i> Custo de Mercadoria e Margem de Contribuição (informativo) — '+monthLabel(m)+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Baseado em compras (NFs) do período. Nao esta somado ao Resultado acima, para evitar contar o mesmo gasto duas vezes com as Saidas manuais.</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">'
+    +'<div style="background:var(--surface2);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text2);margin-bottom:6px">Receita do período</div><div style="font-size:18px;font-weight:700;color:var(--green)">'+fmtCur(receitaFinal)+'</div></div>'
+    +'<div style="background:var(--surface2);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text2);margin-bottom:6px">Compras (CMV aprox.)</div><div style="font-size:18px;font-weight:700;color:var(--red)">'+fmtCur(compras)+'</div></div>'
+    +'<div style="background:var(--surface2);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text2);margin-bottom:6px">Margem de Contribuição</div><div style="font-size:18px;font-weight:700;color:'+cor+'">'+fmtCur(margemContrib)+' ('+pctMargem+'%)</div></div>'
+    +'</div>';
+}
+function renderFornecedoresKpi(nfM,bM,m){
+  const el=document.getElementById('rel-fornecedores');
+  if(!el)return;
+  if(nfM.length===0){el.innerHTML='<div class="chart-title"><i class="ti ti-truck" style="font-size:13px;color:var(--yellow)"></i> Fornecedores</div><div style="text-align:center;padding:1rem;color:var(--text3)">Nenhuma NF no período.</div>';return;}
+  const totalCompras=nfM.reduce(function(s,n){return s+n.val;},0);
+  const porFornecedor={};
+  nfM.forEach(function(n){
+    if(!porFornecedor[n.sup])porFornecedor[n.sup]={total:0,qtd:0,nfs:[]};
+    porFornecedor[n.sup].total+=n.val;
+    porFornecedor[n.sup].qtd++;
+    porFornecedor[n.sup].nfs.push(n);
+  });
+  const lista=Object.keys(porFornecedor).map(function(sup){
+    const f=porFornecedor[sup];
+    const boletosSup=bM.filter(function(b){return b.sup===sup;});
+    const pagos=boletosSup.filter(function(b){return b.paid;});
+    const atrasados=boletosSup.filter(function(b){return !b.paid&&daysDiff(b.due)<0;});
+    let prazoMedio=0;
+    if(pagos.length>0){
+      const somaDias=pagos.reduce(function(s,b){
+        const nfRelacionada=f.nfs.find(function(n){return true;});
+        if(!nfRelacionada||!b.paidDate)return s;
+        const d1=new Date(nfRelacionada.emi+'T12:00:00');
+        const d2=new Date(b.paidDate+'T12:00:00');
+        return s+Math.round((d2-d1)/86400000);
+      },0);
+      prazoMedio=Math.round(somaDias/pagos.length);
+    }
+    return {sup:sup,total:f.total,qtd:f.qtd,participacao:(f.total/totalCompras*100).toFixed(1),atrasados:atrasados.length,prazoMedio:prazoMedio};
+  }).sort(function(a,b){return b.total-a.total;});
+  let html='<div class="chart-title"><i class="ti ti-truck" style="font-size:13px;color:var(--blue)"></i> Fornecedores — '+monthLabel(m)+'</div>';
+  html+='<div style="overflow-x:auto"><table class="data-table" style="margin:-1px"><thead><tr><th>Fornecedor</th><th style="text-align:right">Total comprado</th><th style="text-align:right">%</th><th style="text-align:center">NFs</th><th style="text-align:center">Prazo médio pgto</th><th style="text-align:center">Boletos atrasados</th></tr></thead><tbody>';
+  lista.slice(0,15).forEach(function(f){
+    const corAtraso=f.atrasados>0?'var(--red)':'var(--text2)';
+    html+='<tr><td style="font-weight:600">'+f.sup+'</td><td style="text-align:right">R$ '+f.total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td><td style="text-align:right;color:var(--text2)">'+f.participacao+'%</td><td style="text-align:center">'+f.qtd+'</td><td style="text-align:center">'+(f.prazoMedio>0?f.prazoMedio+' dias':'-')+'</td><td style="text-align:center;font-weight:700;color:'+corAtraso+'">'+f.atrasados+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
 }
 
 // ALERTAS ────────────────────────────────────────────
