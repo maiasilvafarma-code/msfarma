@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #252 - Conciliacao bancaria OFX Santander -->
+<!-- Deploy #253 - OFX conciliacao soma periodos (nao substitui) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -6967,7 +6967,22 @@ function importarOfxSantander(file){
         if(bPend){encontrados.push({trans:t,boleto:bPend});return;}
         naoIdentificados.push(t);
       });
-      const dados={importadoEm:new Date().toISOString(),arquivo:file.name,totalTransacoes:trans.length,pixRecebido:Math.round(pixRecebido*100)/100,custoFinanceiro:Math.round(custoFinanceiro*100)/100,retiradas:Math.round(retiradas*100)/100,confirmados:confirmados,encontrados:encontrados,naoIdentificados:naoIdentificados,outros:outros};
+      let anteriores=null;try{anteriores=JSON.parse(localStorage.getItem('farmacia-conciliacao-bancaria'));}catch(err){}
+      const fitidsAntigos={};
+      if(anteriores&&anteriores.fitids){anteriores.fitids.forEach(function(f){fitidsAntigos[f]=true;});}
+      const fitidsNovos=trans.map(function(t){return t.fitid;});
+      const jaImportados=fitidsNovos.filter(function(f){return fitidsAntigos[f];}).length;
+      const pixRecebidoAcum=(anteriores?anteriores.pixRecebido:0)+pixRecebido;
+      const custoFinanceiroAcum=(anteriores?anteriores.custoFinanceiro:0)+custoFinanceiro;
+      const retiradasAcum=(anteriores?anteriores.retiradas:0)+retiradas;
+      const confirmadosAcum=(anteriores&&anteriores.confirmados?anteriores.confirmados:[]).concat(confirmados);
+      const encontradosAcum=(anteriores&&anteriores.encontrados?anteriores.encontrados:[]).concat(encontrados);
+      const naoIdentAcum=(anteriores&&anteriores.naoIdentificados?anteriores.naoIdentificados:[]).concat(naoIdentificados);
+      const totalTransAcum=(anteriores?anteriores.totalTransacoes:0)+trans.length;
+      const arquivosAcum=(anteriores&&anteriores.arquivos?anteriores.arquivos:[]).concat([file.name]);
+      const fitidsAcum=Object.keys(fitidsAntigos).concat(fitidsNovos);
+      if(jaImportados>0&&jaImportados===trans.length){alert('Este arquivo ja foi importado anteriormente (todas as '+trans.length+' transacoes ja existem). Nenhuma alteracao feita.');input&&(input.value='');return;}
+      const dados={importadoEm:new Date().toISOString(),arquivo:arquivosAcum.join(', '),arquivos:arquivosAcum,totalTransacoes:totalTransAcum,fitids:fitidsAcum,pixRecebido:Math.round(pixRecebidoAcum*100)/100,custoFinanceiro:Math.round(custoFinanceiroAcum*100)/100,retiradas:Math.round(retiradasAcum*100)/100,confirmados:confirmadosAcum,encontrados:encontradosAcum,naoIdentificados:naoIdentAcum,outros:outros};
       localStorage.setItem('farmacia-conciliacao-bancaria',JSON.stringify(dados));
       document.getElementById('ofx-input').value='';
       showToast('Extrato importado: '+trans.length+' transacoes | '+encontrados.length+' boletos pagos nao marcados','green');
