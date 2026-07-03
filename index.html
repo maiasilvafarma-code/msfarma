@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #249 - Anti-sobrescrita entre dispositivos (trinca seguranca 2/3) -->
+<!-- Deploy #250 - Preview antes de importar vendas (trinca seguranca 3/3) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -8333,7 +8333,21 @@ function importarRelacaoVendasHtml(input){
       }
       const dias=Object.keys(byDay).sort();
       if(dias.length===0){alert('Nenhum dado encontrado.');input.value='';return;}
-      let antigos={};try{const ex=JSON.parse(localStorage.getItem('msfarma-fatur-dia'));if(ex&&ex.dias)ex.dias.forEach(function(x){antigos[x.data]=x.total});}catch(e){}
+      let antigosOriginais={};try{const ex=JSON.parse(localStorage.getItem('msfarma-fatur-dia'));if(ex&&ex.dias)ex.dias.forEach(function(x){antigosOriginais[x.data]=x.total});}catch(e){}
+      const diasNovos=dias.filter(function(d){return !(d in antigosOriginais);});
+      const diasAtualizados=dias.filter(function(d){return (d in antigosOriginais)&&Math.abs((antigosOriginais[d]||0)-byDay[d])>0.01;});
+      const totalArquivo=dias.reduce(function(s,d){return s+(byDay[d]||0);},0);
+      const mesesSet={};dias.forEach(function(d){mesesSet[d.substring(0,7)]=1;});
+      const mesesTxt=Object.keys(mesesSet).sort().join(', ');
+      const resumoPreview='PREVIA DA IMPORTACAO\n\n'+
+        'Periodo do arquivo: '+periodoObj.de+' a '+periodoObj.ate+'\n'+
+        'Meses afetados: '+mesesTxt+'\n'+
+        'Dias novos: '+diasNovos.length+'\n'+
+        'Dias atualizados: '+diasAtualizados.length+'\n'+
+        'Total do arquivo: R$ '+totalArquivo.toLocaleString('pt-BR',{minimumFractionDigits:2})+'\n\n'+
+        'Nenhum outro dia existente sera apagado.\n\nConfirma a importacao?';
+      if(!confirm(resumoPreview)){input.value='';return;}
+      let antigos={};Object.keys(antigosOriginais).forEach(function(d){antigos[d]=antigosOriginais[d];});
       dias.forEach(function(d){antigos[d]=Math.round(byDay[d]*100)/100});
       const todosDias=Object.keys(antigos).sort();
       const dados={periodo:periodoObj,dias:todosDias.map(d=>({data:d,total:antigos[d]})),importado:new Date().toISOString()};
