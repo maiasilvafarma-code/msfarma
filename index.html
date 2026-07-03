@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #262 - PDF fatura Santander + marcar pago + editar cartao -->
+<!-- Deploy #263 - Fix coluna Acoes cortando botoes (Cartoes) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -8299,7 +8299,7 @@ function renderCartoes(){
         +'<div style="background:'+uc+';height:100%;width:'+Math.min(u,100).toFixed(0)+'%;border-radius:99px"></div></div>'
         +'<div style="font-size:10px;color:'+uc+';margin-top:2px">'+u.toFixed(0)+'%</div></td>'
         +'<td style="font-weight:600;color:'+dc+'">'+( c.venc?fmtDate(c.venc):'—')+'</td>'
-        +'<td style="text-align:center">'+(c.pago?'<span class="badge" style="background:var(--green-dim);color:var(--green)">✓ Pago</span>':'<button class="btn" style="padding:3px 10px;font-size:11px" onclick="marcarFaturaPaga('+c.id+')">Marcar Pago</button>')+' <button class="btn-icon" onclick="abrirModalEditarCartao('+c.id+')" title="Editar">✏️</button> <button class="btn-icon del" onclick="delCartao('+c.id+')">🗑</button></td>'
+        +'<td style="text-align:center;overflow:visible;white-space:normal;min-width:180px">'+(c.pago?'<span class="badge" style="background:var(--green-dim);color:var(--green)">✓ Pago</span>':'<button class="btn" style="padding:3px 8px;font-size:11px" onclick="marcarFaturaPaga('+c.id+')">Pago</button>')+' <button class="btn-icon" onclick="abrirModalEditarCartao('+c.id+')" title="Editar" style="font-size:14px">✏️</button> <button class="btn-icon del" onclick="delCartao('+c.id+')" style="font-size:14px">🗑</button></td>'
         +'</tr>';
     }).join('')+'</tbody></table></div>';
 }
