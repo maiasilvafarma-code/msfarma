@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #248 - Backup diario com historico (trinca seguranca 1/3) -->
+<!-- Deploy #249 - Anti-sobrescrita entre dispositivos (trinca seguranca 2/3) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -10259,9 +10259,54 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     } catch(e) { console.warn('listar erro:', e); return []; }
   }
 
+  function obterNomeDispositivo() {
+    let nome = localStorage.getItem('farmacia-device-name');
+    if(!nome) {
+      nome = prompt('Este computador e da Janaina ou da Adriana? Digite o nome:', '') || '';
+      nome = nome.trim();
+      if(nome) localStorage.setItem('farmacia-device-name', nome);
+    }
+    return nome || 'Desconhecido';
+  }
+
+  async function verificarLogSync() {
+    try {
+      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.farmacia-sync-log&select=valor', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      });
+      if(!resp.ok) return null;
+      const rows = await resp.json();
+      if(!rows || !rows.length) return null;
+      return typeof rows[0].valor === 'string' ? JSON.parse(rows[0].valor) : rows[0].valor;
+    } catch(e) { return null; }
+  }
+
   async function syncParaNuvem() {
     setStatus('sync');
     await backupDiario();
+    const meuNome = obterNomeDispositivo();
+    const ignoradoEm = localStorage.getItem('farmacia-conflito-ignorado-ts');
+    const podeChecar = !ignoradoEm || (Date.now() - new Date(ignoradoEm).getTime()) > 900000;
+    if(podeChecar) {
+      const logNuvem = await verificarLogSync();
+      if(logNuvem && logNuvem.device && logNuvem.device !== meuNome) {
+        const ultimaPull = localStorage.getItem('farmacia-last-pull-ts');
+        const tsNuvem = new Date(logNuvem.timestamp).getTime();
+        const tsPull = ultimaPull ? new Date(ultimaPull).getTime() : 0;
+        if(tsNuvem > tsPull) {
+          const continuar = confirm(logNuvem.device + ' sincronizou dados as ' + new Date(logNuvem.timestamp).toLocaleString('pt-BR') + ' e este computador ainda nao atualizou.\n\nOK = Atualizar este computador primeiro (recomendado)\nCancelar = Enviar meus dados mesmo assim (risco de sobrescrever)');
+          if(continuar) {
+            await carregarDaNuvem();
+            localStorage.setItem('farmacia-last-pull-ts', new Date().toISOString());
+            setStatus('local');
+            alert('Dados atualizados. Revise as informacoes na tela.');
+            return false;
+          } else {
+            localStorage.setItem('farmacia-conflito-ignorado-ts', new Date().toISOString());
+          }
+        }
+      }
+    }
     // Merge desativado
     if(false) try {
       const respMerge = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.msfarma-fatur-dia&select=valor', {
@@ -10301,6 +10346,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
       }
     }
     setStatus(ok ? 'ok' : 'erro');
+    if(ok) { await supaUpsert('farmacia-sync-log', { device: meuNome, timestamp: new Date().toISOString() }); }
     window._supaLastSync = new Date();
     if(ok) {
       clearTimeout(window._retryTimer);
@@ -10348,6 +10394,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
         } else { localStorage.setItem(row.chave,valStr); }
         updated++;
       }
+      localStorage.setItem('farmacia-last-pull-ts', new Date().toISOString());
       setStatus('ok');
       return updated;
     } catch(e) { setStatus('local'); return false; }
