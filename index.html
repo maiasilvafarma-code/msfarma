@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #260 - Bairros com historico por mes (nao substitui) -->
+<!-- Deploy #261 - Produtos por bairro (top 5, requer coluna Descricao) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9325,6 +9325,7 @@ function importarBairrosXls(file){
       let totalGeral=0,totalIdentificado=0,semBairro=0;
       const porBairro={};
       let mesRef='';
+      const temDescricao=rows.length>0&&(('Descrição' in rows[0])||('Descricao' in rows[0]));
       rows.forEach(function(r){
         const valor=parseFloat(r['Valor Item'])||0;
         totalGeral+=valor;
@@ -9338,11 +9339,22 @@ function importarBairrosXls(file){
         const b=normalizarBairro(bairroRaw);
         if(!b){semBairro++;return;}
         totalIdentificado+=valor;
-        if(!porBairro[b])porBairro[b]={valor:0,qtd:0};
+        if(!porBairro[b])porBairro[b]={valor:0,qtd:0,produtos:{}};
         porBairro[b].valor+=valor;
         porBairro[b].qtd++;
+        if(temDescricao){
+          const desc=String(r['Descrição']||r['Descricao']||'').trim();
+          if(desc){
+            if(!porBairro[b].produtos[desc])porBairro[b].produtos[desc]={valor:0,qtd:0};
+            porBairro[b].produtos[desc].valor+=valor;
+            porBairro[b].produtos[desc].qtd++;
+          }
+        }
       });
-      const lista=Object.keys(porBairro).map(function(b){return{bairro:b,valor:Math.round(porBairro[b].valor*100)/100,qtd:porBairro[b].qtd};}).sort(function(a,b){return b.valor-a.valor;});
+      const lista=Object.keys(porBairro).map(function(b){
+        const topProdutos=Object.keys(porBairro[b].produtos||{}).map(function(p){return{desc:p,valor:Math.round(porBairro[b].produtos[p].valor*100)/100,qtd:porBairro[b].produtos[p].qtd};}).sort(function(x,y){return y.valor-x.valor;}).slice(0,5);
+        return{bairro:b,valor:Math.round(porBairro[b].valor*100)/100,qtd:porBairro[b].qtd,topProdutos:topProdutos};
+      }).sort(function(a,b){return b.valor-a.valor;});
       const dados={importadoEm:new Date().toISOString(),arquivo:file.name,mes:mesRef,totalGeral:Math.round(totalGeral*100)/100,totalIdentificado:Math.round(totalIdentificado*100)/100,semBairroCount:semBairro,totalLinhas:rows.length,bairros:lista};
       localStorage.setItem('farmacia-faturamento-bairro',JSON.stringify(dados));
       if(mesRef){
@@ -9375,14 +9387,33 @@ function renderBairros(mesEscolhido){
   const pctIdentificado=dados.totalGeral>0?((dados.totalIdentificado/dados.totalGeral)*100).toFixed(1):0;
   let html='<div class="chart-card" style="margin-bottom:1.25rem"><div class="chart-title" style="justify-content:space-between"><span><i class="ti ti-map-pin" style="font-size:13px;color:var(--blue)"></i> Faturamento por Bairro'+(dados.mes?' — '+dados.mes:'')+'</span><span>'+seletorMeses+'<button class="btn" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)" onclick="document.getElementById(&#39;bairros-xls-input&#39;).click()">📥 Importar mes</button></span></div>';
   html+='<div style="font-size:12px;color:var(--text2);margin-bottom:12px">'+dados.totalLinhas+' vendas analisadas | '+pctIdentificado+'% com bairro identificado (R$ '+dados.totalIdentificado.toLocaleString('pt-BR',{minimumFractionDigits:2})+' de R$ '+dados.totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})+')</div>';
+  const temProdutos=dados.bairros.some(function(b){return b.topProdutos&&b.topProdutos.length;});
   html+='<div style="overflow-x:auto"><table class="data-table" style="margin:-1px"><thead><tr><th>#</th><th>Bairro</th><th style="text-align:right">Faturamento</th><th style="text-align:right">%</th><th style="text-align:center">Vendas</th><th style="text-align:right">Ticket médio</th></tr></thead><tbody>';
   dados.bairros.slice(0,25).forEach(function(b,i){
     const pct=(b.valor/dados.totalIdentificado*100).toFixed(1);
     const tkt=b.qtd>0?b.valor/b.qtd:0;
-    html+='<tr><td style="text-align:center;color:var(--text3)">'+(i+1)+'</td><td style="font-weight:600">'+b.bairro+'</td><td style="text-align:right;font-weight:700;color:var(--green)">R$ '+b.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td><td style="text-align:right;color:var(--text2)">'+pct+'%</td><td style="text-align:center">'+b.qtd+'</td><td style="text-align:right">R$ '+tkt.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>';
+    const temTop=b.topProdutos&&b.topProdutos.length>0;
+    const clickAttr=temTop?' style="cursor:pointer" onclick="toggleBairroProdutos(this,'+i+')"':'';
+    html+='<tr'+clickAttr+'><td style="text-align:center;color:var(--text3)">'+(i+1)+(temTop?' <i class="ti ti-chevron-down" style="font-size:10px"></i>':'')+'</td><td style="font-weight:600">'+b.bairro+'</td><td style="text-align:right;font-weight:700;color:var(--green)">R$ '+b.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td><td style="text-align:right;color:var(--text2)">'+pct+'%</td><td style="text-align:center">'+b.qtd+'</td><td style="text-align:right">R$ '+tkt.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>';
+    if(temTop){
+      let sub='<tr style="display:none" class="bairro-produtos-row"><td colspan="6" style="background:var(--surface2);padding:10px 20px"><div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">TOP PRODUTOS EM '+b.bairro+'</div>';
+      b.topProdutos.forEach(function(p){
+        sub+='<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px"><span>'+p.desc+' <span style="color:var(--text3)">('+p.qtd+'x)</span></span><span style="font-weight:600;color:var(--green)">R$ '+p.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span></div>';
+      });
+      sub+='</td></tr>';
+      html+=sub;
+    }
   });
-  html+='</tbody></table></div></div>';
+  html+='</tbody></table></div>';
+  if(!temProdutos){html+='<div style="font-size:11px;color:var(--text3);margin-top:10px">Dica: inclua a coluna "Descrição" na exportação do Infarma para ver os produtos mais vendidos por bairro.</div>';}
+  html+='</div>';
   bDiv.innerHTML=html;
+}
+function toggleBairroProdutos(tr,idx){
+  const next=tr.nextElementSibling;
+  if(next&&next.classList.contains('bairro-produtos-row')){
+    next.style.display=next.style.display==='none'?'':'none';
+  }
 }
 function renderVendedores(){
   var histStr=localStorage.getItem('msfarma-clientes-hist');
