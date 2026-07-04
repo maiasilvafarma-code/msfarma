@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #265 - Leitura de fatura PDF Mercado Pago -->
+<!-- Deploy #266 - Melhor dia de compra nos cartoes -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -8283,7 +8283,7 @@ function renderCartoes(){
     +'<table class="data-table"><thead><tr>'
     +'<th>Banco / Emissor</th><th>Bandeira</th><th>Titular</th>'
     +'<th class="col-val">Limite</th><th class="col-val">Fatura</th>'
-    +'<th style="width:120px">Utilização</th><th class="col-date">Venc.</th>'
+    +'<th style="width:120px">Utilização</th><th class="col-date">Venc.</th><th class="col-date">Melhor Compra</th>'
     +'<th class="col-act">Ações</th></tr></thead><tbody>'
     +cartoes.map(c=>{
       const u=c.limite>0?(c.fatura/c.limite*100):0;
@@ -8300,9 +8300,43 @@ function renderCartoes(){
         +'<div style="background:'+uc+';height:100%;width:'+Math.min(u,100).toFixed(0)+'%;border-radius:99px"></div></div>'
         +'<div style="font-size:10px;color:'+uc+';margin-top:2px">'+u.toFixed(0)+'%</div></td>'
         +'<td style="font-weight:600;color:'+dc+'">'+( c.venc?fmtDate(c.venc):'—')+'</td>'
+        +renderMelhorDiaCompra(c)
         +'<td style="text-align:center;overflow:visible;white-space:normal;min-width:180px">'+(c.pago?'<span class="badge" style="background:var(--green-dim);color:var(--green)">✓ Pago</span>':'<button class="btn" style="padding:3px 8px;font-size:11px" onclick="marcarFaturaPaga('+c.id+')">Pago</button>')+' <button class="btn-icon" onclick="abrirModalEditarCartao('+c.id+')" title="Editar" style="font-size:14px">✏️</button> <button class="btn-icon del" onclick="delCartao('+c.id+')" style="font-size:14px">🗑</button></td>'
         +'</tr>';
     }).join('')+'</tbody></table></div>';
+}
+function renderMelhorDiaCompra(c){
+  var mn=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var hoje=new Date();
+  var diaFechamento=parseInt(c.diaFechamento||0);
+  var dataMelhor=null;
+  var origemPdf=false;
+  if(c.melhorDiaCompra){
+    var d=new Date(c.melhorDiaCompra+'T12:00:00');
+    if(!isNaN(d)&&d>=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate())){
+      dataMelhor=d;origemPdf=true;
+    }
+  }
+  if(!dataMelhor&&diaFechamento>0){
+    var dia=hoje.getDate();
+    var mes=hoje.getMonth();
+    var ano=hoje.getFullYear();
+    if(dia<=diaFechamento){
+      dataMelhor=new Date(ano,mes,diaFechamento+1);
+    } else {
+      var proxMes=mes+1;var proxAno=ano;
+      if(proxMes>11){proxMes=0;proxAno++;}
+      dataMelhor=new Date(proxAno,proxMes,diaFechamento+1);
+    }
+  }
+  if(!dataMelhor)return'<td style="color:var(--text3);font-size:11px">configurar</td>';
+  var hojeMid=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate());
+  var ehHoje=dataMelhor.getTime()===hojeMid.getTime();
+  var cor=ehHoje?'var(--green)':'var(--text)';
+  var txt=String(dataMelhor.getDate()).padStart(2,'0')+'/'+mn[dataMelhor.getMonth()]+'/'+String(dataMelhor.getFullYear()).slice(2);
+  var icone=ehHoje?' 🎯':'';
+  var origem=origemPdf?' <span style="font-size:9px;color:var(--text3)" title="Do PDF do banco">✓</span>':'';
+  return'<td style="font-weight:600;color:'+cor+'">'+txt+icone+origem+'</td>';
 }
 function marcarFaturaPaga(id){
   var c=(D.cartoes||[]).find(function(x){return x.id===id;});
@@ -8493,7 +8527,7 @@ function abrirModalEditarCartao(id){
     +'<div class="field"><label>Banco/Emissor</label><input type="text" id="ec-banco" value="'+(c.banco||'').replace(/"/g,'&quot;')+'" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"></div>'
     +'<div class="field"><label>Bandeira</label><select id="ec-band" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"><option'+(c.bandeira==='Mastercard'?' selected':'')+'>Mastercard</option><option'+(c.bandeira==='Visa'?' selected':'')+'>Visa</option><option'+(c.bandeira==='Elo'?' selected':'')+'>Elo</option><option'+(c.bandeira==='Amex'?' selected':'')+'>Amex</option></select></div>'
     +'<div class="field"><label>Titular</label><input type="text" id="ec-titular" value="'+(c.titular||'').replace(/"/g,'&quot;')+'" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"></div>'
-    +'<div class="field"><label>Limite (R$)</label><input type="number" id="ec-limite" value="'+(c.limite||0)+'" step="0.01" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"></div>'
+    +'<div class="field"><label>Limite (R$)</label><input type="number" id="ec-limite" value="'+(c.limite||0)+'" step="0.01" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"></div>'+'<div class="field"><label>Dia do fechamento da fatura (1-31)</label><input type="number" id="ec-fecha" value="'+(c.diaFechamento||'')+'" min="1" max="31" placeholder="Ex: 15" style="width:100%;height:38px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;color:var(--text)"><div style="font-size:11px;color:var(--text3);margin-top:4px">Dia fixo do mês em que o banco fecha a fatura. Melhor dia de compra = dia seguinte.</div></div>'
     +'<div class="form-footer"><button class="btn" onclick="fecharModalCartao(&#39;modal-editar-cartao&#39;)">Cancelar</button><button class="btn btn-green" onclick="salvarEdicaoCartao('+id+')">✓ Salvar</button></div></div>';
   document.body.appendChild(m);
 }
@@ -8504,6 +8538,8 @@ function salvarEdicaoCartao(id){
   c.bandeira=document.getElementById('ec-band').value;
   c.titular=document.getElementById('ec-titular').value.trim()||c.titular;
   c.limite=parseFloat(document.getElementById('ec-limite').value)||c.limite;
+  var df=parseInt(document.getElementById('ec-fecha').value);
+  if(df>=1&&df<=31)c.diaFechamento=df;
   save();
   renderCartoes();
   fecharModalCartao('modal-editar-cartao');
