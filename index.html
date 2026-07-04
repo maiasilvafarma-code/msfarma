@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #267 - Alerta HOJE e melhor dia de compra no dashboard -->
+<!-- Deploy #268 - Historico mensal de gastos dos cartoes -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2455,7 +2455,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <div class="form-footer"><button class="btn btn-green" onclick="addCartao()"><i class="ti ti-plus"></i> Adicionar cartão</button></div>
       </div>
     </div>
-    <div id="cart-alertas"></div><div id="cart-list"></div>
+    <div id="cart-alertas"></div><div id="cart-list"></div><div id="cart-historico-mensal"></div>
   </div>
 
   <!-- PRODUTOS / CURVA ABC -->
@@ -8304,6 +8304,7 @@ function renderCartoes(){
         +'<td style="text-align:center;overflow:visible;white-space:normal;min-width:180px">'+(c.pago?'<span class="badge" style="background:var(--green-dim);color:var(--green)">✓ Pago</span>':'<button class="btn" style="padding:3px 8px;font-size:11px" onclick="marcarFaturaPaga('+c.id+')">Pago</button>')+' <button class="btn-icon" onclick="abrirModalEditarCartao('+c.id+')" title="Editar" style="font-size:14px">✏️</button> <button class="btn-icon del" onclick="delCartao('+c.id+')" style="font-size:14px">🗑</button></td>'
         +'</tr>';
     }).join('')+'</tbody></table></div>';
+  renderHistoricoCartoesMensal();
 }
 function renderMelhorDiaCompra(c){
   var mn=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -8337,6 +8338,52 @@ function renderMelhorDiaCompra(c){
   var icone=ehHoje?' 🎯':'';
   var origem=origemPdf?' <span style="font-size:9px;color:var(--text3)" title="Do PDF do banco">✓</span>':'';
   return'<td style="font-weight:600;color:'+cor+'">'+txt+icone+origem+'</td>';
+}
+function renderHistoricoCartoesMensal(){
+  var el=document.getElementById('cart-historico-mensal');
+  if(!el)return;
+  var cartoes=D.cartoes||[];
+  var porMes={};
+  cartoes.forEach(function(c){
+    (c.historico||[]).forEach(function(h){
+      if(!h.mes||!h.totalFatura)return;
+      if(!porMes[h.mes])porMes[h.mes]={total:0,detalhes:[]};
+      porMes[h.mes].total+=h.totalFatura;
+      porMes[h.mes].detalhes.push({banco:c.banco,valor:h.totalFatura});
+    });
+  });
+  var meses=Object.keys(porMes).sort();
+  if(meses.length===0){el.innerHTML='';return;}
+  var mn=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function fmtMes(m){var p=m.split('-');return mn[parseInt(p[1])-1]+'/'+p[0].slice(2);}
+  var html='<div class="chart-card" style="margin-top:1.25rem">';
+  html+='<div class="chart-title"><i class="ti ti-chart-bar" style="font-size:13px;color:var(--purple,#a78bfa)"></i> Gastos consolidados (histórico mensal)</div>';
+  if(meses.length===1){
+    var m=meses[0];
+    var d=porMes[m];
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--surface2);border-radius:var(--r);margin-bottom:10px"><span style="font-size:14px;font-weight:700">'+fmtMes(m)+'</span><span style="font-size:20px;font-weight:800;color:var(--purple,#a78bfa)">R$ '+d.total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span></div>';
+    html+='<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px">Importe faturas de outros meses para acompanhar a evolução mês a mês.</div>';
+  } else {
+    html+='<div style="overflow-x:auto"><table class="data-table" style="margin:-1px"><thead><tr><th>Mês</th><th style="text-align:right">Total gasto</th><th style="text-align:right">Variação</th></tr></thead><tbody>';
+    var mesesRev=meses.slice().reverse();
+    mesesRev.forEach(function(m,i){
+      var d=porMes[m];
+      var linha='<tr><td style="font-weight:600">'+fmtMes(m)+'</td><td style="text-align:right;font-weight:700;color:var(--purple,#a78bfa)">R$ '+d.total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td>';
+      var mesAnt=mesesRev[i+1];
+      if(mesAnt&&porMes[mesAnt]&&porMes[mesAnt].total>0){
+        var var_=(d.total-porMes[mesAnt].total)/porMes[mesAnt].total*100;
+        var cor=var_>=5?'var(--red)':var_<=-5?'var(--green)':'var(--text2)';
+        var seta=var_>=5?'▲':var_<=-5?'▼':'~';
+        linha+='<td style="text-align:right;font-weight:600;color:'+cor+'">'+seta+' '+Math.abs(var_).toFixed(1)+'%</td></tr>';
+      } else {
+        linha+='<td style="text-align:right;color:var(--text3)">—</td></tr>';
+      }
+      html+=linha;
+    });
+    html+='</tbody></table></div>';
+  }
+  html+='</div>';
+  el.innerHTML=html;
 }
 function marcarFaturaPaga(id){
   var c=(D.cartoes||[]).find(function(x){return x.id===id;});
