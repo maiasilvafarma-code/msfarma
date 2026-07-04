@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #268 - Historico mensal de gastos dos cartoes -->
+<!-- Deploy #269 - Lembrete segunda importar OFX Santander -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -4214,6 +4214,14 @@ function showModalOk(){
     const mesAtual=hoje.toISOString().substring(0,7);
     if(ultimaFolha!==mesAtual){
       lembretes.push({icon:'👥',cor:'var(--yellow)',titulo:'Processar Folha de Pagamento',desc:'Todo mês — aba Folha → Processar mês → Lançar pagamentos',acao:"goTab('folha');closeModal();"});
+    }
+  }
+
+  // Lembrete segunda-feira: importar OFX Santander
+  if(diaSemana===1){
+    const ultimoOfx=localStorage.getItem('ms-ultimo-ofx-lembrete');
+    if(ultimoOfx!==hj){
+      lembretes.push({icon:'🏦',cor:'var(--blue,#3b82f6)',titulo:'Importar Extrato OFX Santander',desc:'Toda segunda — Estratégia → Conciliação Bancária → Importar OFX (atualiza saldo e concilia boletos)',acao:"goTab('estrategia');setEstTab('conciliacao');closeModal();localStorage.setItem('ms-ultimo-ofx-lembrete','"+hj+"');"});
     }
   }
 
