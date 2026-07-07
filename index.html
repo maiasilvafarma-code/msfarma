@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #275 - Marcacoes e freio diario na Agenda -->
+<!-- Deploy #276 - Ordenacao inteligente na Agenda -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9565,6 +9565,31 @@ function renderAgenda(){
     return m && m.marcacao === filtroMarc;
   });
 
+  // Ordenacao
+  var ordem = window._agendaOrdem || 'provaveis';
+  var scoreOrd = function(c){
+    var t = (c.telefone||'').replace(/\D/g,'');
+    if(!t) return 0;
+    if(t.length < 10) return 1;
+    if(t.length === 10) return 5;
+    if(t.length === 11){
+      var ddd = t.substring(0,2);
+      if(ddd === '85') return 10;
+      if(['81','82','83','84','86','87','88','89'].indexOf(ddd) >= 0) return 8;
+      return 6;
+    }
+    return 3;
+  };
+  if(ordem === 'provaveis'){
+    filtrados.sort(function(a,b){
+      var sa = scoreOrd(a), sb = scoreOrd(b);
+      if(sa !== sb) return sb - sa;
+      return (a.nome||'').localeCompare(b.nome||'', 'pt-BR');
+    });
+  } else {
+    filtrados.sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'', 'pt-BR'); });
+  }
+
   // Paginacao
   var pag = window._agendaPag || 1;
   var porPag = 50;
@@ -9590,6 +9615,8 @@ function renderAgenda(){
   // Barra de busca
   h += '<div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">';
   h += '<input type="text" placeholder="Buscar por nome ou telefone..." value="'+((window._agendaBusca||'').replace(/"/g,'&quot;'))+'" oninput="window._agendaBusca=this.value;window._agendaPag=1;renderAgenda()" style="flex:1;min-width:200px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px">';
+  var labelOrdem = (window._agendaOrdem||'provaveis')==='alfa' ? 'Alfab&eacute;tica A-Z' : 'Prov&aacute;veis clientes';
+  h += '<button onclick="window._agendaOrdem=(window._agendaOrdem||&#39;provaveis&#39;)===&#39;alfa&#39;?&#39;provaveis&#39;:&#39;alfa&#39;;window._agendaPag=1;renderAgenda()" class="btn" style="font-size:12px;padding:8px 12px;background:var(--surface2);color:var(--text);white-space:nowrap" title="Alternar ordem"><span style=&quot;color:var(--text2)&quot;>Ordem:</span> '+labelOrdem+' &#8646;</button>';
   h += '</div>';
 
   // Chips de filtro por marcacao
