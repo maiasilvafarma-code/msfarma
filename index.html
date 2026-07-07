@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #270 - PRONAMPE Meu Processo (checklist, proposta, diario) -->
+<!-- Deploy #271 - Capital em Estoque (Inventario x Entrada de Produtos) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -308,6 +308,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   <input type="file" id="vendas-input" accept=".xls,.xlsx,.csv" style="display:none" onchange="importVendasItens(this.files[0])">
   <input type="file" id="curva-abc-xls-input" accept=".xls,.xlsx" style="display:none" onchange="importarCurvaAbcXls(this.files[0])">
   <input type="file" id="rentabilidade-xls-input" accept=".xls,.xlsx" style="display:none" onchange="importarRentabilidadeXls(this.files[0])">
+  <input type="file" id="inventario-xls-input" accept=".xls,.xlsx" style="display:none" onchange="importarInventarioXls(this.files[0])">
+  <input type="file" id="entrada-produtos-txt-input" accept=".txt,.TXT" style="display:none" onchange="importarEntradaProdutosTxt(this.files[0])">
   <input type="file" id="resumo-vendas-xls-input" accept=".xls,.xlsx" style="display:none" onchange="importarResumoVendasXls(this.files[0])">
   <input type="file" id="clientes-pdf-input" accept=".pdf,.PDF" style="display:none" onchange="importarClientesPdf(this.files[0])">
 </div>
@@ -335,6 +337,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         <button class="act-item" onclick="document.getElementById('curva-abc-xls-input').click();closeActions()">Importar Curva ABC — XLS Infarma</button>
         <button class="act-item" onclick="document.getElementById('rentabilidade-xls-input').click();closeActions()">Importar Rentabilidade — XLS Infarma</button>
         <button class="act-item" onclick="document.getElementById('resumo-vendas-xls-input').click();closeActions()">Importar Resumo de Vendas — XLS Infarma</button>
+        <button class="act-item" onclick="document.getElementById('inventario-xls-input').click();closeActions()">Importar Inventário Físico — XLS Infarma</button>
+        <button class="act-item" onclick="document.getElementById('entrada-produtos-txt-input').click();closeActions()">Importar Entrada de Produtos — TXT Infarma</button>
           <button class="drop-item" onclick="openXLSXImport();closeActions()"><i class="ti ti-table-import" style="font-size:14px"></i> Importar Excel (.xlsx)</button>
           <button class="drop-item" onclick="document.getElementById(&#39;xml-input&#39;).click();closeActions()"><i class="ti ti-file-code" style="font-size:14px;color:var(--blue)"></i> Importar XML (NF-e)</button>
         <button class="drop-item" onclick="document.getElementById('inp-relacao-vendas-html').click()"><i class="ti ti-chart-bar" style="font-size:14px"></i> Importar Relação de Vendas — HTML</button>
@@ -2482,6 +2486,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
 
     <!-- Alerta de margem baixa -->
     <div class="chart-card" id="prod-margem" style="margin-bottom:1.25rem"></div>
+
+    <!-- Capital em Estoque (Inventario x Entrada de Produtos) -->
+    <div class="chart-card" id="prod-capital-estoque" style="margin-bottom:1.25rem"></div>
 
     <!-- Classes + Recomendação Junho -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem">
@@ -5007,6 +5014,118 @@ function importarRentabilidadeXls(file){
   };
   reader.readAsArrayBuffer(file);
 }
+function importarInventarioXls(file){
+  if(!file)return;
+  showToast('Lendo Inventario Fisico...','green');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      if(typeof XLSX==='undefined'){showToast('Biblioteca XLS nao carregada','red');return;}
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      function num(v){if(v===''||v==null)return 0;const s=String(v).replace(/\./g,'').replace(',','.');const n=parseFloat(s);return isNaN(n)?0:n;}
+      function ehCodigo(v){const s=String(v||'').trim();return s.length>0&&s.length<10&&/^\d+$/.test(s);}
+      const produtos=[];
+      for(let i=0;i<rows.length;i++){
+        const r=rows[i];
+        if(!ehCodigo(r[0]))continue;
+        produtos.push({
+          codigo:String(r[0]).trim(),
+          desc:String(r[4]||'').trim(),
+          estoque:num(r[11]),
+          valorUnit:num(r[14]),
+          valorTotal:num(r[17])
+        });
+      }
+      if(produtos.length===0){showToast('Nenhum produto encontrado. Verifique o arquivo.','red');return;}
+      const dados={importadoEm:new Date().toISOString(),arquivo:file.name,totalProdutos:produtos.length,produtos:produtos};
+      localStorage.setItem('farmacia-inventario-fisico',JSON.stringify(dados));
+      document.getElementById('inventario-xls-input').value='';
+      showToast('Inventário importado: '+produtos.length+' produtos com estoque','green');
+      renderCapitalEstoque();
+    }catch(ex){showToast('Erro: '+ex.message,'red');console.error(ex);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function importarEntradaProdutosTxt(file){
+  if(!file)return;
+  showToast('Lendo Entrada de Produtos...','green');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const texto=e.target.result;
+      const linhas=texto.split(/\r?\n/);
+      const compras={};
+      let codAtual=null;
+      let periodo='';
+      const mPer=texto.match(/Per:\s*(\d{2}\/\d{2}\/\d{2})\s*a\s*(\d{2}\/\d{2}\/\d{2})/);
+      if(mPer)periodo=mPer[1]+' a '+mPer[2];
+      for(let i=0;i<linhas.length;i++){
+        const l=linhas[i];
+        const mProd=l.match(/^(\d+)-\s?(.+)$/);
+        if(mProd&&l.indexOf('Total do Produto')<0){
+          codAtual=mProd[1];
+          if(!(codAtual in compras))compras[codAtual]=0;
+          continue;
+        }
+        const mTotal=l.match(/Total do Produto:\s*(\d+)/);
+        if(mTotal&&codAtual){compras[codAtual]=parseInt(mTotal[1]);continue;}
+        const mCompra=l.match(/^.{35}(\d{2}\/\d{2}\/\d{2})\s+(\d{2}\/\d{2}\/\d{2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)\s*$/);
+        if(mCompra&&codAtual&&compras[codAtual]===0){compras[codAtual]=parseInt(mCompra[6]);}
+      }
+      const totalProdutos=Object.keys(compras).length;
+      if(totalProdutos===0){showToast('Nenhum produto encontrado no arquivo.','red');return;}
+      const dados={importadoEm:new Date().toISOString(),arquivo:file.name,periodo:periodo,totalProdutos:totalProdutos,compras:compras};
+      localStorage.setItem('farmacia-entrada-produtos',JSON.stringify(dados));
+      document.getElementById('entrada-produtos-txt-input').value='';
+      showToast('Entrada de Produtos importada: '+totalProdutos+' produtos','green');
+      renderCapitalEstoque();
+    }catch(ex){showToast('Erro: '+ex.message,'red');console.error(ex);}
+  };
+  reader.readAsText(file,'ISO-8859-1');
+}
+function renderCapitalEstoque(){
+  const el=document.getElementById('prod-capital-estoque');
+  if(!el)return;
+  let inv=null,ent=null;
+  try{const s=localStorage.getItem('farmacia-inventario-fisico');if(s)inv=JSON.parse(s);}catch(e){}
+  try{const s=localStorage.getItem('farmacia-entrada-produtos');if(s)ent=JSON.parse(s);}catch(e){}
+  if(!inv){
+    el.innerHTML='<div class="chart-title"><i class="ti ti-cube" style="font-size:13px;color:var(--blue)"></i> Capital em Estoque</div><div style="text-align:center;padding:1.5rem;color:var(--text3)">Importe o Inventário Físico Analítico do Infarma (Ações → Importar Inventário Físico) para calcular o capital parado em estoque.</div>';
+    return;
+  }
+  if(!ent){
+    const capBruto=inv.produtos.reduce(function(s,p){return s+p.valorTotal;},0);
+    el.innerHTML='<div class="chart-title"><i class="ti ti-cube" style="font-size:13px;color:var(--blue)"></i> Capital em Estoque</div><div style="font-size:12px;color:var(--text2);margin-bottom:10px">'+inv.totalProdutos+' produtos com estoque, capital total (bruto): <b style="color:var(--yellow)">R$ '+capBruto.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</b></div><div style="text-align:center;padding:1rem;color:var(--text3);background:var(--surface2);border-radius:var(--r)">⚠️ Importe também a Entrada de Produtos (Ações → Importar Entrada de Produtos) para separar o que é confiável do que pode ter erro de cadastro no Infarma.</div>';
+    return;
+  }
+  const compras=ent.compras;
+  let capConfiavel=0,capSuspeito=0,nConfiavel=0,nSuspeito=0;
+  const suspeitos=[];
+  inv.produtos.forEach(function(p){
+    const comprado=compras[p.codigo]||0;
+    const susp=p.estoque>50&&p.estoque>comprado*2;
+    if(susp){capSuspeito+=p.valorTotal;nSuspeito++;suspeitos.push(Object.assign({comprado:comprado},p));}
+    else{capConfiavel+=p.valorTotal;nConfiavel++;}
+  });
+  suspeitos.sort(function(a,b){return b.valorTotal-a.valorTotal;});
+  const capTotal=capConfiavel+capSuspeito;
+  const pctSuspeito=capTotal>0?(capSuspeito/capTotal*100).toFixed(1):0;
+  let html='<div class="chart-title"><i class="ti ti-cube" style="font-size:13px;color:var(--blue)"></i> Capital em Estoque — Inventário x Compras (Jan-Jun/26)</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">';
+  html+='<div style="background:var(--green-dim);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase">✓ Capital confiável</div><div style="font-size:22px;font-weight:800;color:var(--green)">R$ '+capConfiavel.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div><div style="font-size:11px;color:var(--text3)">'+nConfiavel+' produtos com padrão coerente</div></div>';
+  html+='<div style="background:var(--yellow-dim);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--yellow);font-weight:700;text-transform:uppercase">⚠ Capital suspeito</div><div style="font-size:22px;font-weight:800;color:var(--yellow)">R$ '+capSuspeito.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div><div style="font-size:11px;color:var(--text3)">'+nSuspeito+' produtos ('+pctSuspeito+'% do total) — requer verificação manual</div></div>';
+  html+='</div>';
+  html+='<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Suspeito = estoque cadastrado maior que o dobro de tudo que foi comprado no semestre. Não é prova definitiva de erro, mas indica forte necessidade de conferência física.</div>';
+  html+='<div style="font-size:13px;font-weight:700;margin-bottom:8px">Top 15 produtos suspeitos (maior capital)</div>';
+  html+='<div style="overflow-x:auto"><table class="data-table" style="margin:-1px"><thead><tr><th>Produto</th><th style="text-align:right">Estoque</th><th style="text-align:right">Comprado (sem.)</th><th style="text-align:right">Valor Total</th></tr></thead><tbody>';
+  suspeitos.slice(0,15).forEach(function(p){
+    html+='<tr><td style="font-weight:600">'+p.desc+'</td><td style="text-align:right">'+p.estoque.toLocaleString('pt-BR')+'</td><td style="text-align:right;color:var(--text3)">'+p.comprado.toLocaleString('pt-BR')+'</td><td style="text-align:right;font-weight:700;color:var(--yellow)">R$ '+p.valorTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
 function renderAlertaMargem(){
   const el=document.getElementById('prod-margem');
   if(!el)return;
@@ -5036,6 +5155,7 @@ function renderAlertaMargem(){
 }
 function renderProdutos(){
   renderAlertaMargem();
+  renderCapitalEstoque();
   const q=(document.getElementById('prod-search').value||'').toLowerCase();
   const cf=document.getElementById('prod-classe').value;
   // Usa dados dinâmicos (importados) se disponíveis, senão usa dados fixos de Maio/26
