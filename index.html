@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #273 - Remover mensagens automaticas WhatsApp (protecao contra banimento) -->
+<!-- Deploy #274 - Validacao de telefone no Uso Continuo -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9799,7 +9799,7 @@ function abrirModalUC(idx){
   box.innerHTML='<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:1.25rem">'+titulo+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:.75rem">'
     +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">NOME</label><input id="uc-nome" value="'+nomeVal+'" placeholder="Nome completo" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
-    +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">TELEFONE</label><input id="uc-tel" value="'+telVal+'" placeholder="85999999999" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+    +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">TELEFONE</label><input id="uc-tel" value="'+telVal+'" placeholder="85999999999 (DDD + numero, 11 digitos)" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
     +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">MEDICAMENTO</label><input id="uc-med" value="'+medVal+'" placeholder="Ex: Losartana 50mg" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
     +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">CICLO (dias)</label><input id="uc-ciclo" type="number" value="'+cicloVal+'" min="7" max="90" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
     +'<div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">DATA DA ULTIMA COMPRA</label><input id="uc-data" type="date" value="'+dataVal+'" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
@@ -9821,7 +9821,9 @@ function salvarModalUC(idx){
   var data=document.getElementById('uc-data').value;
   var obs=document.getElementById('uc-obs').value.trim();
   if(!nome||!med){showToast('Preencha nome e medicamento.','red');return;}
-  var obj={nome:nome,telefone:tel,medicamento:med,ciclo:ciclo,ultimaCompra:data,obs:obs};
+  var telNum=tel.replace(/\D/g,'');
+  if(telNum&&(telNum.length<10||telNum.length>11)){showToast('Telefone invalido. Use DDD + numero (10 ou 11 digitos). Ex: 85999999999','red');var elTel=document.getElementById('uc-tel');if(elTel)elTel.focus();return;}
+  var obj={nome:nome,telefone:telNum,medicamento:med,ciclo:ciclo,ultimaCompra:data,obs:obs};
   if(idx!==null&&window._ucDados[idx]){window._ucDados[idx]=obj;}else{window._ucDados.push(obj);}
   salvarUsoContinuo();
   var ov=document.getElementById('uc-modal-overlay');
