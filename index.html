@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #274 - Validacao de telefone no Uso Continuo -->
+<!-- Deploy #275 - Marcacoes e freio diario na Agenda -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9531,14 +9531,41 @@ function renderAgenda(){
       '<button class="btn btn-green" onclick="document.getElementById(&#39;agenda-csv-input&#39;).click()" style="font-size:13px">&#128194; Importar CSV do Google</button></div>';
     return;
   }
-  var busca = (window._agendaBusca||'').toLowerCase();
   var contatos = dados.contatos;
-  var filtrados = contatos;
-  if(busca){
-    filtrados = contatos.filter(function(c){
-      return (c.nome||'').toLowerCase().indexOf(busca)>=0 || (c.telefone||'').indexOf(busca)>=0;
-    });
-  }
+  var marcacoes = {};
+  try { marcacoes = JSON.parse(localStorage.getItem('msfarma-agenda-marcacoes')||'{}'); } catch(e){}
+  var chaveDe = function(c){ return (c.nome||'') + '|' + (c.telefone||'').replace(/\D/g,''); };
+
+  // Contagens totais por marcacao
+  var contagens = {todos: contatos.length, sem: 0, ativo: 0, reconectar: 0, reconectado: 0, pessoal: 0};
+  contatos.forEach(function(c){
+    var m = marcacoes[chaveDe(c)];
+    if(!m) contagens.sem++;
+    else if(contagens[m.marcacao] !== undefined) contagens[m.marcacao]++;
+  });
+
+  // Freio diario
+  var hoje = new Date().toISOString().substring(0,10);
+  var freio = {};
+  try { freio = JSON.parse(localStorage.getItem('msfarma-agenda-freio')||'{}'); } catch(e){}
+  var freioHoje = (freio.data === hoje) ? (freio.contagem || 0) : 0;
+  var freioCor = freioHoje >= 10 ? 'var(--red)' : (freioHoje >= 8 ? '#f59e0b' : (freioHoje >= 5 ? '#facc15' : 'var(--green)'));
+
+  // Filtros
+  var busca = (window._agendaBusca||'').toLowerCase();
+  var filtroMarc = window._agendaFiltro || 'todos';
+  var filtrados = contatos.filter(function(c){
+    if(busca){
+      var okBusca = (c.nome||'').toLowerCase().indexOf(busca)>=0 || (c.telefone||'').indexOf(busca)>=0;
+      if(!okBusca) return false;
+    }
+    if(filtroMarc === 'todos') return true;
+    var m = marcacoes[chaveDe(c)];
+    if(filtroMarc === 'sem') return !m;
+    return m && m.marcacao === filtroMarc;
+  });
+
+  // Paginacao
   var pag = window._agendaPag || 1;
   var porPag = 50;
   var totalPag = Math.max(1, Math.ceil(filtrados.length/porPag));
@@ -9548,36 +9575,85 @@ function renderAgenda(){
   var inicio = (pag-1)*porPag;
   var fim = Math.min(inicio+porPag, filtrados.length);
   var pageItens = filtrados.slice(inicio, fim);
+  window._agendaPageItens = pageItens;
 
+  // Cabecalho
   var h = '<div class="chart-card">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">';
   h += '<div><div style="font-size:15px;font-weight:700">&#128241; Agenda de Contatos <span style="color:var(--text2);font-weight:400;font-size:13px">('+contatos.length.toLocaleString('pt-BR')+' salvos)</span></div>';
   h += '<div style="font-size:11px;color:var(--text2);margin-top:2px">&Uacute;ltima importa&ccedil;&atilde;o: '+(dados.importadoEm?new Date(dados.importadoEm).toLocaleDateString('pt-BR'):'--')+'</div></div>';
-  h += '<div style="display:flex;gap:.5rem"><button class="btn" onclick="document.getElementById(&#39;agenda-csv-input&#39;).click()" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)">&#128194; Reimportar</button></div>';
-  h += '</div>';
+  h += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">';
+  h += '<div style="font-size:11px;color:var(--text2)">Reconex&otilde;es hoje: <b style="color:'+freioCor+';font-size:13px">'+freioHoje+'/10</b></div>';
+  h += '<button class="btn" onclick="document.getElementById(&#39;agenda-csv-input&#39;).click()" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)">&#128194; Reimportar</button>';
+  h += '</div></div>';
 
-  h += '<div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">';
+  // Barra de busca
+  h += '<div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">';
   h += '<input type="text" placeholder="Buscar por nome ou telefone..." value="'+((window._agendaBusca||'').replace(/"/g,'&quot;'))+'" oninput="window._agendaBusca=this.value;window._agendaPag=1;renderAgenda()" style="flex:1;min-width:200px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px">';
   h += '</div>';
 
+  // Chips de filtro por marcacao
+  var chips = [
+    {id:'todos',       lb:'Todos',            cnt:contagens.todos,       cor:''},
+    {id:'sem',         lb:'Sem marca&ccedil;&atilde;o', cnt:contagens.sem, cor:''},
+    {id:'ativo',       lb:'&#128994; Ativo',           cnt:contagens.ativo,       cor:'#22c55e'},
+    {id:'reconectar',  lb:'&#128993; Reconectar',      cnt:contagens.reconectar,  cor:'#facc15'},
+    {id:'reconectado', lb:'&#9989; Reconectados',      cnt:contagens.reconectado, cor:'#3b82f6'},
+    {id:'pessoal',     lb:'&#9899; Pessoal',            cnt:contagens.pessoal,     cor:'#94a3b8'}
+  ];
+  h += '<div style="display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap">';
+  chips.forEach(function(ch){
+    var ativo = (filtroMarc === ch.id);
+    var bg = ativo ? (ch.cor || 'var(--green)') : 'var(--surface2)';
+    var fg = ativo ? '#000' : 'var(--text2)';
+    var fw = ativo ? '700' : '400';
+    h += '<button onclick="window._agendaFiltro=&#39;'+ch.id+'&#39;;window._agendaPag=1;renderAgenda()" class="btn" style="font-size:11px;padding:5px 11px;border-radius:20px;background:'+bg+';color:'+fg+';font-weight:'+fw+'">'+ch.lb+' <span style="opacity:.75">('+ch.cnt.toLocaleString('pt-BR')+')</span></button>';
+  });
+  h += '</div>';
+
   if(!filtrados.length){
-    h += '<div style="text-align:center;padding:2rem;color:var(--text2);font-size:13px">Nenhum contato encontrado.</div>';
+    h += '<div style="text-align:center;padding:2rem;color:var(--text2);font-size:13px">Nenhum contato encontrado com esse filtro.</div>';
   } else {
     h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-    h += '<thead><tr style="border-bottom:2px solid var(--border)"><th style="text-align:left;padding:6px 8px;color:var(--text2)">#</th>';
+    h += '<thead><tr style="border-bottom:2px solid var(--border)">';
+    h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">#</th>';
     h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Nome</th>';
     h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Telefone</th>';
-    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">WA</th></tr></thead><tbody>';
+    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">Status</th>';
+    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">WA</th>';
+    h += '</tr></thead><tbody>';
+
     pageItens.forEach(function(c, i){
       var tel = (c.telefone||'').replace(/\D/g,'');
       var telFmt = c.telefone || '--';
       var waNum = tel.length===11||tel.length===10 ? '55'+tel : tel;
       var waBtn = tel ? '<a href="https://wa.me/'+waNum+'" target="_blank" style="display:inline-block;background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;text-decoration:none">WA</a>' : '<span style="color:var(--text3);font-size:11px">--</span>';
       var nomeEsc = (c.nome||'(sem nome)').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      var mAtual = marcacoes[chaveDe(c)];
+      var mId = mAtual ? mAtual.marcacao : '';
+
+      // 4 botoes de status
+      var opts = [
+        {id:'ativo',       emoji:'&#128994;', cor:'#22c55e', title:'Ativo'},
+        {id:'reconectar',  emoji:'&#128993;', cor:'#facc15', title:'Reconectar'},
+        {id:'reconectado', emoji:'&#9989;',   cor:'#3b82f6', title:'Ja reconectei'},
+        {id:'pessoal',     emoji:'&#9899;',   cor:'#94a3b8', title:'Pessoal'}
+      ];
+      var statusHtml = '<div style="display:inline-flex;gap:3px">';
+      opts.forEach(function(op){
+        var isAtivo = (mId === op.id);
+        var bg = isAtivo ? op.cor : 'transparent';
+        var borda = isAtivo ? op.cor : 'var(--border)';
+        var op2 = isAtivo ? '1' : '0.35';
+        statusHtml += '<button title="'+op.title+'" onclick="marcarContato('+i+',&#39;'+op.id+'&#39;)" style="background:'+bg+';border:1px solid '+borda+';border-radius:50%;width:22px;height:22px;padding:0;cursor:pointer;font-size:12px;opacity:'+op2+';line-height:1;display:inline-flex;align-items:center;justify-content:center">'+op.emoji+'</button>';
+      });
+      statusHtml += '</div>';
+
       h += '<tr style="border-bottom:1px solid var(--border)">';
       h += '<td style="padding:5px 8px;color:var(--text2)">'+(inicio+i+1)+'</td>';
       h += '<td style="padding:5px 8px;font-weight:500">'+nomeEsc+'</td>';
       h += '<td style="padding:5px 8px;color:var(--text2)">'+telFmt+'</td>';
+      h += '<td style="padding:5px 8px;text-align:center">'+statusHtml+'</td>';
       h += '<td style="padding:5px 8px;text-align:center">'+waBtn+'</td>';
       h += '</tr>';
     });
@@ -9592,6 +9668,38 @@ function renderAgenda(){
   }
   h += '</div>';
   sec.innerHTML = h;
+}
+
+function marcarContato(idx, marcacao){
+  var c = (window._agendaPageItens||[])[idx];
+  if(!c) return;
+  var telNorm = (c.telefone||'').replace(/\D/g,'');
+  var chave = (c.nome||'') + '|' + telNorm;
+  var marcacoes = {};
+  try { marcacoes = JSON.parse(localStorage.getItem('msfarma-agenda-marcacoes')||'{}'); } catch(e){}
+  // Toggle
+  if(marcacoes[chave] && marcacoes[chave].marcacao === marcacao){
+    delete marcacoes[chave];
+    localStorage.setItem('msfarma-agenda-marcacoes', JSON.stringify(marcacoes));
+    renderAgenda();
+    return;
+  }
+  // Freio diario para "Ja reconectei"
+  if(marcacao === 'reconectado'){
+    var hoje = new Date().toISOString().substring(0,10);
+    var freio = {};
+    try { freio = JSON.parse(localStorage.getItem('msfarma-agenda-freio')||'{}'); } catch(e){}
+    if(freio.data !== hoje){ freio = {data: hoje, contagem: 0}; }
+    if((freio.contagem||0) >= 10){
+      showToast('Limite de 10 reconexoes por dia atingido. Volte amanha para proteger seu WhatsApp.','red');
+      return;
+    }
+    freio.contagem = (freio.contagem||0) + 1;
+    localStorage.setItem('msfarma-agenda-freio', JSON.stringify(freio));
+  }
+  marcacoes[chave] = {marcacao: marcacao, data: new Date().toISOString()};
+  localStorage.setItem('msfarma-agenda-marcacoes', JSON.stringify(marcacoes));
+  renderAgenda();
 }
 
 function parseAgendaCsvLine(linha){
@@ -11275,7 +11383,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     'msfarma-abc-dados','msfarma-abc-hist','msfarma-resumo-hist',
     'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup','msfarma-fatur-dia',
     'ms-farma-clean-v5','farmacia-folha-v1','farmacia-caixa-v1',
-    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-contatos-google'
+    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-contatos-google','msfarma-agenda-marcacoes'
   ];
 
   function setStatus(estado) {
