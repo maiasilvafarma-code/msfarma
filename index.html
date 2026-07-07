@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #271 - Capital em Estoque (Inventario x Entrada de Produtos) -->
+<!-- Deploy #272 - Agenda de Contatos Google (backup base clientes) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -2577,6 +2577,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <button id="cli-tab-vendedores" onclick="window._cliTab='vendedores';renderVendedores()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128104;&#8205;&#128188; Vendedores</button>
       <button id="cli-tab-continuo" onclick="abrirUsoContinuo()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128138; Uso Cont&#237;nuo</button>
       <button id="cli-tab-bairros" onclick="renderBairros()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128506; Bairros</button>
+      <button id="cli-tab-agenda" onclick="abrirAgenda()" class="btn" style="font-size:12px;padding:5px 14px;border-radius:6px;background:var(--surface2);color:var(--text2)">&#128241; Agenda</button>
     </div>
     <input type="file" id="bairros-xls-input" accept=".xls,.xlsx" style="display:none" onchange="importarBairrosXls(this.files[0])">
     <div id="cli-kpis" class="metrics" style="grid-template-columns:repeat(5,1fr)"></div>
@@ -2598,6 +2599,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div id="cli-cesta" class="chart-card" style="margin-top:1.25rem;display:none"></div>
     <div id="cli-historico" class="chart-card" style="margin-top:1.25rem;display:none"></div>
   <div id="sec-uso-continuo" style="display:none;margin-top:1rem"></div>
+  <div id="sec-agenda" style="display:none;margin-top:1rem"></div>
+  <input type="file" id="agenda-csv-input" accept=".csv" style="display:none" onchange="importarAgendaCsv(this.files[0])">
   </div>
     <div id="cli-vendedores" style="display:none"></div>
   <!-- MODAL META MENSAL -->
@@ -9493,6 +9496,172 @@ function salvarUsoContinuo(){
   localStorage.setItem('msfarma-uso-continuo', JSON.stringify(window._ucDados||[]));
 }
 
+
+// ============ AGENDA DE CONTATOS GOOGLE (Deploy #272) ============
+function abrirAgenda(){
+  ['cli-tab-ranking','cli-tab-vendedores','cli-tab-continuo','cli-tab-bairros','cli-tab-agenda'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el){el.style.background='var(--surface2)';el.style.color='var(--text2)';el.style.fontWeight='';}
+  });
+  var bt=document.getElementById('cli-tab-agenda');
+  if(bt){bt.style.background='var(--green)';bt.style.color='#000';bt.style.fontWeight='700';}
+  var e;
+  e=document.getElementById('cli-kpis');if(e)e.style.display='none';
+  e=document.getElementById('cli-alertas');if(e)e.style.display='none';
+  e=document.getElementById('cli-inativos-vip');if(e)e.style.display='none';
+  e=document.getElementById('cli-ranking');if(e)e.style.display='none';
+  e=document.getElementById('cli-historico');if(e)e.style.display='none';
+  e=document.getElementById('sec-uso-continuo');if(e)e.style.display='none';
+  e=document.getElementById('cli-bairros');if(e)e.style.display='none';
+  e=document.getElementById('cli-vendedores');if(e)e.style.display='none';
+  document.getElementById('sec-agenda').style.display='';
+  renderAgenda();
+}
+
+function renderAgenda(){
+  var dados = null;
+  try { dados = JSON.parse(localStorage.getItem('msfarma-contatos-google')||'null'); } catch(e){}
+  var sec = document.getElementById('sec-agenda');
+  if(!sec) return;
+  if(!dados || !dados.contatos || !dados.contatos.length){
+    sec.innerHTML = '<div class="chart-card" style="text-align:center;padding:2rem">'+
+      '<div style="font-size:48px;margin-bottom:1rem">&#128241;</div>'+
+      '<div style="font-size:15px;font-weight:700;margin-bottom:.5rem">Agenda de Contatos vazia</div>'+
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:1.5rem;max-width:500px;margin-left:auto;margin-right:auto">Este &eacute; o backup da sua base de clientes, salva no sistema.<br>Importe o CSV exportado do <b>contacts.google.com</b> (formato Google CSV).</div>'+
+      '<button class="btn btn-green" onclick="document.getElementById(&#39;agenda-csv-input&#39;).click()" style="font-size:13px">&#128194; Importar CSV do Google</button></div>';
+    return;
+  }
+  var busca = (window._agendaBusca||'').toLowerCase();
+  var contatos = dados.contatos;
+  var filtrados = contatos;
+  if(busca){
+    filtrados = contatos.filter(function(c){
+      return (c.nome||'').toLowerCase().indexOf(busca)>=0 || (c.telefone||'').indexOf(busca)>=0;
+    });
+  }
+  var pag = window._agendaPag || 1;
+  var porPag = 50;
+  var totalPag = Math.max(1, Math.ceil(filtrados.length/porPag));
+  if(pag > totalPag) pag = totalPag;
+  if(pag < 1) pag = 1;
+  window._agendaPag = pag;
+  var inicio = (pag-1)*porPag;
+  var fim = Math.min(inicio+porPag, filtrados.length);
+  var pageItens = filtrados.slice(inicio, fim);
+
+  var h = '<div class="chart-card">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">';
+  h += '<div><div style="font-size:15px;font-weight:700">&#128241; Agenda de Contatos <span style="color:var(--text2);font-weight:400;font-size:13px">('+contatos.length.toLocaleString('pt-BR')+' salvos)</span></div>';
+  h += '<div style="font-size:11px;color:var(--text2);margin-top:2px">&Uacute;ltima importa&ccedil;&atilde;o: '+(dados.importadoEm?new Date(dados.importadoEm).toLocaleDateString('pt-BR'):'--')+'</div></div>';
+  h += '<div style="display:flex;gap:.5rem"><button class="btn" onclick="document.getElementById(&#39;agenda-csv-input&#39;).click()" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)">&#128194; Reimportar</button></div>';
+  h += '</div>';
+
+  h += '<div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">';
+  h += '<input type="text" placeholder="Buscar por nome ou telefone..." value="'+((window._agendaBusca||'').replace(/"/g,'&quot;'))+'" oninput="window._agendaBusca=this.value;window._agendaPag=1;renderAgenda()" style="flex:1;min-width:200px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px">';
+  h += '</div>';
+
+  if(!filtrados.length){
+    h += '<div style="text-align:center;padding:2rem;color:var(--text2);font-size:13px">Nenhum contato encontrado.</div>';
+  } else {
+    h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    h += '<thead><tr style="border-bottom:2px solid var(--border)"><th style="text-align:left;padding:6px 8px;color:var(--text2)">#</th>';
+    h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Nome</th>';
+    h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Telefone</th>';
+    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">WA</th></tr></thead><tbody>';
+    pageItens.forEach(function(c, i){
+      var tel = (c.telefone||'').replace(/\D/g,'');
+      var telFmt = c.telefone || '--';
+      var waNum = tel.length===11||tel.length===10 ? '55'+tel : tel;
+      var waBtn = tel ? '<a href="https://wa.me/'+waNum+'" target="_blank" style="display:inline-block;background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;text-decoration:none">WA</a>' : '<span style="color:var(--text3);font-size:11px">--</span>';
+      var nomeEsc = (c.nome||'(sem nome)').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      h += '<tr style="border-bottom:1px solid var(--border)">';
+      h += '<td style="padding:5px 8px;color:var(--text2)">'+(inicio+i+1)+'</td>';
+      h += '<td style="padding:5px 8px;font-weight:500">'+nomeEsc+'</td>';
+      h += '<td style="padding:5px 8px;color:var(--text2)">'+telFmt+'</td>';
+      h += '<td style="padding:5px 8px;text-align:center">'+waBtn+'</td>';
+      h += '</tr>';
+    });
+    h += '</tbody></table></div>';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border);font-size:12px;color:var(--text2)">';
+    h += '<div>Mostrando '+(inicio+1)+' a '+fim+' de '+filtrados.length.toLocaleString('pt-BR')+'</div>';
+    h += '<div style="display:flex;gap:.5rem;align-items:center">';
+    h += '<button class="btn" onclick="window._agendaPag=Math.max(1,(window._agendaPag||1)-1);renderAgenda()" style="font-size:11px;padding:4px 10px;background:var(--surface2);color:var(--text)">&larr;</button>';
+    h += '<div style="padding:4px 8px">P&aacute;gina '+pag+' de '+totalPag+'</div>';
+    h += '<button class="btn" onclick="window._agendaPag=Math.min('+totalPag+',(window._agendaPag||1)+1);renderAgenda()" style="font-size:11px;padding:4px 10px;background:var(--surface2);color:var(--text)">&rarr;</button>';
+    h += '</div></div>';
+  }
+  h += '</div>';
+  sec.innerHTML = h;
+}
+
+function parseAgendaCsvLine(linha){
+  var res=[]; var atual=''; var dentroAspas=false;
+  for(var i=0;i<linha.length;i++){
+    var c=linha[i];
+    if(c==='"'){
+      if(dentroAspas && linha[i+1]==='"'){atual+='"';i++;}
+      else{dentroAspas=!dentroAspas;}
+    } else if(c===',' && !dentroAspas){res.push(atual);atual='';}
+    else{atual+=c;}
+  }
+  res.push(atual);
+  return res;
+}
+
+function importarAgendaCsv(file){
+  if(!file){return;}
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var texto = e.target.result;
+      var linhas = texto.split(/\r?\n/);
+      if(!linhas.length){showToast('Arquivo vazio','red');return;}
+      var cabecalho = parseAgendaCsvLine(linhas[0]);
+      var idxFirst = cabecalho.indexOf('First Name');
+      var idxMiddle = cabecalho.indexOf('Middle Name');
+      var idxLast = cabecalho.indexOf('Last Name');
+      var idxPhone1 = cabecalho.indexOf('Phone 1 - Value');
+      var idxLabels = cabecalho.indexOf('Labels');
+      if(idxFirst<0 || idxPhone1<0){
+        showToast('CSV n\u00e3o parece ser do Google Contacts. Exporte pelo contacts.google.com no formato Google CSV.','red');
+        return;
+      }
+      var contatos = [];
+      for(var i=1;i<linhas.length;i++){
+        if(!linhas[i].trim())continue;
+        var campos = parseAgendaCsvLine(linhas[i]);
+        var partesNome = [];
+        if(idxFirst>=0 && campos[idxFirst]) partesNome.push(campos[idxFirst].trim());
+        if(idxMiddle>=0 && campos[idxMiddle]) partesNome.push(campos[idxMiddle].trim());
+        if(idxLast>=0 && campos[idxLast]) partesNome.push(campos[idxLast].trim());
+        var nome = partesNome.filter(function(s){return s;}).join(' ').trim();
+        var tel = (idxPhone1>=0 && campos[idxPhone1] ? campos[idxPhone1].trim() : '');
+        var label = (idxLabels>=0 && campos[idxLabels] ? campos[idxLabels].trim() : '');
+        if(!nome && !tel)continue;
+        contatos.push({nome:nome, telefone:tel, label:label});
+      }
+      if(!contatos.length){
+        showToast('Nenhum contato encontrado no CSV','red');
+        return;
+      }
+      var dados = {
+        importadoEm: new Date().toISOString(),
+        totalContatos: contatos.length,
+        contatos: contatos
+      };
+      localStorage.setItem('msfarma-contatos-google', JSON.stringify(dados));
+      showToast('\u2713 '+contatos.length.toLocaleString('pt-BR')+' contatos importados!','green');
+      window._agendaPag = 1;
+      window._agendaBusca = '';
+      renderAgenda();
+    } catch(ex){
+      showToast('Erro ao importar: '+ex.message,'red');
+      console.error('importarAgendaCsv erro:',ex);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
 function abrirUsoContinuo(){
   ['cli-tab-ranking','cli-tab-vendedores','cli-tab-continuo'].forEach(function(id){
     var el=document.getElementById(id);
@@ -11104,7 +11273,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     'msfarma-abc-dados','msfarma-abc-hist','msfarma-resumo-hist',
     'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup','msfarma-fatur-dia',
     'ms-farma-clean-v5','farmacia-folha-v1','farmacia-caixa-v1',
-    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria'
+    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-contatos-google'
   ];
 
   function setStatus(estado) {
