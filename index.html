@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #278 - Painel de Importacoes no Inicio -->
+<!-- Deploy #279 - Botoes proprios na aba Entradas -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -916,6 +916,13 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
 
   <!-- ENTRADAS -->
   <div class="section" id="sec-entradas">
+    <div style="margin-bottom:1rem;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="document.getElementById('inp-relacao-vendas-html').click()" style="font-size:13px">&#128229; Importar Relação de Vendas</button>
+      <span style="font-size:11px;color:var(--text3)">Vendas do Infarma (TXT) • 2x por semana</span>
+      <span style="color:var(--border);margin:0 4px">│</span>
+      <button class="btn" onclick="document.getElementById('infarma-input').click()" style="font-size:13px;background:var(--surface2);color:var(--text)">&#128229; Importar Faturamento Infarma</button>
+      <span style="font-size:11px;color:var(--text3)">Faturamento consolidado (XLS/CSV)</span>
+    </div>
     <div class="form-card">
       <div class="form-title">+ Nova entrada</div>
       <div class="fg fg-5">
