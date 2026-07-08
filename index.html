@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #276 - Ordenacao inteligente na Agenda -->
+<!-- Deploy #277 - Lixeira na Agenda (apagar contatos) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9531,10 +9531,13 @@ function renderAgenda(){
       '<button class="btn btn-green" onclick="document.getElementById(&#39;agenda-csv-input&#39;).click()" style="font-size:13px">&#128194; Importar CSV do Google</button></div>';
     return;
   }
-  var contatos = dados.contatos;
+  var contatosBrutos = dados.contatos;
+  var apagados = {};
+  try { apagados = JSON.parse(localStorage.getItem('msfarma-agenda-apagados')||'{}'); } catch(e){}
+  var chaveDe = function(c){ return (c.nome||'') + '|' + (c.telefone||'').replace(/\D/g,''); };
+  var contatos = contatosBrutos.filter(function(c){ return !apagados[chaveDe(c)]; });
   var marcacoes = {};
   try { marcacoes = JSON.parse(localStorage.getItem('msfarma-agenda-marcacoes')||'{}'); } catch(e){}
-  var chaveDe = function(c){ return (c.nome||'') + '|' + (c.telefone||'').replace(/\D/g,''); };
 
   // Contagens totais por marcacao
   var contagens = {todos: contatos.length, sem: 0, ativo: 0, reconectar: 0, reconectado: 0, pessoal: 0};
@@ -9605,7 +9608,9 @@ function renderAgenda(){
   // Cabecalho
   var h = '<div class="chart-card">';
   h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">';
-  h += '<div><div style="font-size:15px;font-weight:700">&#128241; Agenda de Contatos <span style="color:var(--text2);font-weight:400;font-size:13px">('+contatos.length.toLocaleString('pt-BR')+' salvos)</span></div>';
+  var qtdApagados = Object.keys(apagados).length;
+  var sufixoApagados = qtdApagados ? ' <span style="color:var(--text3);font-size:11px">('+qtdApagados.toLocaleString('pt-BR')+' apagados)</span>' : '';
+  h += '<div><div style="font-size:15px;font-weight:700">&#128241; Agenda de Contatos <span style="color:var(--text2);font-weight:400;font-size:13px">('+contatos.length.toLocaleString('pt-BR')+' ativos)</span>'+sufixoApagados+'</div>';
   h += '<div style="font-size:11px;color:var(--text2);margin-top:2px">&Uacute;ltima importa&ccedil;&atilde;o: '+(dados.importadoEm?new Date(dados.importadoEm).toLocaleDateString('pt-BR'):'--')+'</div></div>';
   h += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">';
   h += '<div style="font-size:11px;color:var(--text2)">Reconex&otilde;es hoje: <b style="color:'+freioCor+';font-size:13px">'+freioHoje+'/10</b></div>';
@@ -9648,6 +9653,7 @@ function renderAgenda(){
     h += '<th style="text-align:left;padding:6px 8px;color:var(--text2)">Telefone</th>';
     h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">Status</th>';
     h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)">WA</th>';
+    h += '<th style="text-align:center;padding:6px 8px;color:var(--text2)"></th>';
     h += '</tr></thead><tbody>';
 
     pageItens.forEach(function(c, i){
@@ -9682,6 +9688,7 @@ function renderAgenda(){
       h += '<td style="padding:5px 8px;color:var(--text2)">'+telFmt+'</td>';
       h += '<td style="padding:5px 8px;text-align:center">'+statusHtml+'</td>';
       h += '<td style="padding:5px 8px;text-align:center">'+waBtn+'</td>';
+      h += '<td style="padding:5px 8px;text-align:center"><button title="Apagar contato" onclick="apagarContato('+i+')" style="background:transparent;border:1px solid var(--border);border-radius:50%;width:22px;height:22px;padding:0;cursor:pointer;font-size:11px;line-height:1;color:var(--text3);opacity:.6" onmouseover="this.style.opacity=&#39;1&#39;;this.style.color=&#39;#ef4444&#39;;this.style.borderColor=&#39;#ef4444&#39;" onmouseout="this.style.opacity=&#39;.6&#39;;this.style.color=&#39;var(--text3)&#39;;this.style.borderColor=&#39;var(--border)&#39;">&#128465;</button></td>';
       h += '</tr>';
     });
     h += '</tbody></table></div>';
@@ -9695,6 +9702,25 @@ function renderAgenda(){
   }
   h += '</div>';
   sec.innerHTML = h;
+}
+
+function apagarContato(idx){
+  var c = (window._agendaPageItens||[])[idx];
+  if(!c) return;
+  var nome = c.nome || '(sem nome)';
+  var tel = c.telefone || '';
+  var msg = 'Apagar "' + nome + '"' + (tel?' ('+tel+')':'') + ' da Agenda?\n\nEssa acao e definitiva. O contato nao voltara mesmo se voce reimportar o CSV do Google.';
+  if(!confirm(msg)) return;
+  var chave = (c.nome||'') + '|' + (c.telefone||'').replace(/\D/g,'');
+  var apagados = {};
+  try { apagados = JSON.parse(localStorage.getItem('msfarma-agenda-apagados')||'{}'); } catch(e){}
+  apagados[chave] = { data: new Date().toISOString(), nome: nome };
+  localStorage.setItem('msfarma-agenda-apagados', JSON.stringify(apagados));
+  var marcacoes = {};
+  try { marcacoes = JSON.parse(localStorage.getItem('msfarma-agenda-marcacoes')||'{}'); } catch(e){}
+  if(marcacoes[chave]){ delete marcacoes[chave]; localStorage.setItem('msfarma-agenda-marcacoes', JSON.stringify(marcacoes)); }
+  showToast('Contato apagado.','green');
+  renderAgenda();
 }
 
 function marcarContato(idx, marcacao){
@@ -11410,7 +11436,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     'msfarma-abc-dados','msfarma-abc-hist','msfarma-resumo-hist',
     'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup','msfarma-fatur-dia',
     'ms-farma-clean-v5','farmacia-folha-v1','farmacia-caixa-v1',
-    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-contatos-google','msfarma-agenda-marcacoes'
+    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-contatos-google','msfarma-agenda-marcacoes','msfarma-agenda-apagados'
   ];
 
   function setStatus(estado) {
