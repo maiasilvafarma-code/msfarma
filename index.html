@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #285 - Destaque verde na sub-aba Bairros e outras -->
+<!-- Deploy #286 - Corrigir leitura Caixa Diario no Painel -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9202,8 +9202,9 @@ function renderPainelImport(){
       var raw = localStorage.getItem('farmacia-caixa-v1');
       if(!raw) return 0;
       var obj = JSON.parse(raw);
-      if(!obj || !obj.dias || !obj.dias.length) return 0;
-      var ultimo = obj.dias[obj.dias.length-1];
+      var arr = Array.isArray(obj) ? obj : (obj && obj.dias ? obj.dias : null);
+      if(!arr || !arr.length) return 0;
+      var ultimo = arr[arr.length-1];
       if(ultimo && ultimo.data) return new Date(ultimo.data+'T12:00:00').getTime();
       return 0;
     } catch(e){ return 0; }
