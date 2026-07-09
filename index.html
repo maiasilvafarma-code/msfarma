@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #281 - Limpar menu Acoes (so Backup e Sistema) -->
+<!-- Deploy #282 - Descricoes claras nos botoes de importacao -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9211,13 +9211,13 @@ function renderPainelImport(){
 
   var itens = [
     {nome:'Caixa Di\u00e1rio', desc:'Fechamento do dia (Adriana)', freq:'Todo dia', ts:getCaixaTs(), acao:"goTab(&#39;caixa&#39;)"},
-    {nome:'Rela\u00e7\u00e3o de Vendas', desc:'Vendas do Infarma (TXT)', freq:'2x por semana', ts:getTs('msfarma-ultima-import-vendas','_raw'), acao:"document.getElementById(&#39;inp-relacao-vendas-html&#39;).click()"},
+    {nome:'Rela\u00e7\u00e3o de Vendas', desc:'Infarma: Rela\u00e7\u00e3o de Vendas, salvar como TXT', freq:'2x por semana', ts:getTs('msfarma-ultima-import-vendas','_raw'), acao:"document.getElementById(&#39;inp-relacao-vendas-html&#39;).click()"},
     {nome:'OFX Santander', desc:'Extrato banc\u00e1rio para concilia\u00e7\u00e3o', freq:'Semanal (segunda)', ts:getTs('farmacia-conciliacao-bancaria','importadoEm'), acao:"goTab(&#39;estrategia&#39;);setTimeout(function(){setEstTab(&#39;conciliacao&#39;)},200)"},
-    {nome:'Curva ABC', desc:'Ranking de produtos mais vendidos (XLS)', freq:'Mensal', ts:getTs('msfarma-ultima-import-abc','_raw'), acao:"document.getElementById(&#39;curva-abc-xls-input&#39;).click()"},
-    {nome:'Rentabilidade', desc:'Alerta de margem baixa (XLS)', freq:'Peri\u00f3dico', ts:getTs('farmacia-margem-produtos','importadoEm'), acao:"document.getElementById(&#39;rentabilidade-xls-input&#39;).click()"},
-    {nome:'Vendas por Bairro', desc:'Faturamento por bairro (XLS)', freq:'Mensal', ts:getTs('farmacia-faturamento-bairro','importadoEm'), acao:"document.getElementById(&#39;bairros-xls-input&#39;).click()"},
-    {nome:'Invent\u00e1rio F\u00edsico', desc:'Capital parado em estoque (XLS)', freq:'Peri\u00f3dico', ts:getTs('farmacia-inventario-fisico','importadoEm'), acao:"document.getElementById(&#39;inventario-xls-input&#39;).click()"},
-    {nome:'Entrada de Produtos', desc:'Cruza com invent\u00e1rio (TXT)', freq:'Peri\u00f3dico', ts:getTs('farmacia-entrada-produtos','importadoEm'), acao:"document.getElementById(&#39;entrada-produtos-txt-input&#39;).click()"}
+    {nome:'Curva ABC', desc:'Infarma: ABC - Classe Valor (XLS)', freq:'Mensal', ts:getTs('msfarma-ultima-import-abc','_raw'), acao:"document.getElementById(&#39;curva-abc-xls-input&#39;).click()"},
+    {nome:'Rentabilidade', desc:'Infarma: Rentabilidade por Produto, marcar % por Venda + Prc.Custo (XLS)', freq:'Peri\u00f3dico', ts:getTs('farmacia-margem-produtos','importadoEm'), acao:"document.getElementById(&#39;rentabilidade-xls-input&#39;).click()"},
+    {nome:'Vendas por Bairro', desc:'Infarma: Vendas por Itens com coluna Bairro (XLS)', freq:'Mensal', ts:getTs('farmacia-faturamento-bairro','importadoEm'), acao:"document.getElementById(&#39;bairros-xls-input&#39;).click()"},
+    {nome:'Invent\u00e1rio F\u00edsico', desc:'Infarma: Estoque > Invent\u00e1rio F\u00edsico Anal\u00edtico, marcar Prc.Custo (XLS)', freq:'Peri\u00f3dico', ts:getTs('farmacia-inventario-fisico','importadoEm'), acao:"document.getElementById(&#39;inventario-xls-input&#39;).click()"},
+    {nome:'Entrada de Produtos', desc:'Infarma: Estoque > Entradas de Produtos, salvar como TXT', freq:'Peri\u00f3dico', ts:getTs('farmacia-entrada-produtos','importadoEm'), acao:"document.getElementById(&#39;entrada-produtos-txt-input&#39;).click()"}
   ];
 
   var atrasados = 0;
@@ -10308,7 +10308,7 @@ function renderBairros(mesEscolhido){
     return;
   }
   const pctIdentificado=dados.totalGeral>0?((dados.totalIdentificado/dados.totalGeral)*100).toFixed(1):0;
-  let html='<div class="chart-card" style="margin-bottom:1.25rem"><div class="chart-title" style="justify-content:space-between"><span><i class="ti ti-map-pin" style="font-size:13px;color:var(--blue)"></i> Faturamento por Bairro'+(dados.mes?' — '+dados.mes:'')+'</span><span>'+seletorMeses+'<button class="btn" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)" onclick="document.getElementById(&#39;bairros-xls-input&#39;).click()">📥 Importar mes</button></span></div>';
+  let html='<div class="chart-card" style="margin-bottom:1.25rem"><div class="chart-title" style="justify-content:space-between"><span><i class="ti ti-map-pin" style="font-size:13px;color:var(--blue)"></i> Faturamento por Bairro'+(dados.mes?' — '+dados.mes:'')+'</span><span>'+seletorMeses+'<button class="btn" style="font-size:12px;padding:5px 12px;background:var(--surface2);color:var(--text)" onclick="document.getElementById(&#39;bairros-xls-input&#39;).click()">📥 Importar mes</button></span></div><div style=\"font-size:10px;color:var(--text3);padding:2px 0 0 4px\">Infarma: Vendas por Itens com colunas Bairro + Valor Item (XLS, m\u00eas a m\u00eas)</div>';
   html+='<div style="font-size:12px;color:var(--text2);margin-bottom:12px">'+dados.totalLinhas+' vendas analisadas | '+pctIdentificado+'% com bairro identificado (R$ '+dados.totalIdentificado.toLocaleString('pt-BR',{minimumFractionDigits:2})+' de R$ '+dados.totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})+')</div>';
   const temProdutos=dados.bairros.some(function(b){return b.topProdutos&&b.topProdutos.length;});
   html+='<div style="overflow-x:auto"><table class="data-table" style="margin:-1px"><thead><tr><th>#</th><th>Bairro</th><th style="text-align:right">Faturamento</th><th style="text-align:right">%</th><th style="text-align:center">Vendas</th><th style="text-align:right">Ticket médio</th></tr></thead><tbody>';
