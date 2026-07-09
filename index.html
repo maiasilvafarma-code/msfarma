@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #286 - Corrigir leitura Caixa Diario no Painel -->
+<!-- Deploy #287 - Ticket Medio: contar vendas por dia -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9129,14 +9129,16 @@ function importarRelacaoVendasHtml(input){
         if(isNaN(val)||val<=0||val>9999)continue;
         const parts=m[1].split('/');
         const iso=parts[2]+'-'+parts[1]+'-'+parts[0];
-        byDay[iso]=(byDay[iso]||0)+val;
+        if(!byDay[iso])byDay[iso]={total:0,qtd:0};
+        byDay[iso].total+=val;
+        byDay[iso].qtd++;
       }
       const dias=Object.keys(byDay).sort();
       if(dias.length===0){alert('Nenhum dado encontrado.');input.value='';return;}
       let antigosOriginais={};try{const ex=JSON.parse(localStorage.getItem('msfarma-fatur-dia'));if(ex&&ex.dias)ex.dias.forEach(function(x){antigosOriginais[x.data]=x.total});}catch(e){}
       const diasNovos=dias.filter(function(d){return !(d in antigosOriginais);});
-      const diasAtualizados=dias.filter(function(d){return (d in antigosOriginais)&&Math.abs((antigosOriginais[d]||0)-byDay[d])>0.01;});
-      const totalArquivo=dias.reduce(function(s,d){return s+(byDay[d]||0);},0);
+      const diasAtualizados=dias.filter(function(d){return (d in antigosOriginais)&&Math.abs((antigosOriginais[d]||0)-byDay[d].total)>0.01;});
+      const totalArquivo=dias.reduce(function(s,d){return s+(byDay[d].total||0);},0);
       const mesesSet={};dias.forEach(function(d){mesesSet[d.substring(0,7)]=1;});
       const mesesTxt=Object.keys(mesesSet).sort().join(', ');
       const resumoPreview='PREVIA DA IMPORTACAO\n\n'+
@@ -9148,14 +9150,14 @@ function importarRelacaoVendasHtml(input){
         'Nenhum outro dia existente sera apagado.\n\nConfirma a importacao?';
       if(!confirm(resumoPreview)){input.value='';return;}
       let antigos={};Object.keys(antigosOriginais).forEach(function(d){antigos[d]=antigosOriginais[d];});
-      dias.forEach(function(d){antigos[d]=Math.round(byDay[d]*100)/100});
+      dias.forEach(function(d){antigos[d]={total:Math.round(byDay[d].total*100)/100,qtd:byDay[d].qtd}});
       const todosDias=Object.keys(antigos).sort();
-      const dados={periodo:periodoObj,dias:todosDias.map(d=>({data:d,total:antigos[d]})),importado:new Date().toISOString()};
+      const dados={periodo:periodoObj,dias:todosDias.map(function(d){var v=antigos[d];return typeof v==='object'?{data:d,total:v.total,qtd:v.qtd}:{data:d,total:v,qtd:0};}),importado:new Date().toISOString()};
       localStorage.setItem('msfarma-fatur-dia',JSON.stringify(dados));
       localStorage.setItem('msfarma-ultima-import-vendas', Date.now().toString());
       input.value='';
       renderDashboard();
-      const totalGeral=dias.reduce((s,d)=>s+(byDay[d]||0),0);
+      const totalGeral=dias.reduce((s,d)=>s+(byDay[d].total||0),0);
       alert('Importado! '+dias.length+' dias ('+periodoObj.de+' a '+periodoObj.ate+') | Total: R$ '+totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2}));
     }catch(ex){alert('Erro: '+ex.message);input.value='';}
   };
