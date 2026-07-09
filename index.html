@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #284 - Frequencias Mensal em todos os lugares -->
+<!-- Deploy #285 - Destaque verde na sub-aba Bairros e outras -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -10293,6 +10293,18 @@ function importarBairrosXls(file){
   reader.readAsArrayBuffer(file);
 }
 function renderBairros(mesEscolhido){
+  ['cli-tab-ranking','cli-tab-vendedores','cli-tab-continuo','cli-tab-bairros','cli-tab-agenda'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el){el.style.background='var(--surface2)';el.style.color='var(--text2)';el.style.fontWeight='';}
+  });
+  var btB=document.getElementById('cli-tab-bairros');
+  if(btB){btB.style.background='var(--green)';btB.style.color='#000';btB.style.fontWeight='700';}
+  var uc=document.getElementById('sec-uso-continuo');if(uc)uc.style.display='none';
+  var ag=document.getElementById('sec-agenda');if(ag)ag.style.display='none';
+  var ka=document.getElementById('cli-kpis');if(ka)ka.style.display='none';
+  var al=document.getElementById('cli-alertas');if(al)al.style.display='none';
+  var iv=document.getElementById('cli-inativos-vip');if(iv)iv.style.display='none';
+  var hi=document.getElementById('cli-historico');if(hi)hi.style.display='none';
   const rk=document.getElementById('cli-ranking');if(rk)rk.style.display='none';
   const vd=document.getElementById('cli-vendedores');if(vd)vd.style.display='none';
   const bDiv=document.getElementById('cli-bairros');if(!bDiv)return;
