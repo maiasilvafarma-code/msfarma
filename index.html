@@ -2613,6 +2613,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <div id="cli-historico" class="chart-card" style="margin-top:1.25rem;display:none"></div>
   <div id="sec-uso-continuo" style="display:none;margin-top:1rem"></div>
   <div id="sec-agenda" style="display:none;margin-top:1rem"></div>
+  <input type="file" id="inp-relacao-vendas-html" accept=".html,.htm,.txt,.TXT" style="display:none" onchange="importarRelacaoVendasHtml(this)">
   <input type="file" id="agenda-csv-input" accept=".csv" style="display:none" onchange="importarAgendaCsv(this.files[0])">
   </div>
     <div id="cli-vendedores" style="display:none"></div>
