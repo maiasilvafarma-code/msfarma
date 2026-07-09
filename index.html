@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #287 - Ticket Medio: contar vendas por dia -->
+<!-- Deploy #288 - Ticket Medio corrigido (so dias com qtd) -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9294,7 +9294,7 @@ function renderDashboard(){
 
   // Ticket médio e ranking
   const fatDados=(()=>{try{var r=localStorage.getItem('msfarma-fatur-dia');return r?JSON.parse(r):null;}catch(e){return null;}})();
-  const ticketMedio=(()=>{if(!fatDados||!fatDados.dias||!fatDados.dias.length)return 0;var total=fatDados.dias.reduce(function(s,d){return s+d.total;},0);var qtd=fatDados.dias.reduce(function(s,d){return s+(d.qtd||0);},0);return qtd>0?total/qtd:0;})();
+  const ticketMedio=(()=>{if(!fatDados||!fatDados.dias||!fatDados.dias.length)return 0;var diasComQtd=fatDados.dias.filter(function(d){return d.qtd&&d.qtd>0;});if(!diasComQtd.length)return 0;var total=diasComQtd.reduce(function(s,d){return s+d.total;},0);var qtd=diasComQtd.reduce(function(s,d){return s+d.qtd;},0);return qtd>0?total/qtd:0;})();
   const rankingDias=(()=>{if(!fatDados||!fatDados.dias||!fatDados.dias.length)return [];var nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];var soma=[0,0,0,0,0,0,0];var cont=[0,0,0,0,0,0,0];fatDados.dias.forEach(function(d){var dt=new Date(d.data+'T12:00:00');var dw=dt.getDay();soma[dw]+=d.total;cont[dw]++;});return nomes.map(function(n,i){return{nome:n,media:cont[i]>0?soma[i]/cont[i]:0};}).sort(function(a,b){return b.media-a.media;});})();
 
   // Vence hoje e próximos 3 dias
