@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #282 - Descricoes claras nos botoes de importacao -->
+<!-- Deploy #283 - Frequencias claras no Painel de Importacoes -->
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -9214,10 +9214,10 @@ function renderPainelImport(){
     {nome:'Rela\u00e7\u00e3o de Vendas', desc:'Infarma: Rela\u00e7\u00e3o de Vendas, salvar como TXT', freq:'2x por semana', ts:getTs('msfarma-ultima-import-vendas','_raw'), acao:"document.getElementById(&#39;inp-relacao-vendas-html&#39;).click()"},
     {nome:'OFX Santander', desc:'Extrato banc\u00e1rio para concilia\u00e7\u00e3o', freq:'Semanal (segunda)', ts:getTs('farmacia-conciliacao-bancaria','importadoEm'), acao:"goTab(&#39;estrategia&#39;);setTimeout(function(){setEstTab(&#39;conciliacao&#39;)},200)"},
     {nome:'Curva ABC', desc:'Infarma: ABC - Classe Valor (XLS)', freq:'Mensal', ts:getTs('msfarma-ultima-import-abc','_raw'), acao:"document.getElementById(&#39;curva-abc-xls-input&#39;).click()"},
-    {nome:'Rentabilidade', desc:'Infarma: Rentabilidade por Produto, marcar % por Venda + Prc.Custo (XLS)', freq:'Peri\u00f3dico', ts:getTs('farmacia-margem-produtos','importadoEm'), acao:"document.getElementById(&#39;rentabilidade-xls-input&#39;).click()"},
+    {nome:'Rentabilidade', desc:'Infarma: Rentabilidade por Produto, marcar % por Venda + Prc.Custo (XLS)', freq:'Mensal', ts:getTs('farmacia-margem-produtos','importadoEm'), acao:"document.getElementById(&#39;rentabilidade-xls-input&#39;).click()"},
     {nome:'Vendas por Bairro', desc:'Infarma: Vendas por Itens com coluna Bairro (XLS)', freq:'Mensal', ts:getTs('farmacia-faturamento-bairro','importadoEm'), acao:"document.getElementById(&#39;bairros-xls-input&#39;).click()"},
-    {nome:'Invent\u00e1rio F\u00edsico', desc:'Infarma: Estoque > Invent\u00e1rio F\u00edsico Anal\u00edtico, marcar Prc.Custo (XLS)', freq:'Peri\u00f3dico', ts:getTs('farmacia-inventario-fisico','importadoEm'), acao:"document.getElementById(&#39;inventario-xls-input&#39;).click()"},
-    {nome:'Entrada de Produtos', desc:'Infarma: Estoque > Entradas de Produtos, salvar como TXT', freq:'Peri\u00f3dico', ts:getTs('farmacia-entrada-produtos','importadoEm'), acao:"document.getElementById(&#39;entrada-produtos-txt-input&#39;).click()"}
+    {nome:'Invent\u00e1rio F\u00edsico', desc:'Infarma: Estoque > Invent\u00e1rio F\u00edsico Anal\u00edtico, marcar Prc.Custo (XLS)', freq:'Mensal', ts:getTs('farmacia-inventario-fisico','importadoEm'), acao:"document.getElementById(&#39;inventario-xls-input&#39;).click()"},
+    {nome:'Entrada de Produtos', desc:'Infarma: Estoque > Entradas de Produtos, salvar como TXT', freq:'Mensal (junto com Invent\u00e1rio)', ts:getTs('farmacia-entrada-produtos','importadoEm'), acao:"document.getElementById(&#39;entrada-produtos-txt-input&#39;).click()"}
   ];
 
   var atrasados = 0;
