@@ -414,7 +414,7 @@ function renderHome(){
 function setStatus(id,ok){
   const el=document.getElementById(id);
   el.classList.toggle('ok',ok);
-  el.querySelector('span').textContent=ok?'feito ✓':'pendente';
+  el.querySelector('div span').textContent=ok?'feito ✓':'pendente';
 }
 function diasSemana(){
   const nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
