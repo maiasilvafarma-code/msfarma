@@ -26,13 +26,14 @@
   --radius:20px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{height:100%}
+html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   min-height:100%;
   background:var(--bg);color:var(--txt);
   font-family:'Sora',system-ui,sans-serif;font-size:16px;
   padding-bottom:calc(130px + env(safe-area-inset-bottom));
   overscroll-behavior-y:contain;
+  overflow-x:hidden;max-width:100vw;
 }
 button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit}
 input,select,textarea{font-family:inherit;font-size:17px;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;width:100%;outline:none}
@@ -50,8 +51,8 @@ header{padding:18px 0 6px}
 .hello{color:var(--muted);font-size:15px;margin-top:4px}
 
 /* ── WEEK STRIP ── */
-.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:16px 0 6px}
-.day{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 0 8px;text-align:center}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:16px 0 6px}
+.day{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 0 8px;text-align:center;min-width:0}
 .day .dn{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .day .dd{font-size:18px;font-weight:700;margin:2px 0}
 .day .ck{font-size:11px;height:14px;color:var(--green);font-weight:800}
