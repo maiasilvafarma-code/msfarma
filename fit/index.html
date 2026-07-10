@@ -214,8 +214,8 @@ nav button.on .em{filter:none;opacity:1}
     <div class="card">
       <h3>Hoje</h3>
       <div class="today-row">
-        <div class="status" id="stTreino"><span class="ic">🏋️</span><div><b>Treino</b><span>pendente</span></div></div>
-        <div class="status" id="stCardio"><span class="ic">🚶‍♀️</span><div><b>Cardio</b><span>pendente</span></div></div>
+        <div class="status" id="stTreino"><span class="ic">🏋️</span><div><b>Treino</b><span class="st-txt">pendente</span></div></div>
+        <div class="status" id="stCardio"><span class="ic">🚶‍♀️</span><div><b>Cardio</b><span class="st-txt">pendente</span></div></div>
       </div>
     </div>
 
@@ -413,7 +413,7 @@ function renderHome(){
 function setStatus(id,ok){
   const el=document.getElementById(id);
   el.classList.toggle('ok',ok);
-  el.querySelector('div span').textContent=ok?'feito ✓':'pendente';
+  el.querySelector('.st-txt').textContent=ok?'feito ✓':'pendente';
 }
 function diasSemana(){
   const nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
