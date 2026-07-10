@@ -29,12 +29,12 @@
 html,body{height:100%}
 body{
   background:var(--bg);color:var(--txt);
-  font-family:'Sora',system-ui,sans-serif;font-size:15px;
+  font-family:'Sora',system-ui,sans-serif;font-size:16px;
   padding-bottom:calc(84px + env(safe-area-inset-bottom));
   overscroll-behavior-y:contain;
 }
 button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit}
-input,select,textarea{font-family:inherit;font-size:15px;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;outline:none}
+input,select,textarea{font-family:inherit;font-size:17px;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;width:100%;outline:none}
 input:focus,select:focus{border-color:var(--green)}
 input[type=number]{-moz-appearance:textfield}
 .wrap{max-width:520px;margin:0 auto;padding:0 16px}
@@ -42,41 +42,41 @@ input[type=number]{-moz-appearance:textfield}
 /* ── HEADER ── */
 header{padding:18px 0 6px}
 .brand{display:flex;align-items:center;justify-content:space-between}
-.logo{font-weight:800;font-size:21px;letter-spacing:-.5px}
+.logo{font-weight:800;font-size:26px;letter-spacing:-.5px}
 .logo em{font-style:normal;color:var(--green)}
-.streak-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:8px 14px;font-weight:700;font-size:14px}
+.streak-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:10px 16px;font-weight:700;font-size:16px}
 .streak-chip .fire{font-size:15px}
-.hello{color:var(--muted);font-size:13px;margin-top:4px}
+.hello{color:var(--muted);font-size:15px;margin-top:4px}
 
 /* ── WEEK STRIP ── */
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:16px 0 6px}
 .day{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 0 8px;text-align:center}
-.day .dn{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.day .dd{font-size:16px;font-weight:700;margin:2px 0}
+.day .dn{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.day .dd{font-size:18px;font-weight:700;margin:2px 0}
 .day .ck{font-size:11px;height:14px;color:var(--green);font-weight:800}
 .day.today{border-color:var(--green);background:var(--green-soft)}
 .day.done{border-color:var(--green-dark)}
 
 /* ── CARDS ── */
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:12px 0}
-.card h3{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px}
+.card h3{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px}
 
 /* streak hero */
 .streak-hero{display:flex;align-items:center;gap:18px}
 .ring{position:relative;width:92px;height:92px;flex:none}
 .ring svg{transform:rotate(-90deg)}
 .ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ring .num b{font-size:28px;font-weight:800;line-height:1}
+.ring .num b{font-size:30px;font-weight:800;line-height:1}
 .ring .num span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.streak-info b{font-size:16px;display:block}
-.streak-info p{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.45}
+.streak-info b{font-size:18px;display:block}
+.streak-info p{color:var(--muted);font-size:14px;margin-top:4px;line-height:1.45}
 
 /* status hoje */
 .today-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .status{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px}
 .status .ic{font-size:18px}
-.status b{font-size:13px;display:block}
-.status span{font-size:11px;color:var(--muted)}
+.status b{font-size:15px;display:block}
+.status span{font-size:13px;color:var(--muted)}
 .status.ok{border-color:var(--green-dark)}
 .status.ok span{color:var(--green)}
 
@@ -84,17 +84,17 @@ header{padding:18px 0 6px}
 .hist-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
 .hist-item:last-child{border-bottom:none}
 .hist-ic{width:38px;height:38px;border-radius:12px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
-.hist-item b{font-size:14px;display:block}
-.hist-item span{font-size:12px;color:var(--muted)}
-.empty{color:var(--muted);font-size:13px;text-align:center;padding:16px 0;line-height:1.5}
+.hist-item b{font-size:16px;display:block}
+.hist-item span{font-size:13px;color:var(--muted)}
+.empty{color:var(--muted);font-size:15px;text-align:center;padding:16px 0;line-height:1.5}
 
 /* ── TREINO CARDS ── */
 .treino-card{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin:10px 0;width:100%;text-align:left}
 .treino-card:active{background:var(--card2)}
-.letra{width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,var(--green-dark),var(--green));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;flex:none}
+.letra{width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,var(--green-dark),var(--green));display:flex;align-items:center;justify-content:center;font-size:29px;font-weight:800;color:#fff;flex:none}
 .treino-card .tit{flex:1;min-width:0}
-.treino-card .tit b{font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.treino-card .tit span{font-size:12px;color:var(--muted)}
+.treino-card .tit b{font-size:17px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.treino-card .tit span{font-size:14px;color:var(--muted)}
 .treino-card .arr{color:var(--muted);font-size:18px}
 
 /* ── FICHA (overlay) ── */
@@ -103,8 +103,8 @@ header{padding:18px 0 6px}
 .sheet-head{position:sticky;top:0;background:rgba(10,15,11,.92);backdrop-filter:blur(10px);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);z-index:5}
 .back{font-size:22px;padding:4px 8px;color:var(--muted)}
 .sheet-head .st{flex:1;min-width:0}
-.sheet-head b{font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sheet-head span{font-size:12px;color:var(--muted)}
+.sheet-head b{font-size:18px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-head span{font-size:14px;color:var(--muted)}
 .icon-btn{font-size:17px;padding:6px 10px;color:var(--muted)}
 
 .ex-item{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
@@ -113,27 +113,27 @@ header{padding:18px 0 6px}
 .ex-item.done .ex-check{background:var(--green);border-color:var(--green)}
 .ex-item.done .ex-nome{color:var(--muted);text-decoration:line-through}
 .ex-info{flex:1;min-width:0}
-.ex-nome{font-size:15px;font-weight:600;line-height:1.35}
-.ex-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.ex-nome{font-size:17px;font-weight:600;line-height:1.35}
+.ex-meta{font-size:14px;color:var(--muted);margin-top:3px}
 .ex-carga{display:flex;align-items:center;gap:8px;margin-top:10px;margin-left:38px}
 .ex-carga label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;flex:none}
-.ex-carga input{padding:8px 12px;font-size:14px;width:110px;font-weight:700}
-.ex-edit{color:var(--muted);font-size:15px;padding:4px}
+.ex-carga input{padding:10px 14px;font-size:16px;width:120px;font-weight:700}
+.ex-edit{color:var(--muted);font-size:18px;padding:6px}
 
-.add-btn{width:100%;border:1px dashed var(--line);border-radius:16px;padding:14px;color:var(--green);font-weight:600;font-size:14px;margin:10px 0}
+.add-btn{width:100%;border:1px dashed var(--line);border-radius:16px;padding:16px;color:var(--green);font-weight:600;font-size:16px;margin:10px 0}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .form-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
 
 .cta{position:fixed;left:0;right:0;bottom:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 40%);z-index:6}
-.btn{width:100%;max-width:520px;margin:0 auto;display:block;background:var(--green);color:#06130B;font-weight:800;font-size:16px;padding:16px;border-radius:16px}
+.btn{width:100%;max-width:520px;margin:0 auto;display:block;background:var(--green);color:#06130B;font-weight:800;font-size:17px;padding:17px;border-radius:16px}
 .btn:disabled{opacity:.4}
 .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
 .btn.danger{background:transparent;color:var(--red);font-weight:600;font-size:13px;padding:10px}
 
 /* ── CARDIO ── */
 .tipo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0}
-.tipo{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 12px;text-align:center;font-size:14px;font-weight:600}
-.tipo .em{font-size:24px;display:block;margin-bottom:6px}
+.tipo{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 12px;text-align:center;font-size:15px;font-weight:600}
+.tipo .em{font-size:28px;display:block;margin-bottom:6px}
 .tipo.sel{border-color:var(--green);background:var(--green-soft)}
 .min-row{display:flex;align-items:center;gap:10px;margin:14px 0}
 .min-row input{font-size:22px;font-weight:800;text-align:center;padding:14px}
@@ -141,8 +141,8 @@ header{padding:18px 0 6px}
 
 /* ── NAV ── */
 nav{position:fixed;left:0;right:0;bottom:0;background:rgba(10,15,11,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:10px 0 calc(10px + env(safe-area-inset-bottom));z-index:40}
-nav button{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600;padding:4px 18px}
-nav button .em{font-size:21px;filter:grayscale(1);opacity:.6}
+nav button{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:14px;font-weight:600;padding:4px 18px}
+nav button .em{font-size:27px;filter:grayscale(1);opacity:.6}
 nav button.on{color:var(--green)}
 nav button.on .em{filter:none;opacity:1}
 
@@ -161,6 +161,10 @@ nav button.on .em{filter:none;opacity:1}
 .view{display:none}.view.on{display:block}
 .loading{text-align:center;color:var(--muted);padding:40px 0;font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* celular: aumenta tudo 15% (telas de alta densidade como o Poco X7 Pro) */
+@media (max-width:699px){
+  body{zoom:1.15}
+}
 /* no PC: mantém formato de app de celular, centralizado */
 @media (min-width:700px){
   .wrap{max-width:430px}
