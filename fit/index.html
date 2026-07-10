@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0A0F0B">
+<title>MS FIT</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0F0B;
+  --card:#111A13;
+  --card2:#16241A;
+  --line:#20321F;
+  --green:#2FBF71;
+  --green-soft:rgba(47,191,113,.14);
+  --green-dark:#145A32;
+  --red:#E85D4A;
+  --txt:#EAF4ED;
+  --muted:#8FA89A;
+  --radius:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:'Sora',system-ui,sans-serif;font-size:15px;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+  overscroll-behavior-y:contain;
+}
+button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:15px;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;outline:none}
+input:focus,select:focus{border-color:var(--green)}
+input[type=number]{-moz-appearance:textfield}
+.wrap{max-width:520px;margin:0 auto;padding:0 16px}
+
+/* ── HEADER ── */
+header{padding:18px 0 6px}
+.brand{display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:800;font-size:21px;letter-spacing:-.5px}
+.logo em{font-style:normal;color:var(--green)}
+.streak-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:8px 14px;font-weight:700;font-size:14px}
+.streak-chip .fire{font-size:15px}
+.hello{color:var(--muted);font-size:13px;margin-top:4px}
+
+/* ── WEEK STRIP ── */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:16px 0 6px}
+.day{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 0 8px;text-align:center}
+.day .dn{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.day .dd{font-size:16px;font-weight:700;margin:2px 0}
+.day .ck{font-size:11px;height:14px;color:var(--green);font-weight:800}
+.day.today{border-color:var(--green);background:var(--green-soft)}
+.day.done{border-color:var(--green-dark)}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:12px 0}
+.card h3{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px}
+
+/* streak hero */
+.streak-hero{display:flex;align-items:center;gap:18px}
+.ring{position:relative;width:92px;height:92px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .num b{font-size:28px;font-weight:800;line-height:1}
+.ring .num span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.streak-info b{font-size:16px;display:block}
+.streak-info p{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.45}
+
+/* status hoje */
+.today-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.status{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.status .ic{font-size:18px}
+.status b{font-size:13px;display:block}
+.status span{font-size:11px;color:var(--muted)}
+.status.ok{border-color:var(--green-dark)}
+.status.ok span{color:var(--green)}
+
+/* histórico */
+.hist-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.hist-item:last-child{border-bottom:none}
+.hist-ic{width:38px;height:38px;border-radius:12px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+.hist-item b{font-size:14px;display:block}
+.hist-item span{font-size:12px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:16px 0;line-height:1.5}
+
+/* ── TREINO CARDS ── */
+.treino-card{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin:10px 0;width:100%;text-align:left}
+.treino-card:active{background:var(--card2)}
+.letra{width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,var(--green-dark),var(--green));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;flex:none}
+.treino-card .tit{flex:1;min-width:0}
+.treino-card .tit b{font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.treino-card .tit span{font-size:12px;color:var(--muted)}
+.treino-card .arr{color:var(--muted);font-size:18px}
+
+/* ── FICHA (overlay) ── */
+.sheet{position:fixed;inset:0;background:var(--bg);z-index:50;overflow-y:auto;display:none;padding-bottom:120px}
+.sheet.open{display:block}
+.sheet-head{position:sticky;top:0;background:rgba(10,15,11,.92);backdrop-filter:blur(10px);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);z-index:5}
+.back{font-size:22px;padding:4px 8px;color:var(--muted)}
+.sheet-head .st{flex:1;min-width:0}
+.sheet-head b{font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-head span{font-size:12px;color:var(--muted)}
+.icon-btn{font-size:17px;padding:6px 10px;color:var(--muted)}
+
+.ex-item{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
+.ex-top{display:flex;align-items:flex-start;gap:12px}
+.ex-check{width:26px;height:26px;border-radius:9px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;margin-top:2px}
+.ex-item.done .ex-check{background:var(--green);border-color:var(--green)}
+.ex-item.done .ex-nome{color:var(--muted);text-decoration:line-through}
+.ex-info{flex:1;min-width:0}
+.ex-nome{font-size:15px;font-weight:600;line-height:1.35}
+.ex-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.ex-carga{display:flex;align-items:center;gap:8px;margin-top:10px;margin-left:38px}
+.ex-carga label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;flex:none}
+.ex-carga input{padding:8px 12px;font-size:14px;width:110px;font-weight:700}
+.ex-edit{color:var(--muted);font-size:15px;padding:4px}
+
+.add-btn{width:100%;border:1px dashed var(--line);border-radius:16px;padding:14px;color:var(--green);font-weight:600;font-size:14px;margin:10px 0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.form-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+
+.cta{position:fixed;left:0;right:0;bottom:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 40%);z-index:6}
+.btn{width:100%;max-width:520px;margin:0 auto;display:block;background:var(--green);color:#06130B;font-weight:800;font-size:16px;padding:16px;border-radius:16px}
+.btn:disabled{opacity:.4}
+.btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--red);font-weight:600;font-size:13px;padding:10px}
+
+/* ── CARDIO ── */
+.tipo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0}
+.tipo{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 12px;text-align:center;font-size:14px;font-weight:600}
+.tipo .em{font-size:24px;display:block;margin-bottom:6px}
+.tipo.sel{border-color:var(--green);background:var(--green-soft)}
+.min-row{display:flex;align-items:center;gap:10px;margin:14px 0}
+.min-row input{font-size:22px;font-weight:800;text-align:center;padding:14px}
+.min-row .un{color:var(--muted);font-size:14px;flex:none}
+
+/* ── NAV ── */
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(10,15,11,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:10px 0 calc(10px + env(safe-area-inset-bottom));z-index:40}
+nav button{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600;padding:4px 18px}
+nav button .em{font-size:21px;filter:grayscale(1);opacity:.6}
+nav button.on{color:var(--green)}
+nav button.on .em{filter:none;opacity:1}
+
+/* toast + modal */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;background:var(--green);color:#06130B;font-weight:700;font-size:14px;padding:12px 20px;border-radius:99px;z-index:99;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;display:none;align-items:flex-end}
+.modal.open{display:flex}
+.modal-box{background:var(--card);border-radius:24px 24px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));width:100%;max-width:520px;margin:0 auto;border-top:1px solid var(--line)}
+.modal-box h2{font-size:17px;margin-bottom:14px}
+.modal-actions{display:flex;gap:10px;margin-top:16px}
+.modal-actions .btn{padding:14px}
+
+.setup{background:var(--card);border:1px solid var(--red);border-radius:var(--radius);padding:18px;margin:14px 0;font-size:13px;line-height:1.6;color:var(--muted);display:none}
+.setup b{color:var(--txt)}
+.view{display:none}.view.on{display:block}
+.loading{text-align:center;color:var(--muted);padding:40px 0;font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div>
+        <div class="logo">MS <em>FIT</em></div>
+        <div class="hello">Olá, Janaína! 💚</div>
+      </div>
+      <div class="streak-chip"><span class="fire">🔥</span><span id="chipStreak">0</span></div>
+    </div>
+  </header>
+
+  <div class="setup" id="setupMsg">
+    <b>⚙️ Banco de dados ainda não configurado.</b><br>
+    As tabelas do MS FIT ainda não existem no Supabase. Volte no chat com o Claude que ele te passa o código SQL pra colar no painel — leva 1 minuto!
+  </div>
+
+  <!-- ═══ INÍCIO ═══ -->
+  <div class="view on" id="view-home">
+    <div class="week" id="weekStrip"></div>
+
+    <div class="card">
+      <div class="streak-hero">
+        <div class="ring">
+          <svg width="92" height="92" viewBox="0 0 92 92">
+            <circle cx="46" cy="46" r="40" fill="none" stroke="var(--line)" stroke-width="7"/>
+            <circle id="ringFg" cx="46" cy="46" r="40" fill="none" stroke="var(--green)" stroke-width="7" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+          </svg>
+          <div class="num"><b id="streakNum">0</b><span>dias</span></div>
+        </div>
+        <div class="streak-info">
+          <b id="streakTitle">Sua sequência</b>
+          <p id="streakSub">Registre um treino ou cardio hoje pra acender a chama 🔥<br>Recorde: <span id="recordNum">0</span> dias</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Hoje</h3>
+      <div class="today-row">
+        <div class="status" id="stTreino"><span class="ic">🏋️</span><div><b>Treino</b><span>pendente</span></div></div>
+        <div class="status" id="stCardio"><span class="ic">🚶‍♀️</span><div><b>Cardio</b><span>pendente</span></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Últimos registros</h3>
+      <div id="histList"><div class="loading">Carregando…</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ TREINO ═══ -->
+  <div class="view" id="view-treino">
+    <div class="card" style="margin-top:16px">
+      <h3>Minhas fichas</h3>
+      <p style="font-size:13px;color:var(--muted);line-height:1.5">Toque numa ficha pra ver os exercícios, editar e registrar o treino do dia.</p>
+    </div>
+    <div id="treinoCards"></div>
+  </div>
+
+  <!-- ═══ CARDIO ═══ -->
+  <div class="view" id="view-cardio">
+    <div class="card" style="margin-top:16px">
+      <h3>Registrar cardio</h3>
+      <div class="tipo-grid" id="tipoGrid"></div>
+      <div class="min-row">
+        <input type="number" id="cardioMin" placeholder="30" inputmode="numeric">
+        <span class="un">minutos</span>
+      </div>
+      <button class="btn" id="btnCardio" onclick="salvarCardio()">Salvar cardio ✓</button>
+    </div>
+    <div class="card">
+      <h3>Cardio desta semana</h3>
+      <div id="cardioList"><div class="empty">Nenhum cardio esta semana ainda.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FICHA SHEET ═══ -->
+<div class="sheet" id="sheet">
+  <div class="sheet-head">
+    <button class="back" onclick="fecharFicha()">‹</button>
+    <div class="st"><b id="fichaTit">Treino A</b><span id="fichaSub">0 exercícios</span></div>
+    <button class="icon-btn" onclick="editarTitulo()">✏️</button>
+  </div>
+  <div class="wrap">
+    <div id="exList" style="margin-top:8px"></div>
+    <button class="add-btn" onclick="abrirNovoEx()">+ Adicionar exercício</button>
+  </div>
+  <div class="cta"><button class="btn" id="btnConcluir" onclick="concluirTreino()" disabled>Concluir treino</button></div>
+</div>
+
+<!-- ═══ MODAL EXERCÍCIO ═══ -->
+<div class="modal" id="modalEx">
+  <div class="modal-box">
+    <h2 id="modalExTit">Novo exercício</h2>
+    <label class="form-lbl">Nome do exercício</label>
+    <input id="exNome" placeholder="Ex: Cadeira extensora">
+    <div class="form-row">
+      <div><label class="form-lbl">Séries</label><input id="exSeries" type="number" inputmode="numeric" placeholder="3"></div>
+      <div><label class="form-lbl">Repetições</label><input id="exReps" placeholder="12"></div>
+    </div>
+    <div class="form-row">
+      <div><label class="form-lbl">Carga (kg)</label><input id="exCarga" placeholder="Ex: 20"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn sec" onclick="fecharModalEx()">Cancelar</button>
+      <button class="btn" onclick="salvarEx()">Salvar</button>
+    </div>
+    <button class="btn danger" id="btnDelEx" onclick="excluirEx()" style="display:none">🗑️ Excluir exercício</button>
+  </div>
+</div>
+
+<!-- ═══ MODAL TÍTULO ═══ -->
+<div class="modal" id="modalTit">
+  <div class="modal-box">
+    <h2>Nome da ficha</h2>
+    <input id="titInput" placeholder="Ex: Treino A - Quadríceps, adutor">
+    <div class="modal-actions">
+      <button class="btn sec" onclick="document.getElementById('modalTit').classList.remove('open')">Cancelar</button>
+      <button class="btn" onclick="salvarTitulo()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <button class="on" data-v="home" onclick="nav('home')"><span class="em">🏠</span>Início</button>
+  <button data-v="treino" onclick="nav('treino')"><span class="em">🏋️</span>Treino</button>
+  <button data-v="cardio" onclick="nav('cardio')"><span class="em">🚶‍♀️</span>Cardio</button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+// ══ SUPABASE ══
+const SUPA_URL='https://aydzadpymxkcygquixgv.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZHphZHB5bXhrY3lncXVpeGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MDQxMzQsImV4cCI6MjA5NjA4MDEzNH0.LiBxr2Eu6QAPXSLJ93sDLxsaKZIKR_4XFVtbSMhkX0s';
+
+async function supa(path,opts={}){
+  const res=await fetch(`${SUPA_URL}/rest/v1/${path}`,{
+    ...opts,
+    headers:{
+      'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,
+      'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',
+      ...(opts.headers||{})
+    }
+  });
+  if(!res.ok){const t=await res.text();throw new Error(t)}
+  const t=await res.text();return t?JSON.parse(t):null;
+}
+
+// ══ ESTADO ══
+let treinos={}, exercicios=[], registros=[];
+let fichaAtual=null, exEditando=null;
+let cardioTipo='caminhada';
+const TIPOS=[['caminhada','🚶‍♀️','Caminhada'],['esteira','🏃‍♀️','Esteira'],['bike','🚴‍♀️','Bike'],['outro','💪','Outro']];
+const hoje=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const fmtData=s=>{const[y,m,d]=s.split('-');return `${d}/${m}`};
+
+// ══ INIT ══
+async function init(){
+  try{
+    const[t,e,r]=await Promise.all([
+      supa('fit_treinos?select=*&order=letra'),
+      supa('fit_exercicios?select=*&order=treino,ordem,id'),
+      supa('fit_registros?select=*&order=data.desc,created_at.desc&limit=500')
+    ]);
+    t.forEach(x=>treinos[x.letra]=x.titulo);
+    exercicios=e; registros=r;
+    if(!t.length){for(const L of['A','B','C','D','E']){treinos[L]='Treino '+L;await supa('fit_treinos',{method:'POST',body:JSON.stringify({letra:L,titulo:'Treino '+L})})}}
+  }catch(err){
+    console.error(err);
+    document.getElementById('setupMsg').style.display='block';
+    document.getElementById('histList').innerHTML='<div class="empty">Sem conexão com o banco ainda.</div>';
+    renderTreinoCards();renderTipos();return;
+  }
+  renderTudo();
+}
+function renderTudo(){renderHome();renderTreinoCards();renderTipos();renderCardioList()}
+
+// ══ STREAK ══
+function diasComRegistro(){return [...new Set(registros.map(r=>r.data))].sort()}
+function streakAtual(){
+  const set=new Set(diasComRegistro());
+  let d=new Date(),n=0;
+  const key=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  if(!set.has(key(d)))d.setDate(d.getDate()-1); // conta a partir de ontem se hoje ainda não treinou
+  while(set.has(key(d))){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+function recorde(){
+  const dias=diasComRegistro();if(!dias.length)return 0;
+  let max=1,cur=1;
+  for(let i=1;i<dias.length;i++){
+    const a=new Date(dias[i-1]),b=new Date(dias[i]);
+    ((b-a)/864e5===1)?cur++:cur=1;
+    if(cur>max)max=cur;
+  }
+  return max;
+}
+
+// ══ HOME ══
+function renderHome(){
+  const s=streakAtual(),rec=Math.max(recorde(),s);
+  document.getElementById('streakNum').textContent=s;
+  document.getElementById('chipStreak').textContent=s;
+  document.getElementById('recordNum').textContent=rec;
+  const fezHoje=registros.some(r=>r.data===hoje());
+  document.getElementById('streakTitle').textContent=fezHoje?'Chama acesa hoje! 🔥':(s>0?'Não deixe a chama apagar!':'Sua sequência');
+  document.getElementById('streakSub').innerHTML=(fezHoje?'Muito bem, continue assim!':'Registre um treino ou cardio hoje pra manter a sequência.')+`<br>Recorde: <b style="color:var(--green)">${rec}</b> dias`;
+  // anel = progresso da semana (dias com registro / 7)
+  const semana=diasSemana().filter(d=>registros.some(r=>r.data===d.key)).length;
+  document.getElementById('ringFg').style.strokeDashoffset=251.3*(1-semana/7);
+
+  // semana
+  const strip=document.getElementById('weekStrip');
+  strip.innerHTML=diasSemana().map(d=>{
+    const done=registros.some(r=>r.data===d.key);
+    return `<div class="day ${d.key===hoje()?'today':''} ${done?'done':''}">
+      <div class="dn">${d.nome}</div><div class="dd">${d.num}</div><div class="ck">${done?'✓':''}</div></div>`;
+  }).join('');
+
+  // status hoje
+  const tHoje=registros.some(r=>r.data===hoje()&&r.tipo==='treino');
+  const cHoje=registros.some(r=>r.data===hoje()&&r.tipo==='cardio');
+  setStatus('stTreino',tHoje);setStatus('stCardio',cHoje);
+
+  // histórico
+  const h=registros.slice(0,8);
+  document.getElementById('histList').innerHTML=h.length?h.map(r=>{
+    const em=r.tipo==='treino'?'🏋️':'🚶‍♀️';
+    const tit=r.tipo==='treino'?(treinos[r.treino]||'Treino '+r.treino):`Cardio · ${r.dados?.tipo||''}`;
+    const det=r.tipo==='treino'?`${(r.dados?.exercicios||[]).filter(e=>e.feito).length} exercícios feitos`:`${r.duracao_min||0} minutos`;
+    return `<div class="hist-item"><div class="hist-ic">${em}</div><div><b>${tit}</b><span>${fmtData(r.data)} · ${det}</span></div></div>`;
+  }).join(''):'<div class="empty">Seus treinos vão aparecer aqui. Bora começar? 💪</div>';
+}
+function setStatus(id,ok){
+  const el=document.getElementById(id);
+  el.classList.toggle('ok',ok);
+  el.querySelector('span').textContent=ok?'feito ✓':'pendente';
+}
+function diasSemana(){
+  const nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const d=new Date();const dow=d.getDay();
+  const seg=new Date(d);seg.setDate(d.getDate()-((dow+6)%7)); // segunda desta semana
+  return Array.from({length:7},(_,i)=>{
+    const x=new Date(seg);x.setDate(seg.getDate()+i);
+    return{nome:nomes[x.getDay()],num:x.getDate(),key:`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
+  });
+}
+
+// ══ TREINO ══
+function renderTreinoCards(){
+  document.getElementById('treinoCards').innerHTML=['A','B','C','D','E'].map(L=>{
+    const n=exercicios.filter(e=>e.treino===L).length;
+    return `<button class="treino-card" onclick="abrirFicha('${L}')">
+      <div class="letra">${L}</div>
+      <div class="tit"><b>${treinos[L]||'Treino '+L}</b><span>${n} exercício${n===1?'':'s'}</span></div>
+      <span class="arr">›</span></button>`;
+  }).join('');
+}
+let feitos={}, cargasSessao={};
+function abrirFicha(L){
+  fichaAtual=L;feitos={};cargasSessao={};
+  document.getElementById('sheet').classList.add('open');
+  renderFicha();
+  window.scrollTo(0,0);
+}
+function fecharFicha(){document.getElementById('sheet').classList.remove('open');fichaAtual=null}
+function renderFicha(){
+  const L=fichaAtual;const exs=exercicios.filter(e=>e.treino===L);
+  document.getElementById('fichaTit').textContent=treinos[L]||'Treino '+L;
+  document.getElementById('fichaSub').textContent=`${exs.length} exercício${exs.length===1?'':'s'}`;
+  document.getElementById('exList').innerHTML=exs.length?exs.map(e=>{
+    const done=!!feitos[e.id];
+    const carga=cargasSessao[e.id]!==undefined?cargasSessao[e.id]:(e.carga||'');
+    return `<div class="ex-item ${done?'done':''}" id="ex-${e.id}">
+      <div class="ex-top">
+        <button class="ex-check" onclick="toggleFeito(${e.id})">${done?'✓':''}</button>
+        <div class="ex-info">
+          <div class="ex-nome">${e.nome}</div>
+          <div class="ex-meta">${e.series||3} séries × ${e.reps||'12'} repetições</div>
+        </div>
+        <button class="ex-edit" onclick="abrirEditEx(${e.id})">✏️</button>
+      </div>
+      <div class="ex-carga">
+        <label>Carga</label>
+        <input value="${carga}" placeholder="kg" onchange="cargasSessao[${e.id}]=this.value" inputmode="decimal">
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty">Nenhum exercício ainda.<br>Toque em "+ Adicionar exercício" e cadastre os que seu personal passou. 📋</div>';
+  document.getElementById('btnConcluir').disabled=!Object.values(feitos).some(Boolean);
+}
+function toggleFeito(id){feitos[id]=!feitos[id];renderFicha()}
+
+// exercício: novo / editar
+function abrirNovoEx(){
+  exEditando=null;
+  document.getElementById('modalExTit').textContent='Novo exercício';
+  document.getElementById('btnDelEx').style.display='none';
+  ['exNome','exSeries','exReps','exCarga'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('modalEx').classList.add('open');
+}
+function abrirEditEx(id){
+  const e=exercicios.find(x=>x.id===id);if(!e)return;
+  exEditando=e;
+  document.getElementById('modalExTit').textContent='Editar exercício';
+  document.getElementById('btnDelEx').style.display='block';
+  document.getElementById('exNome').value=e.nome;
+  document.getElementById('exSeries').value=e.series||'';
+  document.getElementById('exReps').value=e.reps||'';
+  document.getElementById('exCarga').value=e.carga||'';
+  document.getElementById('modalEx').classList.add('open');
+}
+function fecharModalEx(){document.getElementById('modalEx').classList.remove('open')}
+async function salvarEx(){
+  const nome=document.getElementById('exNome').value.trim();
+  if(!nome){toast('Digite o nome do exercício');return}
+  const body={
+    treino:fichaAtual,nome,
+    series:parseInt(document.getElementById('exSeries').value)||3,
+    reps:document.getElementById('exReps').value.trim()||'12',
+    carga:document.getElementById('exCarga').value.trim()
+  };
+  try{
+    if(exEditando){
+      await supa(`fit_exercicios?id=eq.${exEditando.id}`,{method:'PATCH',body:JSON.stringify(body)});
+      Object.assign(exEditando,body);
+    }else{
+      body.ordem=exercicios.filter(e=>e.treino===fichaAtual).length;
+      const[novo]=await supa('fit_exercicios',{method:'POST',body:JSON.stringify(body)});
+      exercicios.push(novo);
+    }
+    fecharModalEx();renderFicha();renderTreinoCards();toast('Salvo! ✓');
+  }catch(e){toast('Erro ao salvar 😕');console.error(e)}
+}
+async function excluirEx(){
+  if(!exEditando)return;
+  if(!confirm('Excluir este exercício?'))return;
+  try{
+    await supa(`fit_exercicios?id=eq.${exEditando.id}`,{method:'DELETE',prefer:'return=minimal'});
+    exercicios=exercicios.filter(e=>e.id!==exEditando.id);
+    fecharModalEx();renderFicha();renderTreinoCards();toast('Excluído');
+  }catch(e){toast('Erro ao excluir 😕')}
+}
+
+// título
+function editarTitulo(){
+  document.getElementById('titInput').value=treinos[fichaAtual]||'';
+  document.getElementById('modalTit').classList.add('open');
+}
+async function salvarTitulo(){
+  const v=document.getElementById('titInput').value.trim();if(!v)return;
+  try{
+    await supa(`fit_treinos?letra=eq.${fichaAtual}`,{method:'PATCH',body:JSON.stringify({titulo:v})});
+    treinos[fichaAtual]=v;
+    document.getElementById('modalTit').classList.remove('open');
+    renderFicha();renderTreinoCards();toast('Nome atualizado ✓');
+  }catch(e){toast('Erro ao salvar 😕')}
+}
+
+// concluir treino
+async function concluirTreino(){
+  const L=fichaAtual;const exs=exercicios.filter(e=>e.treino===L);
+  const snapshot=exs.map(e=>({
+    nome:e.nome,series:e.series,reps:e.reps,
+    carga:cargasSessao[e.id]!==undefined?cargasSessao[e.id]:(e.carga||''),
+    feito:!!feitos[e.id]
+  }));
+  try{
+    document.getElementById('btnConcluir').disabled=true;
+    await supa('fit_registros',{method:'POST',body:JSON.stringify({
+      data:hoje(),tipo:'treino',treino:L,dados:{exercicios:snapshot}
+    })});
+    // atualiza cargas na ficha pro próximo treino
+    for(const e of exs){
+      const nova=cargasSessao[e.id];
+      if(nova!==undefined&&nova!==e.carga){
+        await supa(`fit_exercicios?id=eq.${e.id}`,{method:'PATCH',body:JSON.stringify({carga:nova})});
+        e.carga=nova;
+      }
+    }
+    registros.unshift({data:hoje(),tipo:'treino',treino:L,dados:{exercicios:snapshot},created_at:new Date().toISOString()});
+    fecharFicha();nav('home');renderTudo();
+    toast('Treino concluído! 🔥 Chama acesa!');
+  }catch(e){toast('Erro ao salvar treino 😕');document.getElementById('btnConcluir').disabled=false}
+}
+
+// ══ CARDIO ══
+function renderTipos(){
+  document.getElementById('tipoGrid').innerHTML=TIPOS.map(([k,em,nm])=>
+    `<button class="tipo ${cardioTipo===k?'sel':''}" onclick="cardioTipo='${k}';renderTipos()"><span class="em">${em}</span>${nm}</button>`).join('');
+}
+async function salvarCardio(){
+  const min=parseInt(document.getElementById('cardioMin').value);
+  if(!min||min<1){toast('Digite os minutos');return}
+  const nm=TIPOS.find(t=>t[0]===cardioTipo)[2];
+  try{
+    document.getElementById('btnCardio').disabled=true;
+    await supa('fit_registros',{method:'POST',body:JSON.stringify({
+      data:hoje(),tipo:'cardio',duracao_min:min,dados:{tipo:nm}
+    })});
+    registros.unshift({data:hoje(),tipo:'cardio',duracao_min:min,dados:{tipo:nm},created_at:new Date().toISOString()});
+    document.getElementById('cardioMin').value='';
+    renderTudo();toast(`Cardio salvo! ${min} min 🔥`);
+  }catch(e){toast('Erro ao salvar 😕')}
+  document.getElementById('btnCardio').disabled=false;
+}
+function renderCardioList(){
+  const semana=diasSemana().map(d=>d.key);
+  const cs=registros.filter(r=>r.tipo==='cardio'&&semana.includes(r.data));
+  const tot=cs.reduce((s,r)=>s+(r.duracao_min||0),0);
+  document.getElementById('cardioList').innerHTML=cs.length?
+    `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Total: <b style="color:var(--green)">${tot} min</b> esta semana</div>`+
+    cs.map(r=>`<div class="hist-item"><div class="hist-ic">🚶‍♀️</div><div><b>${r.dados?.tipo||'Cardio'}</b><span>${fmtData(r.data)} · ${r.duracao_min} min</span></div></div>`).join('')
+    :'<div class="empty">Nenhum cardio esta semana ainda.</div>';
+}
+
+// ══ NAV ══
+function nav(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+  document.getElementById('view-'+v).classList.add('on');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  window.scrollTo(0,0);
+}
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// PWA
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+init();
+</script>
+</body>
+</html>
