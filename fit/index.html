@@ -161,6 +161,16 @@ nav button.on .em{filter:none;opacity:1}
 .view{display:none}.view.on{display:block}
 .loading{text-align:center;color:var(--muted);padding:40px 0;font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* telas grandes (PC) */
+@media (min-width:700px){
+  body{font-size:16px}
+  .wrap{max-width:860px;padding:0 32px}
+  .modal-box,.btn{max-width:860px}
+  nav{justify-content:center;gap:150px}
+  .week{gap:10px}
+  .today-row{grid-template-columns:1fr 1fr}
+  .tipo-grid{grid-template-columns:repeat(4,1fr)}
+}
 </style>
 </head>
 <body>
