@@ -74,8 +74,9 @@ header{padding:18px 0 6px}
 .streak-info p{color:var(--muted);font-size:14px;margin-top:4px;line-height:1.45}
 
 /* status hoje */
-.today-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.status{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.today-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.status{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;min-width:0;overflow:hidden}
+.status>div{min-width:0}
 .status .ic{font-size:18px}
 .status b{font-size:15px;display:block}
 .status span{font-size:13px;color:var(--muted)}
