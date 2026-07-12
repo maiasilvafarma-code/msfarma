@@ -1,5 +1,95 @@
 <!DOCTYPE html>
-<!-- Deploy #289 - Nova aba Estoque com checklist de correcao -->
+<!-- Deploy #290 - Protecao de gravacao, medidor de espaco, backup semanal -->
+<script>
+(function(){
+  const _set = Storage.prototype.setItem;
+  window.msfarmaUso = function(){
+    let t = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      t += (k.length + (localStorage.getItem(k) || "").length) * 2;
+    }
+    return t;
+  };
+  Storage.prototype.setItem = function(k, v){
+    try {
+      _set.call(this, k, v);
+    } catch (e) {
+      if (window.msfarmaAlertaQuota) window.msfarmaAlertaQuota(k);
+      throw e;
+    }
+  };
+  window.msfarmaAlertaQuota = function(chave){
+    let d = document.getElementById("quota-alerta");
+    if (!d) {
+      d = document.createElement("div");
+      d.id = "quota-alerta";
+      d.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;padding:14px;font-weight:bold;text-align:center;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,0.4)";
+      document.body.appendChild(d);
+    }
+    d.textContent = "NAO FOI SALVO — espaco esgotado (" + chave + "). Nao continue lancando. Chame o suporte.";
+  };
+  window.msfarmaMedidor = function(){
+    const mb = window.msfarmaUso() / 1024 / 1024;
+    let cor = "#27ae60", txt = "OK";
+    if (mb > 4.5) { cor = "#c0392b"; txt = "CRITICO"; }
+    else if (mb > 3.5) { cor = "#f39c12"; txt = "ATENCAO"; }
+    let d = document.getElementById("medidor-espaco");
+    if (!d) {
+      d = document.createElement("div");
+      d.id = "medidor-espaco";
+      d.style.cssText = "position:fixed;bottom:8px;right:8px;z-index:9999;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:bold;color:#fff;opacity:0.9";
+      document.body.appendChild(d);
+    }
+    d.style.background = cor;
+    d.textContent = "Espaco: " + mb.toFixed(2) + " MB — " + txt;
+  };
+  window.msfarmaProtegeSync = function(){
+    if (typeof msfarmaSync === "undefined" || !msfarmaSync.syncParaNuvem) return;
+    const _push = msfarmaSync.syncParaNuvem;
+    msfarmaSync.syncParaNuvem = async function(){
+      try {
+        const c = JSON.parse(localStorage.getItem("farmacia-caixa-v1") || "[]");
+        const arr = Array.isArray(c) ? c : (c.dias || []);
+        const nLocal = arr.length;
+        const marcoLocal = parseInt(localStorage.getItem("msfarma-caixa-marco") || "0", 10);
+        if (marcoLocal > 0 && nLocal < marcoLocal) {
+          const ok = confirm("ATENCAO — POSSIVEL PERDA DE DADOS\n\nCaixa local: " + nLocal + " dias\nUltimo estado conhecido: " + marcoLocal + " dias\n\nSincronizar vai sobrescrever a nuvem com MENOS dados.\n\nContinuar mesmo assim?");
+          if (!ok) return false;
+        }
+        try { localStorage.setItem("msfarma-caixa-marco", String(nLocal)); } catch (e) {}
+      } catch (e) {}
+      return await _push.apply(this, arguments);
+    };
+  };
+  window.msfarmaBackupAuto = function(){
+    const hoje = new Date().toISOString().slice(0, 10);
+    const ult = localStorage.getItem("msfarma-backup-auto");
+    if (ult === hoje) return;
+    const dias = ult ? (new Date(hoje) - new Date(ult)) / 86400000 : 999;
+    if (dias < 7) return;
+    const dump = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      dump[k] = localStorage.getItem(k);
+    }
+    const b = new Blob([JSON.stringify(dump)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = "msfarma-backup-" + hoje + ".json";
+    a.click();
+    try { localStorage.setItem("msfarma-backup-auto", hoje); } catch (e) {}
+  };
+  window.addEventListener("load", function(){
+    setTimeout(function(){
+      window.msfarmaMedidor();
+      window.msfarmaProtegeSync();
+      window.msfarmaBackupAuto();
+      setInterval(window.msfarmaMedidor, 30000);
+    }, 2500);
+  });
+})();
+</script>
 <!-- saved from url=(0081)file:///C:/Users/SAMSUNG%20BOOK%20E30/Downloads/farmacia_gestao_financeira_2.html -->
 <html lang="pt-BR" translate="no"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
