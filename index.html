@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #292 - Chaves grandes fora do sync, IndexedDB ativo -->
+<!-- Deploy #293 - Historico da Curva ABC gravando por periodo -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -11757,6 +11757,14 @@ function importarCurvaAbcXls(file){
         produtos:produtos
       };
       localStorage.setItem('farmacia-abc-produtos',JSON.stringify(dadosAbc));
+      try{
+        var _hk=dadosAbc.periodo;
+        if(_hk && _hk.indexOf('undefined')===-1){
+          var _h=JSON.parse(localStorage.getItem('msfarma-abc-hist')||'{}');
+          _h[_hk]={periodo:_hk, importadoEm:dadosAbc.importadoEm, faturamento:dadosAbc.total, totalProdutos:dadosAbc.totalProdutos, classeA:dadosAbc.classeA||0, classeB:dadosAbc.classeB||0, classeC:dadosAbc.classeC||0};
+          localStorage.setItem('msfarma-abc-hist',JSON.stringify(_h));
+        }
+      }catch(e){ console.log('erro hist abc:',e); }
       
       localStorage.setItem('msfarma-ultima-import-abc',Date.now().toString());
       window._abcDinamico=dadosAbc;
