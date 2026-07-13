@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #296 - Rentabilidade: regex do periodo aceita ano curto e crase -->
+<!-- Deploy #297 - Rentabilidade: captura do periodo sem regex -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -5185,7 +5185,15 @@ function importarRentabilidadeXls(file){
       try{
         for(let _i=0;_i<Math.min(15,rows.length);_i++){
           var _linha=(rows[_i]||[]).join(' ');
-          var _m=_linha.match(/(\d{2}\/\d{2}\/\d{2,4})\s*[aà]\s*(\d{2}\/\d{2}\/\d{2,4})/);
+          var _p=_linha.indexOf('riodo:');
+          if(_p>-1){
+            var _resto=_linha.slice(_p+6);
+            var _corte=_resto.indexOf('|');
+            if(_corte>-1) _resto=_resto.slice(0,_corte);
+            periodoRent=_resto.replace(/\s+/g,' ').trim();
+            break;
+          }
+          var _m=null;
           if(_m){ periodoRent=_m[1]+' a '+_m[2]; break; }
         }
       }catch(e){}
