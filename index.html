@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #295 - Rentabilidade grava o periodo do arquivo -->
+<!-- Deploy #296 - Rentabilidade: regex do periodo aceita ano curto e crase -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -5185,7 +5185,7 @@ function importarRentabilidadeXls(file){
       try{
         for(let _i=0;_i<Math.min(15,rows.length);_i++){
           var _linha=(rows[_i]||[]).join(' ');
-          var _m=_linha.match(/(\d{2}\/\d{2}\/\d{4})\s*a\s*(\d{2}\/\d{2}\/\d{4})/);
+          var _m=_linha.match(/(\d{2}\/\d{2}\/\d{2,4})\s*[aà]\s*(\d{2}\/\d{2}\/\d{2,4})/);
           if(_m){ periodoRent=_m[1]+' a '+_m[2]; break; }
         }
       }catch(e){}
