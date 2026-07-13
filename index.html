@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #290 - Protecao de gravacao, medidor de espaco, backup semanal -->
+<!-- Deploy #291 - IndexedDB para chaves grandes, fim da duplicata ABC -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -44,6 +44,113 @@
     d.style.background = cor;
     d.textContent = "Espaco: " + mb.toFixed(2) + " MB — " + txt;
   };
+  window.msfarmaDB = (function(){
+    var DB="msfarma-big", ST="dados", _db=null;
+    function abrir(){
+      return new Promise(function(ok,err){
+        if(_db){ ok(_db); return; }
+        var rq=indexedDB.open(DB,1);
+        rq.onupgradeneeded=function(e){
+          var d=e.target.result;
+          if(!d.objectStoreNames.contains(ST)) d.createObjectStore(ST);
+        };
+        rq.onsuccess=function(e){ _db=e.target.result; ok(_db); };
+        rq.onerror=function(e){ err(e.target.error); };
+      });
+    }
+    return {
+      set: function(k,v){
+        return abrir().then(function(d){
+          return new Promise(function(ok,err){
+            var tx=d.transaction(ST,"readwrite");
+            tx.objectStore(ST).put(v,k);
+            tx.oncomplete=function(){ ok(true); };
+            tx.onerror=function(e){ err(e.target.error); };
+          });
+        });
+      },
+      get: function(k){
+        return abrir().then(function(d){
+          return new Promise(function(ok,err){
+            var tx=d.transaction(ST,"readonly");
+            var rq=tx.objectStore(ST).get(k);
+            rq.onsuccess=function(){ ok(rq.result||null); };
+            rq.onerror=function(e){ err(e.target.error); };
+          });
+        });
+      },
+      del: function(k){
+        return abrir().then(function(d){
+          return new Promise(function(ok,err){
+            var tx=d.transaction(ST,"readwrite");
+            tx.objectStore(ST).delete(k);
+            tx.oncomplete=function(){ ok(true); };
+            tx.onerror=function(e){ err(e.target.error); };
+          });
+        });
+      }
+    };
+  })();
+
+  window.msfarmaMigrar = async function(){
+    var CHAVES=["msfarma-contatos-google","farmacia-inventario-fisico"];
+    var log=[];
+    for(var i=0;i<CHAVES.length;i++){
+      var k=CHAVES[i];
+      var v=localStorage.getItem(k);
+      if(v===null){ log.push(k+": nao existe no localStorage"); continue; }
+      await window.msfarmaDB.set(k,v);
+      var check=await window.msfarmaDB.get(k);
+      if(check===v){
+        localStorage.removeItem(k);
+        log.push(k+": MIGRADO ("+(v.length/1024).toFixed(0)+" KB)");
+      } else {
+        log.push(k+": FALHOU — mantido no localStorage");
+      }
+    }
+    alert("MIGRACAO\n\n"+log.join("\n")+"\n\nEspaco agora: "+(window.msfarmaUso()/1024/1024).toFixed(2)+" MB");
+    if(window.msfarmaMedidor) window.msfarmaMedidor();
+  };
+
+  window.MSF_BIG=["msfarma-contatos-google","farmacia-inventario-fisico"];
+  window.MSF_CACHE={};
+
+  window.msfarmaCarregarBig = async function(){
+    for(var i=0;i<window.MSF_BIG.length;i++){
+      var k=window.MSF_BIG[i];
+      try{
+        var v=await window.msfarmaDB.get(k);
+        if(v!==null && v!==undefined) window.MSF_CACHE[k]=v;
+      }catch(e){}
+    }
+  };
+
+  (function(){
+    var _get=Storage.prototype.getItem;
+    var _set=Storage.prototype.setItem;
+    var _rem=Storage.prototype.removeItem;
+    Storage.prototype.getItem=function(k){
+      if(window.MSF_BIG && window.MSF_BIG.indexOf(k)>-1 && window.MSF_CACHE[k]!==undefined) return window.MSF_CACHE[k];
+      return _get.call(this,k);
+    };
+    Storage.prototype.setItem=function(k,v){
+      if(window.MSF_BIG && window.MSF_BIG.indexOf(k)>-1){
+        window.MSF_CACHE[k]=v;
+        window.msfarmaDB.set(k,v).catch(function(){ alert("ERRO ao salvar "+k+" no IndexedDB"); });
+        return;
+      }
+      return _set.call(this,k,v);
+    };
+    Storage.prototype.removeItem=function(k){
+      if(window.MSF_BIG && window.MSF_BIG.indexOf(k)>-1){
+        delete window.MSF_CACHE[k];
+        window.msfarmaDB.del(k).catch(function(){});
+        return;
+      }
+      return _rem.call(this,k);
+    };
+  })();
+
   window.msfarmaProtegeSync = function(){
     if (typeof msfarmaSync === "undefined" || !msfarmaSync.syncParaNuvem) return;
     const _push = msfarmaSync.syncParaNuvem;
@@ -81,7 +188,8 @@
     try { localStorage.setItem("msfarma-backup-auto", hoje); } catch (e) {}
   };
   window.addEventListener("load", function(){
-    setTimeout(function(){
+    setTimeout(async function(){
+      try { await window.msfarmaCarregarBig(); } catch(e){ console.log("erro carregar big:",e); }
       window.msfarmaMedidor();
       window.msfarmaProtegeSync();
       window.msfarmaBackupAuto();
@@ -11649,7 +11757,7 @@ function importarCurvaAbcXls(file){
         produtos:produtos
       };
       localStorage.setItem('farmacia-abc-produtos',JSON.stringify(dadosAbc));
-      localStorage.setItem('msfarma-abc-dados',JSON.stringify(dadosAbc));
+      
       localStorage.setItem('msfarma-ultima-import-abc',Date.now().toString());
       window._abcDinamico=dadosAbc;
       document.getElementById('curva-abc-xls-input').value='';
