@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #293 - Historico da Curva ABC gravando por periodo -->
+<!-- Deploy #294 - Remocao da aba PMC -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -495,7 +495,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <button class="main-tab" onclick="goTab(&#39;entregas&#39;)">🛵 Entregas</button>
     <button class="main-tab" onclick="goTab(&#39;pronampe&#39;)" style="color:#16a34a;font-weight:700">🏦 PRONAMPE</button>
             <button class="main-tab" onclick="goTab('emprestimos')">🏦 Empréstimos</button>
-          <button class="main-tab" onclick="goTab('pmc')">💊 PMC</button>
+          
           <button class="main-tab" onclick="goTab('clientes')">&#128101; Clientes</button>
     <button class="main-tab" onclick="backupManual()" title="Fazer backup agora" style="color:#fbbf24;">💾 Backup</button>
   </div>
@@ -2748,38 +2748,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
   </div>
 
   <!-- EMPRESTIMOS MS FARMA -->
-      <div class="section" id="sec-pmc">
-  <div class="sec-title">💊 Consulta PMC — CMED/ANVISA</div>
-  <div style="max-width:700px;margin:0 auto">
-    <div class="form-card" style="margin-bottom:1rem">
-      <div style="font-size:13px;color:var(--text2);margin-bottom:16px">
-        🏷️ Preço Máximo ao Consumidor com <strong>ICMS 12% — Ceará</strong>. Consulta direta na tabela oficial CMED/ANVISA.
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <input type="text" id="pmc-busca" placeholder="Ex: Losartana, Dipirona 500mg, Omeprazol..." 
-          style="flex:1;height:40px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:0 12px;font-size:14px;color:var(--text);outline:none"
-          onkeydown="if(event.key===&quot;Enter&quot;)consultarPMC()">
-        <button class="btn btn-green" onclick="consultarPMC()">🔍 Consultar</button>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
-        <span style="font-size:11px;color:var(--text3)">Exemplos:</span>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Dipirona&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Dipirona</button>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Losartana&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Losartana</button>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Omeprazol&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Omeprazol</button>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Amoxicilina&quot;;consultarPMC()" style="padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:11px;color:var(--text2);cursor:pointer">Amoxicilina</button>
-        <button onclick="document.getElementById(&quot;pmc-busca&quot;).value=&quot;Metformina&quot;;consultarPMC()" style="padding:3px 10px;backgrou<div id="pmc-resultado"></div>
-    <div style="padding:12px 16px;background:var(--surface2);border-radius:var(--r);font-size:12px;color:var(--text3);line-height:1.6">
-      <strong style="color:var(--text2)">💡 Como consultar o PMC do Ceará:</strong><br>
-      1. Clique em <strong>🔍 Consultar</strong> — abre o painel ANVISA com o produto buscado<br>
-      2. No painel, selecione <strong>Estado: CE</strong> no filtro à esquerda<br>
-      3. A alíquota ICMS do CE para medicamentos é <strong>12%</strong><br>
-      4. Os preços são válidos até o final de cada mês
-    </div>
-  </div>
-</div>
-</div>
-</div>
-<div class="section" id="sec-emprestimos">
+      <div class="section" id="sec-emprestimos">
         <div class="sec-title">
           <i class="ti ti-building-bank" style="font-size:20px;color:#60a5fa"></i> Empréstimos — MS Farma
         </div>
@@ -3133,7 +3102,7 @@ function goTab(t){
   const sec=document.getElementById('sec-'+t);
   if(sec)sec.classList.add('active');
   const allTabs=document.querySelectorAll('.main-tab');
-  const tabs=['nf','boletos','entradas','saidas','relatorio','analise','fornecedores','folha','cartoes','estrategia','produtos','estoque','saude','caixa','entregas','pronampe','emprestimos','pmc','clientes','backup'];
+  const tabs=['nf','boletos','entradas','saidas','relatorio','analise','fornecedores','folha','cartoes','estrategia','produtos','estoque','saude','caixa','entregas','pronampe','emprestimos','clientes','backup'];
   const idx=tabs.indexOf(t);
   if(idx>=0&&allTabs[idx])allTabs[idx].classList.add('active');
   if(t==='dashboard'){renderDashboard();}
@@ -9327,45 +9296,6 @@ function abrirConsultaPMC_old(){
   var url='https://app.powerbi.com/view?r=eyJrIjoiYjZkZjEyM2YtNzNjYS00ZmQyLTliYTEtNDE2MDc4ZmE1NDEyIiwidCI6ImI2N2FmMjNmLWMzZjMtNGQzNS04MGM3LWI3MDg1ZmFmMzIwNiJ9';
   window.open(url,'_blank');
   if(busca)showToast('Busque por "'+busca+'" no painel ANVISA e selecione CE','blue');
-}
-function consultarPMC(){
-  var busca=document.getElementById('pmc-busca').value.trim();
-  if(!busca){showToast('Digite o nome do medicamento','yellow');return;}
-  var url='https://medicamentos.api.br/buscar?q='+encodeURIComponent(busca);
-  window.open(url,'_blank');
-  return;
-  // codigo antigo abaixo (desativado)
-  var busca=document.getElementById('pmc-busca').value.trim();
-  if(!busca)return;
-  var res=document.getElementById('pmc-resultado');
-  res.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3)">Consultando tabela CMED...</div>';
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:'claude-sonnet-4-6',
-      max_tokens:1000,
-      system:'Voce e um consultor de precos CMED ANVISA. Responda APENAS com JSON valido sem texto extra. Formato: {"encontrado":true,"medicamentos":[{"nome":"NOME","principio_ativo":"principio","fabricante":"fabricante","classificacao":"Generico","pf_0":0.00,"pf_12":0.00,"pmc_12":0.00,"regime":"Regulado"}],"competencia":"mes/ano"} Se nao encontrar: {"encontrado":false,"mensagem":"motivo"} Use dados reais CMED mais recente. PMC 12% e para o Ceara. Ate 5 opcoes.',
-      messages:[{role:'user',content:'PMC CMED ICMS 12% Ceara: '+busca}]
-    })
-  }).then(function(r){return r.json();}).then(function(data){
-    var texto=data.content[0].text.replace(/```json|```/g,'').trim();
-    var p;
-    try{p=JSON.parse(texto);}catch(ex){res.innerHTML='<div style="color:var(--red);padding:12px">Erro ao processar resposta: '+ex.message+'</div>';console.error('JSON erro:',texto);return;}
-    if(!p.encontrado){res.innerHTML='<div style="padding:12px;background:var(--surface2);border-radius:var(--r);color:var(--text3);font-size:13px">'+( p.mensagem||'Nao encontrado.')+'</div>';return;}
-    var html='<div style="font-size:11px;color:var(--text3);margin-bottom:10px;text-align:center">CMED/ANVISA - '+(p.competencia||'atual')+'</div>';
-    p.medicamentos.forEach(function(med){
-      html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:12px">'
-        +'<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">'+med.nome+'</div>'
-        +'<div style="font-size:12px;color:var(--text3);margin-bottom:12px">'+med.principio_ativo+' - '+med.fabricante+' - '+med.classificacao+'</div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
-        +'<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:var(--r)"><div style="font-size:10px;color:var(--text3);margin-bottom:4px">PF s/ICMS</div><div style="font-size:15px;font-weight:700;color:var(--text2)">'+(med.pf_0?'R$ '+med.pf_0.toFixed(2).replace('.',','):'--')+'</div></div>'
-        +'<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:var(--r)"><div style="font-size:10px;color:var(--text3);margin-bottom:4px">PF ICMS 12%</div><div style="font-size:15px;font-weight:700;color:var(--text)">'+(med.pf_12?'R$ '+med.pf_12.toFixed(2).replace('.',','):'--')+'</div></div>'
-        +'<div style="text-align:center;padding:10px;background:var(--green-dim);border:1px solid var(--green-border);border-radius:var(--r)"><div style="font-size:10px;color:var(--green);margin-bottom:4px;font-weight:600">PMC CE 12%</div><div style="font-size:18px;font-weight:800;color:var(--green)">'+(med.pmc_12?'R$ '+med.pmc_12.toFixed(2).replace('.',','):'--')+'</div></div>'
-        +'</div></div>';
-    });
-    res.innerHTML=html;
-  }).catch(function(){res.innerHTML='<div style="color:var(--red);font-size:13px">Erro ao consultar. Tente novamente.</div>';});
 }
 function toggleNotificacoes(){
   var painelExistente=document.getElementById('painel-alertas');
