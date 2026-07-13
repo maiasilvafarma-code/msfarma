@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #294 - Remocao da aba PMC -->
+<!-- Deploy #295 - Rentabilidade grava o periodo do arquivo -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -5181,6 +5181,14 @@ function importarRentabilidadeXls(file){
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       const produtos=[];
       let ignorados=0;
+      var periodoRent='';
+      try{
+        for(let _i=0;_i<Math.min(15,rows.length);_i++){
+          var _linha=(rows[_i]||[]).join(' ');
+          var _m=_linha.match(/(\d{2}\/\d{2}\/\d{4})\s*a\s*(\d{2}\/\d{2}\/\d{4})/);
+          if(_m){ periodoRent=_m[1]+' a '+_m[2]; break; }
+        }
+      }catch(e){}
       for(let i=0;i<rows.length;i++){
         const r=rows[i];
         const cod=String(r[0]||'').trim();
@@ -5201,7 +5209,7 @@ function importarRentabilidadeXls(file){
       if(produtos.length===0){alert('Nenhum produto valido encontrado no arquivo.');return;}
       const criticos=produtos.filter(function(p){return p.margem<0;}).sort(function(a,b){return a.margem-b.margem;});
       const atencao=produtos.filter(function(p){return p.margem>=0&&p.margem<10;}).sort(function(a,b){return a.margem-b.margem;});
-      const dadosMargem={importadoEm:new Date().toISOString(),arquivo:file.name,totalAnalisado:produtos.length,ignorados:ignorados,criticos:criticos,atencao:atencao,todos:produtos};
+      const dadosMargem={importadoEm:new Date().toISOString(),arquivo:file.name,periodo:periodoRent||'',totalAnalisado:produtos.length,ignorados:ignorados,criticos:criticos,atencao:atencao,todos:produtos};
       localStorage.setItem('farmacia-margem-produtos',JSON.stringify(dadosMargem));
       document.getElementById('rentabilidade-xls-input').value='';
       showToast('Rentabilidade importada: '+produtos.length+' produtos | '+criticos.length+' com prejuizo | '+atencao.length+' com margem baixa','green');
