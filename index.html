@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #294 - Remocao da aba PMC -->
+<!-- Deploy #298 - Contas fixas: checkbox e gerador mensal -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -1896,6 +1896,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
           <input type="checkbox" id="s-pago" style="width:16px;height:16px;cursor:pointer">
           ✅ Já paguei (à vista)
         </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2)">
+          <input type="checkbox" id="s-fixa" style="width:16px;height:16px;cursor:pointer">
+          🔁 Conta fixa
+        </label>
         <button class="btn" style="color:var(--red);border-color:var(--red-border);background:var(--red-dim)" onclick="addSaida()">+ Registrar saída</button>
       </div>
     </div>
@@ -1910,6 +1914,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
       <div class="search-input-wrap"><i class="ti ti-search"></i><input type="text" id="s-search" placeholder="Buscar descrição, categoria..." oninput="renderSaidas()"></div>
       <select class="status-select" id="s-cat-sel" onchange="renderSaidas()"><option value="">Todas as categorias</option><option>Fornecedores</option><option>Aluguel</option><option>Energia elétrica</option><option>Água</option><option>Salários</option><option>Impostos/Taxas</option><option>Outros</option></select>
       <button class="btn" style="color:var(--yellow);border-color:var(--yellow-border,#fac775)" onclick="limparZerados(&#39;saidas&#39;)" title="Apaga todos os itens com valor R$0,00"><i class="ti ti-currency-off" style="font-size:14px"></i> Apagar zerados</button>
+      <button class="btn" onclick="gerarFixasMes()" title="Cria as contas fixas para o mes seguinte" style="color:var(--green);border-color:var(--green)"><i class="ti ti-repeat" style="font-size:14px"></i> Gerar fixas</button>
       <button class="btn" onclick="deduplicar(&#39;saidas&#39;)" title="Remove itens repetidos"><i class="ti ti-copy-off" style="font-size:14px"></i> Duplicatas</button>
       <button class="btn" style="color:var(--red);border-color:var(--red-border)" onclick="limparSecao(&#39;saidas&#39;)" title="Limpar todos os registros"><i class="ti ti-trash" style="font-size:14px"></i> Limpar</button>
     </div>
@@ -4021,18 +4026,54 @@ function renderEntradas(){
 }
 
 // SAÍDAS ─────────────────────────────────────────────
+function gerarFixasMes(){
+  var fixas=(D.saidas||[]).filter(function(x){return x.fixa;});
+  if(fixas.length===0){ alert("Nenhuma conta marcada como fixa ainda.\n\nMarque uma saida como 🔁 Conta fixa ao registrar, e ela podera ser repetida aqui."); return; }
+  var porDesc={};
+  fixas.forEach(function(x){
+    var chave=(x.desc||"").toLowerCase().trim();
+    if(!porDesc[chave] || x.date>porDesc[chave].date) porDesc[chave]=x;
+  });
+  var modelos=Object.keys(porDesc).map(function(k){return porDesc[k];});
+  var hoje=new Date();
+  var ano=hoje.getFullYear(), mes=hoje.getMonth();
+  var proxMes=new Date(ano, mes+1, 1);
+  var pAno=proxMes.getFullYear();
+  var pMes=String(proxMes.getMonth()+1).padStart(2,"0");
+  var alvoMes=pAno+"-"+pMes;
+  var jaExistem=(D.saidas||[]).filter(function(x){return x.fixa && (x.date||"").slice(0,7)===alvoMes;});
+  var jaDescs={};
+  jaExistem.forEach(function(x){jaDescs[(x.desc||"").toLowerCase().trim()]=true;});
+  var criar=modelos.filter(function(m){return !jaDescs[(m.desc||"").toLowerCase().trim()];});
+  if(criar.length===0){ alert("As contas fixas de "+alvoMes+" ja foram geradas.\n\nNada a fazer."); return; }
+  var total=criar.reduce(function(s,x){return s+(x.val||0);},0);
+  var lista=criar.map(function(x){
+    var dia=(x.date||"").slice(8,10)||"05";
+    return "  - "+x.desc+" (dia "+dia+"): R$ "+(x.val||0).toFixed(2);
+  }).join("\n");
+  if(!confirm("Gerar "+criar.length+" conta(s) fixa(s) para "+alvoMes+"?\n\n"+lista+"\n\nTotal: R$ "+total.toFixed(2)+"\n\nSerao criadas como NAO PAGAS. Confira e ajuste os valores que mudarem (ex: energia).")) return;
+  criar.forEach(function(m){
+    var dia=(m.date||"").slice(8,10)||"05";
+    var novaData=alvoMes+"-"+dia;
+    D.saidas.unshift({id:Date.now()+Math.floor(Math.random()*1000),desc:m.desc,cat:m.cat,val:m.val,date:novaData,note:m.note||"",boletoId:null,paid:false,paidDate:null,fixa:true});
+  });
+  save();
+  alert(criar.length+" conta(s) fixa(s) criada(s) para "+alvoMes+".\n\nElas estao como NAO PAGAS. Va conferir e ajustar valores que mudaram.");
+  if(typeof renderSaidas==="function") renderSaidas();
+}
+
 function addSaida(auto){
   let desc,cat,val,date,note,boletoId,paid;
   if(auto){({desc,cat,val,date,note,boletoId,paid}=auto);}
   else{
     desc=document.getElementById('s-desc').value.trim();cat=document.getElementById('s-cat').value;
     val=parseFloat(document.getElementById('s-val').value);date=document.getElementById('s-date').value;note=document.getElementById('s-note').value.trim();
-    paid=document.getElementById('s-pago').checked;
+    paid=document.getElementById('s-pago').checked;var fixa=document.getElementById('s-fixa')?document.getElementById('s-fixa').checked:false;
     if(!desc||!date||isNaN(val)||val<=0){alert('Preencha descrição, valor e data.');return;}
   }
-  D.saidas.unshift({id:Date.now(),desc,cat,val,date,note,boletoId:boletoId||null,paid:paid||false,paidDate:paid?date:null});
+  D.saidas.unshift({id:Date.now(),desc,cat,val,date,note,boletoId:boletoId||null,paid:paid||false,paidDate:paid?date:null,fixa:(auto?(auto.fixa||false):fixa)});
   if(!auto)sMonth=date.substring(0,7);
-  save();if(!auto){['s-desc','s-val','s-note'].forEach(id=>document.getElementById(id).value='');document.getElementById('s-date').value=today();document.getElementById('s-pago').checked=false;}renderAll();
+  save();if(!auto){['s-desc','s-val','s-note'].forEach(id=>document.getElementById(id).value='');document.getElementById('s-date').value=today();document.getElementById('s-pago').checked=false;if(document.getElementById('s-fixa'))document.getElementById('s-fixa').checked=false;}renderAll();
   if(!auto)showToast(paid?'✅ Saída registrada como paga!':'+ Saída registrada!',paid?'green':'red');
 }
 function paySaida(id){
