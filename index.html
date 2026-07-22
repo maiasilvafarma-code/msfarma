@@ -5050,6 +5050,51 @@ function _kpi(label,value,icon,color){
 
 
 // FORNECEDORES ────────────────────────────────────────
+
+function abrirEditarFornecedorBtn(btn){
+var td=btn.closest('td');
+var nome=td?td.getAttribute('data-forn-nome'):'';
+if(!nome)return;
+nome=nome.replace(/&quot;/g,'"');
+abrirEditarFornecedor(nome);
+}
+function abrirEditarFornecedor(nomeAntigo){
+var safeVal=String(nomeAntigo).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+document.getElementById('modal-area').innerHTML=
+'<div class="modal-overlay" onclick="closeModal(event)">'
++'<div class="modal-box" onclick="event.stopPropagation()" style="max-width:420px">'
++'<div class="modal-head">'
++'<i class="ti ti-edit" style="font-size:20px;color:var(--blue)"></i>'
++'<div><div style="font-size:15px;font-weight:600">Editar nome do fornecedor</div>'
++'<div style="font-size:12px;color:var(--text2);margin-top:2px">Atualiza o nome em todas as notas fiscais e boletos vinculados.</div></div>'
++'</div>'
++'<div class="modal-body">'
++'<div class="field"><label>Novo nome</label><input type="text" id="edit-forn-novo-nome" value="'+safeVal+'"></div>'
++'</div>'
++'<div class="modal-foot">'
++'<button class="btn" onclick="closeModal()">Cancelar</button>'
++'<button class="btn btn-green" onclick="salvarNomeFornecedor(window._fornEditando)">Salvar</button>'
++'</div>'
++'</div>'
++'</div>';
+window._fornEditando=nomeAntigo;
+setTimeout(function(){var inp=document.getElementById('edit-forn-novo-nome');if(inp){inp.focus();inp.select();}},50);
+}
+function salvarNomeFornecedor(nomeAntigo){
+var inp=document.getElementById('edit-forn-novo-nome');
+var novoNome=inp?inp.value.trim():'';
+if(!novoNome){showToast('Digite um nome válido.','red');return;}
+if(novoNome===nomeAntigo){closeModal();return;}
+var jaExiste=D.boletos.some(function(b){return b.sup===novoNome;})||D.nf.some(function(n){return n.sup===novoNome;});
+var qtdNf=0,qtdBol=0;
+D.nf.forEach(function(n){if(n.sup===nomeAntigo){n.sup=novoNome;qtdNf++;}});
+D.boletos.forEach(function(b){if(b.sup===nomeAntigo){b.sup=novoNome;qtdBol++;}});
+if(D.fornecedores){D.fornecedores.forEach(function(f){if(f.nome===nomeAntigo)f.nome=novoNome;});}
+save();
+closeModal();
+renderFornecedores();
+showToast('Fornecedor renomeado: '+qtdNf+' NF(s) e '+qtdBol+' boleto(s) atualizados'+(jaExiste?' - mesclado com fornecedor existente':''),'green');
+}
 function renderFornecedores(){
   const q=(document.getElementById('forn-search').value||'').toLowerCase();
   const order=document.getElementById('forn-order').value;
@@ -5119,7 +5164,7 @@ function renderFornecedores(){
       const vencColor=vencD<0?'var(--red)':vencD<=3?'var(--red)':vencD<=7?'var(--yellow)':'var(--text2)';
       const barColor=pct>70?'var(--red)':pct>40?'var(--yellow)':'var(--green)';
       return'<tr>'
-        +'<td style="font-weight:600">'+f.nome+'</td>'
+        +'<td style="font-weight:600" data-forn-nome="'+String(f.nome).replace(/"/g,'&quot;')+'">'+f.nome+' <button class="btn-icon" onclick="abrirEditarFornecedorBtn(this)" title="Editar nome do fornecedor" style="color:var(--blue);width:20px;height:20px;padding:0;font-size:11px;line-height:1">&#9998;</button></td>'
         +'<td><div style="background:var(--surface2);border-radius:99px;height:6px;overflow:hidden">'
         +'<div style="background:'+barColor+';height:100%;width:'+pct.toFixed(0)+'%;border-radius:99px"></div></div>'
         +'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+pct.toFixed(0)+'% do total</div></td>'
