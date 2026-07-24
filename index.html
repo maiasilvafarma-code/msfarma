@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #301 - Fase 1 mostra saldo do inventario -->
+<!-- Deploy #302 - Fase 1: saldo real do inventario na segunda tabela -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -5610,7 +5610,7 @@ function renderEstoque(){
     var ck=checklist[p.nome||p.descricao]||{},ct=ck.contei!==undefined?ck.contei:'',st=ck.status||'pendente';
     var ic=st==='ok'?'\u2705':(st==='diferente'?'\u274c':'\u23f3');
     var bg=st==='ok'?'rgba(34,197,94,0.05)':(st==='diferente'?'rgba(239,68,68,0.05)':'transparent');
-    var eq=p.estoque!==undefined?p.estoque:(p.qtde!==undefined?p.qtde:(p.qtd||0));
+    var _cod2=String(p.codigo||'').trim(); if(typeof window._MSFINV==='undefined'){ window._MSFINV={}; try{ var _i2=JSON.parse(localStorage.getItem('farmacia-inventario-fisico')); if(_i2&&_i2.produtos){_i2.produtos.forEach(function(x){window._MSFINV[String(x.codigo).trim()]=x.estoque;});} }catch(e){} } var eq=(window._MSFINV[_cod2]!==undefined)?window._MSFINV[_cod2]:0;
     var ds=(p.nome||p.descricao||'').replace(/'/g,'').replace(/"/g,'&quot;');
     h+='<tr style="border-bottom:1px solid var(--border);background:'+bg+'">';
     h+='<td style="padding:5px 8px;color:var(--text2)">'+(i0+i+1)+'</td>';
