@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #302 - Fase 1: saldo real do inventario na segunda tabela -->
+<!-- Deploy #303 - Corrige rotulo e faturamento do historico ABC -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -9819,9 +9819,9 @@ function renderHistoricoAnual(){
   if(!meses.length){div.style.display='none';return;}
   div.style.display='';
   var mN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var fmt=function(m){var p=m.split('-');return(mN[parseInt(p[1])-1]||p[1])+'/'+(p[0]?p[0].slice(2):'');};
+  var fmt=function(m){if(!/^\d{4}-\d{2}$/.test(m))return m;var p=m.split('-');return(mN[parseInt(p[1])-1]||p[1])+'/'+(p[0]?p[0].slice(2):'');};
   var labels=meses.map(fmt);
-  var totalVenda=meses.map(function(m){return hist[m].total||0;});
+  var totalVenda=meses.map(function(m){return hist[m].total||hist[m].faturamento||0;});
   var nA=meses.map(function(m){return hist[m].classeA||0;});
   var nB=meses.map(function(m){return hist[m].classeB||0;});
   var nC=meses.map(function(m){return hist[m].classeC||0;});
