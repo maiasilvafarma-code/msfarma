@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #298 - Contas fixas: checkbox e gerador mensal -->
+<!-- Deploy #299 - Regua visual no ticket medio -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -9768,7 +9768,7 @@ function renderDashboard(){
     +'</div>'
 
     // Ticket médio
-    +'<div class="chart-card" style="text-align:center"><div class="chart-title">🎯 Ticket Médio</div><div style="font-size:32px;font-weight:800;color:var(--green);margin:12px 0">'+(ticketMedio>0?fmtCur(ticketMedio):'—')+'</div><div style="font-size:11px;color:var(--text2)">por cliente</div></div>'
+    +'<div class="chart-card" style="text-align:center"><div class="chart-title">🎯 Ticket Médio</div><div style="font-size:32px;font-weight:800;color:'+(ticketMedio<25?"var(--red)":ticketMedio<35?"var(--yellow)":"var(--green)")+';margin:12px 0 4px">'+(ticketMedio>0?fmtCur(ticketMedio):'—')+'</div><div style="font-size:12px;font-weight:700;color:'+(ticketMedio<25?"var(--red)":ticketMedio<35?"var(--yellow)":"var(--green)")+';margin-bottom:10px">'+(ticketMedio<=0?"":ticketMedio<25?"● PRECISA MELHORAR":ticketMedio<35?"● BOM":"● ÓTIMO")+'</div><div style="position:relative;height:6px;background:linear-gradient(90deg,var(--red) 0%,var(--red) 33%,var(--yellow) 33%,var(--yellow) 66%,var(--green) 66%,var(--green) 100%);border-radius:3px;margin:0 8px 6px">'+(ticketMedio>0?'<div style="position:absolute;top:-4px;left:'+Math.min(98,Math.max(1,(ticketMedio<25?(ticketMedio/25*33):ticketMedio<35?(33+((ticketMedio-25)/10*33)):(66+Math.min(34,(ticketMedio-35)/15*34)))))+'%;width:3px;height:14px;background:var(--text);border-radius:2px"></div>':'')+'</div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin:0 6px 8px"><span>R$ 25</span><span>R$ 35</span></div><div style="font-size:11px;color:var(--text2)">por cliente</div></div>'
 
     // Ranking dias
     +'<div class="chart-card"><div class="chart-title">📅 Dias mais fortes</div>'+(rankingDias.length>0?rankingDias.map(function(d,i){var pct=rankingDias[0].media>0?d.media/rankingDias[0].media*100:0;var cor=i===0?'var(--green)':i===1?'var(--blue)':i===2?'var(--yellow)':'var(--text3)';return'<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><div style="width:26px;font-weight:700;color:'+cor+';font-size:12px">'+d.nome+'</div><div style="flex:1;background:var(--surface2);border-radius:99px;height:5px;overflow:hidden"><div style="background:'+cor+';height:100%;width:'+pct.toFixed(0)+'%;border-radius:99px"></div></div><div style="font-size:11px;font-weight:600;color:'+cor+';min-width:70px;text-align:right">'+fmtCur(d.media)+'</div></div>';}).join(''):'<div style="color:var(--text3);font-size:12px">Importe a Relação de Vendas</div>')+'</div>'
