@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #303 - Corrige rotulo e faturamento do historico ABC -->
+<!-- Deploy #304 - Corrige card de faturamento do historico ABC -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -9838,7 +9838,7 @@ function renderHistoricoAnual(){
     meses.map(function(m){return '<option value="'+m+'"'+(m===mesSel?' selected':'')+'>'+fmt(m)+'</option>';}).join('')+
     '</select></div>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1.25rem">'+
-    [{label:'Faturamento',val:fmtR(dadosSel.total),cor:'var(--green)'},{label:'Total Produtos',val:(dadosSel.totalProdutos||0)+'',cor:'var(--text)'},{label:'Classe A',val:(dadosSel.classeA||0)+' itens',cor:'var(--red)'},{label:'Classe B',val:(dadosSel.classeB||0)+' itens',cor:'var(--yellow)'},{label:'Classe C',val:(dadosSel.classeC||0)+' itens',cor:'var(--green)'}]
+    [{label:'Faturamento',val:fmtR(dadosSel.total||dadosSel.faturamento||0),cor:'var(--green)'},{label:'Total Produtos',val:(dadosSel.totalProdutos||0)+'',cor:'var(--text)'},{label:'Classe A',val:(dadosSel.classeA||0)+' itens',cor:'var(--red)'},{label:'Classe B',val:(dadosSel.classeB||0)+' itens',cor:'var(--yellow)'},{label:'Classe C',val:(dadosSel.classeC||0)+' itens',cor:'var(--green)'}]
     .map(function(k){return '<div style="background:var(--surface2);border-radius:10px;padding:.75rem;text-align:center"><div style="font-size:11px;color:var(--text2);margin-bottom:.25rem">'+k.label+'</div><div style="font-size:15px;font-weight:700;color:'+k.cor+'">'+k.val+'</div></div>';}).join('')+
     '</div>'+
     '<div style="margin-bottom:1.25rem"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:.5rem">EVOLUCAO MENSAL — FATURAMENTO (R$)</div><canvas id="chart-hist-fat" height="80"></canvas></div>'+
