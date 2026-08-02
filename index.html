@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #306 - Importador de Clientes pergunta o mes (evita sobrescrita) -->
+<!-- Deploy #307 - msfarma-clientes-hist para o IndexedDB (libera espaco) -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -112,7 +112,7 @@
     if(window.msfarmaMedidor) window.msfarmaMedidor();
   };
 
-  window.MSF_BIG=["msfarma-contatos-google","farmacia-inventario-fisico"];
+  window.MSF_BIG=["msfarma-contatos-google","farmacia-inventario-fisico","msfarma-clientes-hist"];
   window.MSF_CACHE={};
 
   window.msfarmaCarregarBig = async function(){
