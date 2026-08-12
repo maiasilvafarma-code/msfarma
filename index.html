@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #309 - Editar prazo e classe do fornecedor no modal -->
+<!-- Deploy #310 - Simulador com parcelas escalonadas editaveis -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -2947,10 +2947,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
         </div>
         <div class="field"><label>Valor da compra (R$)</label><input type="number" id="sim-val" placeholder="0,00" step="100" min="0" oninput="simularPrazo()"></div>
         <div class="field"><label>Data da compra</label><input type="date" id="sim-data" onchange="simularPrazo()"></div>
-        <div class="field"><label>Prazo solicitado</label>
-          <select id="sim-prazo" onchange="simularPrazo()">
-            <option value="">Selecione o fornecedor primeiro</option>
-          </select>
+        <div class="field"><label>Parcelas (dias, separe por / )</label>
+          <input type="text" id="sim-prazo-txt" placeholder="Ex: 65/75/85/95" oninput="simularPrazo()">
+          <div id="sim-prazo-sug" style="font-size:10px;color:var(--text3);margin-top:3px"></div>
         </div>
       </div>
       <div id="sim-resultado"></div>
@@ -8215,58 +8214,41 @@ function simularPrazo(){
   const forn=document.getElementById('sim-forn').value;
   const val=parseFloat(document.getElementById('sim-val').value)||0;
   const dataCompra=document.getElementById('sim-data').value;
-  const prazoSel=parseInt(document.getElementById('sim-prazo').value)||0;
+  const txt=(document.getElementById('sim-prazo-txt')||{}).value||'';
   const limite=getLimiteDia();
-
-  // Atualiza opções de prazo
-  const prazoEl=document.getElementById('sim-prazo');
-  if(forn&&FORNECEDORES_PRAZOS[forn]){
-    const prazos=FORNECEDORES_PRAZOS[forn].prazos;
-    prazoEl.innerHTML=prazos.map(p=>`<option value="${p}"${p===FORNECEDORES_PRAZOS[forn].melhor?' selected':''}>Em ${p} dias${p===FORNECEDORES_PRAZOS[forn].melhor?' ⭐ (ideal)':''}</option>`).join('');
-  }
-
+  const sug=document.getElementById('sim-prazo-sug');
+  if(sug){ if(forn&&FORNECEDORES_PRAZOS[forn]){ sug.innerHTML='Sugestão '+forn+': '+FORNECEDORES_PRAZOS[forn].prazos.join('/')+' dias'; } else { sug.innerHTML=''; } }
   const res=document.getElementById('sim-resultado');
-  if(!forn||!val||!dataCompra||!prazoSel){res.innerHTML='';return;}
-
-  // Calcula data de vencimento
-  const dt=new Date(dataCompra+'T12:00:00');
-  dt.setDate(dt.getDate()+prazoSel);
-  const vencStr=dt.toISOString().split('T')[0];
-  const [,vmm,vdd]=vencStr.split('-');
-
-  // Quanto já tem nesse dia
-  const jaTem=D.boletos.filter(b=>b.due===vencStr&&!b.paid).reduce((s,b)=>s+b.val,0);
-  const totalDia=jaTem+val;
-  const acima=totalDia>limite;
-  const diasVenda=Math.ceil(val/3400);
-
-  const bg=acima?'var(--red-dim)':'var(--green-dim)';
-  const border=acima?'var(--red-border)':'var(--green-border)';
-  const col=acima?'var(--red)':'var(--green)';
-
-  res.innerHTML='<div style="background:'+bg+';border:1px solid '+border+';border-radius:var(--r);padding:14px">'
-    +'<div style="font-size:15px;font-weight:700;color:'+col+';margin-bottom:10px">'
-    +(acima?'⚠️ Atenção: dia '+vdd+'/'+vmm+' ficará acima do limite!':'✅ Ótimo! Dia '+vdd+'/'+vmm+' está dentro do limite.')
+  const parcelas=txt.split('/').map(function(x){return parseInt(x.trim());}).filter(function(x){return !isNaN(x)&&x>0;});
+  if(!val||!dataCompra||parcelas.length===0){ res.innerHTML=''; return; }
+  const valParc=val/parcelas.length;
+  let temAcima=false;
+  let linhas='';
+  parcelas.forEach(function(p){
+    const dt=new Date(dataCompra+'T12:00:00'); dt.setDate(dt.getDate()+p);
+    const vencStr=dt.toISOString().split('T')[0];
+    const parts=vencStr.split('-'); const vdd=parts[2],vmm=parts[1];
+    const jaTem=D.boletos.filter(function(b){return b.due===vencStr&&!b.paid;}).reduce(function(s,b){return s+b.val;},0);
+    const totalDia=jaTem+valParc;
+    const acima=totalDia>limite;
+    if(acima) temAcima=true;
+    const col=acima?'var(--red)':'var(--green)';
+    const ic=acima?'⚠️':'✅';
+    linhas+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border)">'
+      +'<div><span style="font-weight:700">'+vdd+'/'+vmm+'</span> <span style="color:var(--text3);font-size:11px">(em '+p+' dias)</span></div>'
+      +'<div style="text-align:right"><div style="font-weight:700">'+fmtCur(valParc)+'</div><div style="font-size:10px;color:'+col+'">'+ic+' dia: '+fmtCur(totalDia)+' / '+fmtCur(limite)+'</div></div>'
+      +'</div>';
+  });
+  const bgTop=temAcima?'var(--red-dim)':'var(--green-dim)';
+  const bdTop=temAcima?'var(--red-border)':'var(--green-border)';
+  const colTop=temAcima?'var(--red)':'var(--green)';
+  res.innerHTML='<div style="background:'+bgTop+';border:1px solid '+bdTop+';border-radius:var(--r);padding:14px">'
+    +'<div style="font-size:14px;font-weight:700;color:'+colTop+';margin-bottom:8px">'
+    +(temAcima?'⚠️ Alguma parcela estoura o limite diário':'✅ Todas as parcelas cabem no limite')
     +'</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">'
-    +'<div style="background:rgba(0,0,0,.15);border-radius:var(--r);padding:10px">'
-    +'<div style="color:var(--text3);margin-bottom:3px">Vencimento</div>'
-    +'<div style="font-weight:700;color:var(--text)">'+fmtDate(vencStr)+' ('+prazoSel+' dias)</div>'
-    +'</div>'
-    +'<div style="background:rgba(0,0,0,.15);border-radius:var(--r);padding:10px">'
-    +'<div style="color:var(--text3);margin-bottom:3px">Total no dia</div>'
-    +'<div style="font-weight:700;color:'+col+'">'+fmtCur(totalDia)+' / '+fmtCur(limite)+'</div>'
-    +'</div>'
-    +'<div style="background:rgba(0,0,0,.15);border-radius:var(--r);padding:10px">'
-    +'<div style="color:var(--text3);margin-bottom:3px">Já programado</div>'
-    +'<div style="font-weight:700">'+fmtCur(jaTem)+'</div>'
-    +'</div>'
-    +'<div style="background:rgba(0,0,0,.15);border-radius:var(--r);padding:10px">'
-    +'<div style="color:var(--text3);margin-bottom:3px">Dias de venda para pagar</div>'
-    +'<div style="font-weight:700">~'+diasVenda+' dias</div>'
-    +'</div>'
-    +'</div>'
-    +(acima?'<div style="margin-top:10px;font-size:12px;color:var(--red)">💡 Sugestão: peça prazo maior ('+(prazoSel+7)+' dias) ou divida o pedido em 2 entregas.</div>':'<div style="margin-top:10px;font-size:12px;color:var(--text2)">💡 Prazo ideal! Antes de confirmar o pedido, sempre peça o prazo máximo disponível: <strong>'+FORNECEDORES_PRAZOS[forn].melhor+' dias</strong>.</div>')
+    +'<div style="font-size:12px;color:var(--text2);margin-bottom:8px">Compra de '+fmtCur(val)+' em '+parcelas.length+'x de '+fmtCur(valParc)+'</div>'
+    +'<div style="background:rgba(0,0,0,.15);border-radius:var(--r);overflow:hidden">'+linhas+'</div>'
+    +(temAcima?'<div style="margin-top:10px;font-size:12px;color:var(--red)">💡 Nos dias ⚠️, negocie mudar a data dessa parcela ou reduza o pedido.</div>':'<div style="margin-top:10px;font-size:12px;color:var(--text2)">💡 Bom plano! Confirme o escalonamento com o fornecedor no pedido.</div>')
     +'</div>';
 }
 
