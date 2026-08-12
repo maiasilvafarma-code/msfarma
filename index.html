@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #308 - Cards de conciliacao mostram periodo acumulado -->
+<!-- Deploy #309 - Editar prazo e classe do fornecedor no modal -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -5062,16 +5062,18 @@ abrirEditarFornecedor(nome);
 }
 function abrirEditarFornecedor(nomeAntigo){
 var safeVal=String(nomeAntigo).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+var _feList=JSON.parse(localStorage.getItem('farmacia-fornecedores-extra')||'[]');var _fe=_feList.find(function(x){return x.nome===nomeAntigo;})||{min:0,max:0,classe:'B'};
 document.getElementById('modal-area').innerHTML=
 '<div class="modal-overlay" onclick="closeModal(event)">'
 +'<div class="modal-box" onclick="event.stopPropagation()" style="max-width:420px">'
 +'<div class="modal-head">'
 +'<i class="ti ti-edit" style="font-size:20px;color:var(--blue)"></i>'
-+'<div><div style="font-size:15px;font-weight:600">Editar nome do fornecedor</div>'
++'<div><div style="font-size:15px;font-weight:600">Editar fornecedor</div>'
 +'<div style="font-size:12px;color:var(--text2);margin-top:2px">Atualiza o nome em todas as notas fiscais e boletos vinculados.</div></div>'
 +'</div>'
 +'<div class="modal-body">'
 +'<div class="field"><label>Novo nome</label><input type="text" id="edit-forn-novo-nome" value="'+safeVal+'"></div>'
++'<div class="fg fg-3" style="margin-top:10px"><div class="field"><label>Prazo mín (dias)</label><input type="number" id="edit-forn-min" value="'+((_fe&&_fe.min)||0)+'"></div><div class="field"><label>Prazo máx (dias)</label><input type="number" id="edit-forn-max" value="'+((_fe&&_fe.max)||0)+'"></div><div class="field"><label>Classe</label><input type="text" id="edit-forn-classe" value="'+((_fe&&_fe.classe)||"B")+'" maxlength="1"></div></div>'
 +'</div>'
 +'<div class="modal-foot">'
 +'<button class="btn" onclick="closeModal()">Cancelar</button>'
@@ -5086,13 +5088,13 @@ function salvarNomeFornecedor(nomeAntigo){
 var inp=document.getElementById('edit-forn-novo-nome');
 var novoNome=inp?inp.value.trim():'';
 if(!novoNome){showToast('Digite um nome válido.','red');return;}
-if(novoNome===nomeAntigo){closeModal();return;}
+var _mudouNome=(novoNome!==nomeAntigo);
 var jaExiste=D.boletos.some(function(b){return b.sup===novoNome;})||D.nf.some(function(n){return n.sup===novoNome;});
 var qtdNf=0,qtdBol=0;
 D.nf.forEach(function(n){if(n.sup===nomeAntigo){n.sup=novoNome;qtdNf++;}});
 D.boletos.forEach(function(b){if(b.sup===nomeAntigo){b.sup=novoNome;qtdBol++;}});
 if(D.fornecedores){D.fornecedores.forEach(function(f){if(f.nome===nomeAntigo)f.nome=novoNome;});}
-save();
+var _min=parseInt(document.getElementById('edit-forn-min')?.value)||0;var _max=parseInt(document.getElementById('edit-forn-max')?.value)||0;var _cls=(document.getElementById('edit-forn-classe')?.value||'B').toUpperCase().slice(0,1);var _fl=JSON.parse(localStorage.getItem('farmacia-fornecedores-extra')||'[]');var _f=_fl.find(function(x){return x.nome===nomeAntigo;});if(_f){_f.nome=novoNome;_f.min=_min;_f.max=_max;_f.classe=_cls;}else{_fl.push({nome:novoNome,min:_min,max:_max,classe:_cls,obs:'',media:0});}localStorage.setItem('farmacia-fornecedores-extra',JSON.stringify(_fl));save();
 closeModal();
 renderFornecedores();
 showToast('Fornecedor renomeado: '+qtdNf+' NF(s) e '+qtdBol+' boleto(s) atualizados'+(jaExiste?' - mesclado com fornecedor existente':''),'green');
