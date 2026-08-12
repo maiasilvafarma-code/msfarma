@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #307 - msfarma-clientes-hist para o IndexedDB (libera espaco) -->
+<!-- Deploy #308 - Cards de conciliacao mostram periodo acumulado -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -5045,9 +5045,9 @@ function renderAnalise(){
     }).join('')+'</div>';
 }
 
-function _kpi(label,value,icon,color){
+function _kpi(label,value,icon,color,sub){
   return'<div class="mcard"><div class="mcard-label"><i class="ti '+icon+'" style="font-size:13px;color:'+color+'"></i> '+label+'</div>'
-    +'<div class="mcard-value" style="color:'+color+'">'+value+'</div></div>';
+    +'<div class="mcard-value" style="color:'+color+'">'+value+'</div>'+(sub?'<div style="font-size:10px;color:var(--text3);font-weight:400;margin-top:2px">'+sub+'</div>':'')+'</div>';
 }
 
 
@@ -7789,9 +7789,9 @@ function renderConciliacao(){
     elR.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text3)">Importe um extrato OFX do Santander para conciliar.</div>';
     return;
   }
-  elK.innerHTML=_kpi('Pix recebido','R$ '+dados.pixRecebido.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-qrcode','var(--green)')
-    +_kpi('Juros/Multa/IOF','R$ '+dados.custoFinanceiro.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-alert-triangle','var(--red)')
-    +_kpi('Retiradas sócias','R$ '+dados.retiradas.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-arrow-up-right','var(--yellow)')
+  var _todasT=[];['naoIdentificados','outros','confirmados','encontrados'].forEach(function(cp){if(Array.isArray(dados[cp]))dados[cp].forEach(function(t){if(t.data)_todasT.push(t.data);});});_todasT.sort();var _periodo=_todasT.length?('Acumulado '+_todasT[0].split('-').reverse().join('/').slice(0,5)+' a '+_todasT[_todasT.length-1].split('-').reverse().join('/').slice(0,5)):'Acumulado';var _nArq=(dados.arquivos||[]).length;var _subP=_periodo+(_nArq?' • '+_nArq+' extratos':'');elK.innerHTML=_kpi('Pix recebido','R$ '+dados.pixRecebido.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-qrcode','var(--green)',_subP)
+    +_kpi('Juros/Multa/IOF','R$ '+dados.custoFinanceiro.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-alert-triangle','var(--red)',_subP)
+    +_kpi('Retiradas sócias','R$ '+dados.retiradas.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-arrow-up-right','var(--yellow)',_subP)
     +_kpi('Boletos pagos p/ marcar','',+dados.encontrados.length+'','ti-checklist','var(--green)');
   let html='';
   if(dados.encontrados.length>0){
