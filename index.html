@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #311 - Revertido simulador para versao com bloquinhos de limite -->
+<!-- Deploy #312 - Bloquinhos de vencimento incluem saidas (impostos, folha) -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -3784,6 +3784,14 @@ function renderBoletos(){
       grupos[b.due].count++;
     }
   });
+  (D.saidas||[]).filter(function(s){return !s.paid&&s.date;}).forEach(function(s){
+    const d=daysDiff(s.date);
+    if(d>=-1&&d<=60){
+      if(!grupos[s.date])grupos[s.date]={total:0,count:0,label:fmtDate(s.date),diff:d};
+      grupos[s.date].total+=s.val;
+      grupos[s.date].count++;
+    }
+  });
   const gEntries=Object.entries(grupos).sort(function(a,b){return a[0].localeCompare(b[0]);});
   const summEl=document.getElementById('b-venc-summary');
   if(gEntries.length){
@@ -3796,7 +3804,7 @@ function renderBoletos(){
       cards+='<div style="background:'+bg+';border-radius:var(--r);padding:8px 14px;min-width:130px">'
         +'<div style="font-size:12px;font-weight:700;color:'+col+'">'+g.label+' <span style="font-size:10px;opacity:.8">('+lbl+')</span></div>'
         +'<div style="font-size:16px;font-weight:700;color:var(--text);margin-top:3px">'+fmtCur(g.total)+'</div>'
-        +'<div style="font-size:11px;color:var(--text2)">'+g.count+' boleto(s)</div>'
+        +'<div style="font-size:11px;color:var(--text2)">'+g.count+' conta(s)</div>'
         +'</div>';
     });
     summEl.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;margin-bottom:1rem">'
