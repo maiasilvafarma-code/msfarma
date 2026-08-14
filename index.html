@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #312 - Bloquinhos de vencimento incluem saidas (impostos, folha) -->
+<!-- Deploy #313 - Bloquinhos incluem parcelas de emprestimo -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -3792,6 +3792,7 @@ function renderBoletos(){
       grupos[s.date].count++;
     }
   });
+  if(typeof emprestimosData!=='undefined'){ emprestimosData.forEach(function(e){ var pend=e.parcelas-e.pagas.length; if(pend>0){ var hj=new Date(); for(var pi=0;pi<pend;pi++){ var vc=new Date(hj.getFullYear(), hj.getMonth()+pi, e.diaVenc); if(pi===0 && vc<hj){ vc=new Date(hj.getFullYear(), hj.getMonth()+1, e.diaVenc); } var vs=vc.toISOString().split('T')[0]; var dd=daysDiff(vs); if(dd>=-1&&dd<=60){ if(!grupos[vs])grupos[vs]={total:0,count:0,label:fmtDate(vs),diff:dd}; grupos[vs].total+=e.valor; grupos[vs].count++; } } } }); }
   const gEntries=Object.entries(grupos).sort(function(a,b){return a[0].localeCompare(b[0]);});
   const summEl=document.getElementById('b-venc-summary');
   if(gEntries.length){
