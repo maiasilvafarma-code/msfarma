@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #313 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
+<!-- Deploy #314 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -7454,12 +7454,58 @@ const CX_KEY='farmacia-caixa-v1';
 function loadCaixa(){try{return JSON.parse(localStorage.getItem(CX_KEY)||'[]');}catch(e){return[];}}
 function saveCaixaData(d){localStorage.setItem(CX_KEY,JSON.stringify(d));}
 
+function corrigirCaixaJulho(){
+  var caixas=loadCaixa();
+  var alvo=caixas.filter(function(c){return c.data && c.data.substring(0,7)==='2026-07';});
+  if(alvo.length===0){alert('Nenhum dia de julho/2026 encontrado para corrigir.');return;}
+  // BACKUP automatico antes de mexer
+  try{
+    var bkp=JSON.stringify(caixas,null,2);
+    var blob=new Blob([bkp],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;
+    a.download='backup-caixa-antes-correcao-julho-'+Date.now()+'.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  }catch(e){if(!confirm('Nao consegui baixar o backup automatico. Continuar mesmo assim?'))return;}
+  // Calcular novos saldos e montar resumo
+  var somaAntes=0,somaDepois=0,linhas='';
+  alvo.forEach(function(c){
+    var din=+c.dinheiro||0,car=+c.cartao||0,pix=+c.pix||0;
+    var desp=+c.despesas||0,comb=+c.combustivel||0;
+    var txc=+c.txcartao||0,txp=+c.txpix||0;
+    var novoRec=din+car+pix;
+    var novoDesp=desp+comb+txc+txp;
+    var novoSaldo=novoRec-novoDesp;
+    somaAntes+=(+c.saldo||0);somaDepois+=novoSaldo;
+    c._novoRec=novoRec;c._novoDesp=novoDesp;c._novoSaldo=novoSaldo;
+  });
+  var msg='CORRECAO DE JULHO/2026\n\n';
+  msg+='Dias a corrigir: '+alvo.length+'\n';
+  msg+='Saldo total ANTES: R$ '+somaAntes.toFixed(2)+'\n';
+  msg+='Saldo total DEPOIS: R$ '+somaDepois.toFixed(2)+'\n';
+  msg+='Diferenca: R$ '+(somaDepois-somaAntes).toFixed(2)+'\n\n';
+  msg+='O Control/Outros deixa de descontar do saldo (vira so anotacao).\n';
+  msg+='O backup ja foi baixado. Confirmar a gravacao?';
+  if(!confirm(msg))return;
+  // Gravar
+  alvo.forEach(function(c){
+    c.totalRec=c._novoRec;c.totalDesp=c._novoDesp;c.saldo=c._novoSaldo;
+    delete c._novoRec;delete c._novoDesp;delete c._novoSaldo;
+  });
+  try{
+    saveCaixaData(caixas);
+    alert('Julho corrigido! '+alvo.length+' dias atualizados.\nSaldo do mes agora: R$ '+somaDepois.toFixed(2)+'\n\nNao esqueca de sincronizar com a nuvem depois.');
+    if(typeof renderCaixa==='function')renderCaixa();
+  }catch(e){alert('ERRO ao gravar: '+e.message+'\nOs dados NAO foram alterados. Use o backup se precisar.');}
+}
+
+
 function calcTotalCaixa(){
   const pV=function(id){return parseFloat(document.getElementById(id)?.value||'0')||0;};
   const din=pV('cx-dinheiro'),car=pV('cx-cartao'),pix=pV('cx-pix');
   const ent=pV('cx-entrega'),desp=pV('cx-despesas'),comb=pV('cx-comb'),out=pV('cx-outros');
   const _txc=pV('cx-txcartao'),_txp=pV('cx-txpix');
-  const totalRec=din+car+pix+out;
+  const totalRec=din+car+pix;
   const totalDesp=desp+comb+_txc+_txp;
   const saldo=totalRec-totalDesp;
   const el=document.getElementById('cx-total-preview');
@@ -7486,9 +7532,10 @@ function fecharCaixa(){
   if(existing>=0){if(!confirm('Já existe fechamento para '+fmtDate(data)+'. Substituir?'))return;caixas.splice(existing,1);}
   const din=pV('cx-dinheiro'),car=pV('cx-cartao'),pix=pV('cx-pix');
   const ent=pV('cx-entrega'),desp=pV('cx-despesas'),comb=pV('cx-comb'),out=pV('cx-outros');
+  const _txc=pV('cx-txcartao'),_txp=pV('cx-txpix');
   const obs=document.getElementById('cx-obs').value.trim();
   const totalRec=din+car+pix;
-  const totalDesp=desp+comb+out;
+  const totalDesp=desp+comb+_txc+_txp;
   caixas.push({id:Date.now(),data,dinheiro:din,cartao:car,pix:pix,entrega:ent,
     despesas:desp,combustivel:comb,outros:out,obs,totalRec,totalDesp,saldo:totalRec-totalDesp});
   saveCaixaData(caixas);
