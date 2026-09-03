@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #317 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
+<!-- Deploy #318 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -12231,13 +12231,12 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
 
   async function carregarDaNuvem() {
     try {
-      setStatus('sync');
       const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?select=chave,valor', {
         headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
       });
-      if(!resp.ok) { setStatus('local'); return false; }
+      if(!resp.ok) { return false; }
       const rows = await resp.json();
-      if(!rows || rows.length === 0) { setStatus('local'); return false; }
+      if(!rows || rows.length === 0) { return false; }
       let updated = 0;
       for(const row of rows) {
         if(!SYNC_KEYS.includes(row.chave)) continue;
