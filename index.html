@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #318 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
+<!-- Deploy #319 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -8414,14 +8414,15 @@ function calcFolhaFunc(f,extras){
     }
 
     if(extras.feriadosQtd>0){
-      var ferVal=(salBase/22)*extras.feriadosQtd;
-      proventos.push({desc:'Feriados trabalhados ('+extras.feriadosQtd+')',val:ferVal});
+      var valorPorFeriado=(f.feriadoVal>0?f.feriadoVal:(salBase/22));
+      var ferVal=valorPorFeriado*extras.feriadosQtd;
+      proventos.push({desc:'Feriados trabalhados ('+extras.feriadosQtd+' × '+fmtCur(valorPorFeriado)+')',val:ferVal});
       totalProv+=ferVal;
     }
 
     if(extras.outrasProvDesc&&extras.outrasProvVal>0){
-      proventos.push({desc:extras.outrasProvDesc+(extras.obsGeral?' ('+extras.obsGeral+')':''),val:extras.outrasProvVal});
-      totalProv+=extras.outrasProvVal;
+      descontos.push({desc:extras.outrasProvDesc+(extras.obsGeral?' ('+extras.obsGeral+')':''),val:extras.outrasProvVal});
+      totalDesc+=extras.outrasProvVal;
     }
     if(extras.obsGeral&&!extras.outrasProvVal){
       proventos.push({desc:'Obs: '+extras.obsGeral,val:0});
@@ -8435,7 +8436,7 @@ function calcFolhaFunc(f,extras){
       totalDesc+=inssVal;
     }
 
-    if(f.feriadoVal>0){proventos.push({desc:'Valor Feriado',val:f.feriadoVal});totalProv+=f.feriadoVal;}
+    /* Valor Feriado agora entra no calculo de 'Feriados trabalhados' (qtd x valor) - nao mais linha solta */
     if(f.vt>0){proventos.push({desc:'Vale Transporte',val:f.vt});totalProv+=f.vt;}
     if(f.va>0){proventos.push({desc:'Vale Alimentação',val:f.va});totalProv+=f.va;}
 
@@ -8752,7 +8753,7 @@ function processarFuncMes(funcId,mes,callback){
         <div class="field"><label>Faltas/Atrasos (dias)</label><input type="number" id="ex-faltas" value="0" min="0" step="0.5"></div>
       </div>
       <div class="fg fg-2" style="margin-bottom:10px">
-        <div class="field"><label>Outro provento (desc.)</label><input type="text" id="ex-outpd" placeholder="Ex: Adiantamento"></div>
+        <div class="field"><label>Vales/Adiantamentos (desconto)</label><input type="text" id="ex-outpd" placeholder="Ex: Vale, adiantamento"></div>
         <div class="field"><label>Valor (R$)</label><input type="number" id="ex-outpv" value="0" min="0" step="0.01"></div>
       </div>
       <div class="field">
