@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #316 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
+<!-- Deploy #317 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -12099,19 +12099,10 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     const hoje = new Date().toISOString().slice(0,10);
     const ultimo = localStorage.getItem('farmacia-ultimo-backup');
     if(ultimo === hoje) return;
-    try {
-      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?select=chave,valor', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
-      });
-      if(!resp.ok) return;
-      const rows = await resp.json();
-      for(const row of rows) {
-        if(!SYNC_KEYS.includes(row.chave)) continue;
-        const histKey = 'hist:' + row.chave + ':' + hoje;
-        await supaUpsert(histKey, row.valor);
-      }
-      localStorage.setItem('farmacia-ultimo-backup', hoje);
-    } catch(e) { console.warn('backup diario erro:', e); }
+    // Backup diario na nuvem desativado (tabela farmacia_config retorna 500).
+    // O backup principal e o .json manual, baixado pela aba Backup.
+    // Marcamos a data para nao tentar de novo hoje e nao poluir o console.
+    localStorage.setItem('farmacia-ultimo-backup', hoje);
   }
 
   async function restaurarBackup(chave, data) {
