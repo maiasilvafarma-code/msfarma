@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #319 - Estavel: bloquinhos com boletos+saidas (emprestimos revertidos) -->
+<!-- Deploy #320 - Emprestimos: parcelas pagas salvas no localStorage -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -11947,6 +11947,25 @@ var emprestimosData = [
   { id: 'grp', nome: 'Santander Grupo', parcelas: 9, valor: 607.00, diaVenc: 10, pagas: [1,2,3,4,5] }
 ];
 
+try {
+  var _empPagasSalvas = JSON.parse(localStorage.getItem("msfarma-emprestimos-pagas") || "{}");
+  emprestimosData.forEach(function(e) {
+    if (Array.isArray(_empPagasSalvas[e.id])) { e.pagas = _empPagasSalvas[e.id]; }
+  });
+} catch (err) { console.log("Emprestimos: falha ao ler parcelas pagas", err); }
+
+function empSalvarPagas() {
+  try {
+    var o = {};
+    emprestimosData.forEach(function(e) { o[e.id] = e.pagas; });
+    localStorage.setItem("msfarma-emprestimos-pagas", JSON.stringify(o));
+    return true;
+  } catch (err) {
+    alert("NAO FOI SALVO - erro ao gravar as parcelas do emprestimo");
+    return false;
+  }
+}
+
 function empRenderKpis() {
   var totalDevedor = 0, totalPago = 0, totalMensal = 0;
   var hoje = new Date();
@@ -12012,6 +12031,7 @@ function empPagarParcela(id, parcela) {
         e.pagas.sort(function(a,b){return a-b;});
       }
     });
+    empSalvarPagas();
     empRenderKpis();
     empRenderContent();
   })) { return; }
