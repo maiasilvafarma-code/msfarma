@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #320 - Emprestimos: parcelas pagas salvas no localStorage -->
+<!-- Deploy #321 - Margens: base unica, margem real sobre o preco de venda -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -6404,25 +6404,25 @@ function renderCMV(){
   const margemBruta=100-cmvPct;
   const margemBrutaVal=rec-cmvVal;
   const categorias=[
-    {cat:'Medicamentos Éticos',margem:'10% – 18%',cor:'var(--yellow)',icon:'💊',
+    {cat:'Medicamentos Éticos',margem:'22% – 32%',cor:'var(--yellow)',icon:'💊',
      desc:'Produto de combate. Objetivo: trazer fluxo para a loja.',
      acao:'Evitar descontos acima de 5%.'},
-    {cat:'Genéricos e Similares',margem:'60% – 85%',cor:'var(--green)',icon:'✅',
+    {cat:'Genéricos e Similares',margem:'35% – 45%',cor:'var(--green)',icon:'✅',
      desc:'Principal fonte de lucro da farmácia. Priorizar substituição sempre que possível.',
      acao:'Manter estoque dos campeões de venda.'},
-    {cat:'Fraldas',margem:'15% – 25%',cor:'var(--blue)',icon:'👶',
+    {cat:'Fraldas',margem:'25% – 35%',cor:'var(--blue)',icon:'👶',
      desc:'Produto de fluxo e fidelização. Competir no preço e ganhar no restante da compra.',
      acao:'Acompanhar preço da concorrência.'},
-    {cat:'Higiene',margem:'30% – 45%',cor:'var(--blue)',icon:'🧴',
+    {cat:'Higiene',margem:'30% – 40%',cor:'var(--blue)',icon:'🧴',
      desc:'Excelente para venda complementar. Oferecer junto com medicamentos.',
      acao:'Associar com medicamentos de uso contínuo.'},
-    {cat:'Perfumaria',margem:'35% – 55%',cor:'var(--purple,#a78bfa)',icon:'✨',
+    {cat:'Perfumaria',margem:'30% – 40%',cor:'var(--purple,#a78bfa)',icon:'✨',
      desc:'Boa rentabilidade. Priorizar kits e promoções sazonais.',
      acao:'Kits e promoções sazonais aumentam ticket.'},
-    {cat:'Vitaminas e Naturais',margem:'35% – 50%',cor:'var(--green)',icon:'🌿',
+    {cat:'Vitaminas e Naturais',margem:'35% – 45%',cor:'var(--green)',icon:'🌿',
      desc:'Alta recorrência e fidelização. Aproveitar a Quarta Verde para aumentar volume.',
      acao:'Quarta Verde é oportunidade de venda programada.'},
-    {cat:'Suplementos',margem:'40% – 60%',cor:'var(--purple,#a78bfa)',icon:'💪',
+    {cat:'Suplementos',margem:'35% – 45%',cor:'var(--purple,#a78bfa)',icon:'💪',
      desc:'Boa margem. Clientes de delivery compram muito.',
      acao:'Oferecer combos e kits de suplementação.'}
   ];
@@ -6430,7 +6430,7 @@ function renderCMV(){
   // Coluna esquerda - categorias
   html+='<div>';
   html+='<div class="chart-card" style="margin-bottom:1rem">';
-  html+='<div class="chart-title">🏷️ Margens por Categoria de Produto</div>';
+  html+='<div class="chart-title">🏷️ Margens por Categoria — margem real sobre o preço de venda</div>';
   html+=categorias.map(function(c){
     return '<div style="padding:12px 0;border-bottom:1px solid var(--border)">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
@@ -6509,16 +6509,19 @@ function renderPrecificacao(){
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">'
     +'<div class="field"><label>Preço de custo (R$)</label><input type="number" id="prec-custo" placeholder="0,00" step="0.01" oninput="calcPreco()"></div>'
     +'<div class="field"><label>Tipo de produto</label><select id="prec-tipo" onchange="calcPreco()">'
-    +'<option value="etico">Medicamento Ético — produto de fluxo e combate (10–18%, base 15%)</option>'
-    +'<option value="generico">Genérico/Similar — principal fonte de rentabilidade (55–80%, base 65%)</option>'
-    +'<option value="higiene">Higiene/Beleza (30–45%, base 37%)</option>'
-    +'<option value="suple">Suplemento (40–60%, base 50%)</option>'
-    +'<option value="vitamina">Vitaminas/Naturais (35–50%, base 42%)</option>'
-    +'<option value="fralda">Fraldas — fluxo e fidelização (15–25%, base 20%)</option>'
-    +'<option value="perfumaria">Perfumaria (35–50%, base 42%)</option>'
+    +'<option value="etico">Medicamento Ético — produto de fluxo e combate (22–32%, base 27%)</option>'
+    +'<option value="generico">Genérico/Similar — principal fonte de rentabilidade (35–45%, base 40%)</option>'
+    +'<option value="higiene">Higiene/Beleza (30–40%, base 35%)</option>'
+    +'<option value="suple">Suplemento (35–45%, base 40%)</option>'
+    +'<option value="vitamina">Vitaminas/Naturais (35–45%, base 40%)</option>'
+    +'<option value="fralda">Fraldas — fluxo e fidelização (25–35%, base 30%)</option>'
+    +'<option value="perfumaria">Perfumaria (30–40%, base 35%)</option>'
     +'<option value="custom">Margem personalizada</option>'
     +'</select></div>'
-    +'<div class="field"><label>Margem personalizada (%)</label><input type="number" id="prec-margem" placeholder="Ex: 30" min="0" max="99" step="1" oninput="calcPreco()"></div>'
+    +'<div class="field"><label>Margem personalizada (% sobre a venda)</label><input type="number" id="prec-margem" placeholder="Ex: 30" min="0" max="99" step="1" oninput="calcPreco()"></div>'
+    +'</div>'
+    +'<div style="background:var(--yellow-dim);border:1px solid var(--yellow-border);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.6">'
+    +'⚠️ <strong style="color:var(--yellow)">Confira o PMC antes de cadastrar.</strong> Todo percentual aqui é margem real sobre o preço de venda. Em medicamento ético o PMC costuma ficar colado no custo: se o preço calculado passar do PMC, use o PMC como teto e aceite a margem menor.'
     +'</div>'
     +'<div id="prec-resultado"></div>'
     +'</div></div>'
@@ -6552,21 +6555,21 @@ function calcPreco(){
   const tipo=document.getElementById('prec-tipo').value;
   const customMg=parseFloat(document.getElementById('prec-margem').value)||0;
   const faixas={
-    etico:{combate:10,normal:15,premium:20},
-    generico:{combate:50,normal:75,premium:90},
-    fralda:{combate:12,normal:20,premium:25},
-    higiene:{combate:30,normal:40,premium:50},
-    perfumaria:{combate:35,normal:45,premium:55},
-    vitamina:{combate:35,normal:45,premium:55},
-    suple:{combate:45,normal:60,premium:75},
+    etico:{combate:22,normal:27,premium:32},
+    generico:{combate:35,normal:40,premium:45},
+    fralda:{combate:25,normal:30,premium:35},
+    higiene:{combate:30,normal:35,premium:40},
+    perfumaria:{combate:30,normal:35,premium:40},
+    vitamina:{combate:35,normal:40,premium:45},
+    suple:{combate:35,normal:40,premium:45},
     custom:{combate:customMg,normal:customMg,premium:customMg}
   };
   const f=faixas[tipo]||faixas.etico;
   const margem=f.normal;
   if(!custo){document.getElementById('prec-resultado').innerHTML='';return;}
-  const pvMin=custo*(1+f.combate/100);
-  const pvIdeal=custo*(1+f.normal/100);
-  const pvAgressivo=custo*(1+f.premium/100);
+  const pvMin=custo/(1-f.combate/100);
+  const pvIdeal=custo/(1-f.normal/100);
+  const pvAgressivo=custo/(1-f.premium/100);
   const lucroMin=pvMin-custo;
   document.getElementById('prec-resultado').innerHTML=
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px">'
