@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #321 - Margens: base unica, margem real sobre o preco de venda -->
+<!-- Deploy #322 - Importador OFX: dedup por data+valor+memo, nao mais por fitid -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -7827,9 +7827,12 @@ function importarOfxSantander(file){
       const pixRecebidoAcum=(anteriores?anteriores.pixRecebido:0)+pixRecebido;
       const custoFinanceiroAcum=(anteriores?anteriores.custoFinanceiro:0)+custoFinanceiro;
       const retiradasAcum=(anteriores?anteriores.retiradas:0)+retiradas;
-      const confirmadosAcum=(anteriores&&anteriores.confirmados?anteriores.confirmados:[]).concat(confirmados);
-      const encontradosAcum=(anteriores&&anteriores.encontrados?anteriores.encontrados:[]).concat(encontrados);
-      const naoIdentAcum=(anteriores&&anteriores.naoIdentificados?anteriores.naoIdentificados:[]).concat(naoIdentificados);
+      function msfChaveTrans(it){var t=it.trans||it;return (t.data||"")+"|"+(t.valor||"")+"|"+String(t.memo||"").trim();}
+      var msfVistos={};
+      function msfDedup(lista){var out=[];(lista||[]).forEach(function(it){var c=msfChaveTrans(it);if(!msfVistos[c]){msfVistos[c]=true;out.push(it);}});return out;}
+      const confirmadosAcum=msfDedup((anteriores&&anteriores.confirmados?anteriores.confirmados:[]).concat(confirmados));
+      const encontradosAcum=msfDedup((anteriores&&anteriores.encontrados?anteriores.encontrados:[]).concat(encontrados));
+      const naoIdentAcum=msfDedup((anteriores&&anteriores.naoIdentificados?anteriores.naoIdentificados:[]).concat(naoIdentificados));
       const totalTransAcum=(anteriores?anteriores.totalTransacoes:0)+trans.length;
       const arquivosAcum=(anteriores&&anteriores.arquivos?anteriores.arquivos:[]).concat([file.name]);
       const fitidsAcum=Object.keys(fitidsAntigos).concat(fitidsNovos);
