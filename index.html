@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #324 - Parser de fatura Santander: layout Fatura Mensal Empresas -->
+<!-- Deploy #325 - Conciliacao Bancaria cria Saida ao marcar boleto pago -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -7856,6 +7856,8 @@ function confirmarBoletoPago(idx){
   const b=(D.boletos||[]).find(function(x){return x.id===item.boleto.id;});
   if(b){
     b.paid=true;b.paidDate=item.trans.data;b.valPago=Math.abs(item.trans.valor);b.juros=0;b.diasAtraso=0;
+    D.saidas=(D.saidas||[]).filter(function(s){return s.boletoId!==b.id;});
+    D.saidas.unshift({id:Date.now(),desc:"Boleto: "+b.sup+(b.note?" — "+b.note:""),cat:b.cat||"Fornecedores",val:Math.abs(item.trans.valor),date:item.trans.data,note:"Conciliacao bancaria",boletoId:b.id,paid:true,paidDate:item.trans.data});
     save();
     dados.confirmados.push(item);
     dados.encontrados.splice(idx,1);
