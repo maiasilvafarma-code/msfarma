@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #323 - Painel mensal de boletos e concentracao sem limite de 60 dias -->
+<!-- Deploy #324 - Parser de fatura Santander: layout Fatura Mensal Empresas -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -12463,5 +12463,102 @@ setTimeout(function(){try{var i2='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA
   if(typeof _oRB==='function'){ window.renderBoletos=function(){ var r=_oRB.apply(this,arguments); setTimeout(msfResumoMensal,70); return r; }; }
   setTimeout(msfResumoMensal,900); setTimeout(msfResumoMensal,2200); setTimeout(msfResumoMensal,4200);
 })();
+</script>
+
+<script>
+/* Deploy #324 - parser Santander com fallback de layout e validacao aritmetica */
+
+window.parsearFaturaPdf = function(allPageItems, cartao){
+  try{
+    var linhas=[];
+    for(var pi=0;pi<allPageItems.length;pi++){
+      var byY={};
+      for(var ii=0;ii<allPageItems[pi].length;ii++){
+        var item=allPageItems[pi][ii];
+        if(!item.str||!item.str.trim())continue;
+        var y=Math.round(item.transform[5]/3)*3;
+        if(!byY[y])byY[y]=[];
+        byY[y].push({x:item.transform[4],str:item.str});
+      }
+      var ys=Object.keys(byY).map(Number).sort(function(a,b){return b-a;});
+      for(var yi=0;yi<ys.length;yi++){
+        var its=byY[ys[yi]].sort(function(a,b){return a.x-b.x;});
+        var l=its.map(function(i){return i.str;}).join(" ").replace(/\s+/g," ").trim();
+        if(l)linhas.push(l);
+      }
+    }
+    var fullText=linhas.join(" ");
+    function extrai(re){var m=fullText.match(re);return m?m[1]:null;}
+    function toNum(s){return s?parseFloat(String(s).replace(/\./g,"").replace(",",".")):0;}
+
+    var layout="", totalFatura=0, faturaAnterior=0, pagamentos=0, saldo=0, despesas=0, minimo=0;
+    var totalStr=extrai(/Total Desta Fatura:\s*R\$\s*([\d.,]+)/i);
+
+    if(totalStr){
+      layout="Internet Banking";
+      totalFatura=toNum(totalStr);
+      faturaAnterior=toNum(extrai(/Fatura Anterior\s*:?\s*([\d.,]+)/i));
+    } else {
+      var re=/([\d.]+,\d{2})\s*-\s*([\d.]+,\d{2})\s*=\s*(-?[\d.]+,\d{2})\s*\+\s*([\d.]+,\d{2})\s*=\s*([\d.]+,\d{2})\s+([\d.]+,\d{2})/g;
+      var m;
+      while((m=re.exec(fullText))!==null){
+        var a=toNum(m[1]),pg=toNum(m[2]),sl=toNum(m[3]),dp=toNum(m[4]),tt=toNum(m[5]),mn=toNum(m[6]);
+        if(Math.abs((a-pg)-sl)<0.02 && Math.abs((sl+dp)-tt)<0.02){
+          layout="Fatura Mensal Empresas";
+          faturaAnterior=a; pagamentos=pg; saldo=sl; despesas=dp; totalFatura=tt; minimo=mn;
+          break;
+        }
+      }
+    }
+
+    if(!totalFatura){
+      showToast("Nao consegui ler o total. Layout nao reconhecido.","red");
+      console.log("TEXTO LIDO (inicio):", fullText.slice(0,800));
+      return;
+    }
+
+    var venc=null;
+    if(totalStr){
+      var esc=totalStr.replace(/\./g,"\\.");
+      venc=extrai(new RegExp("(\\d{2}\\/\\d{2}\\/\\d{4})\\s+R\\$\\s*"+esc));
+    }
+    if(!venc) venc=extrai(/Data de Vencimento:\s*(\d{2}\/\d{2}\/\d{4})/i);
+    var fech=extrai(/Data do Fechamento da Fatura:\s*(\d{2}\/\d{2}\/\d{4})/i);
+
+    function iso(d){ if(!d)return ""; var p=d.split("/"); return p[2]+"-"+p[1]+"-"+p[0]; }
+    var vencIso=iso(venc), fechIso=iso(fech);
+    if(!vencIso){ showToast("Li o total mas nao achei o vencimento.","yellow"); return; }
+
+    var transacoes=[];
+    linhas.forEach(function(l){
+      var tt2=l.match(/^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?[\d.]+,\d{2})\s+[\d.]+,\d{2,4}\s+[\d.]+,\d{2,4}$/);
+      if(tt2){ var d=tt2[1].split("/"); transacoes.push({data:d[2]+"-"+d[1]+"-"+d[0],desc:tt2[2].trim(),valor:toNum(tt2[3])}); }
+    });
+
+    var mesRef=vencIso.substring(0,7);
+    var jaPago=(cartao.pago===true && cartao.venc===vencIso);
+    var pagoDate=jaPago?cartao.dataPagamento:null;
+
+    if(!cartao.historico)cartao.historico=[];
+    cartao.historico=cartao.historico.filter(function(h){return h.mes!==mesRef;});
+    cartao.historico.push({mes:mesRef,vencimento:vencIso,fechamento:fechIso,totalFatura:totalFatura,
+      faturaAnterior:faturaAnterior,pagamentos:pagamentos,saldo:saldo,despesas:despesas,minimo:minimo,
+      layout:layout,transacoes:transacoes,importadoEm:new Date().toISOString()});
+
+    cartao.fatura=totalFatura;
+    cartao.venc=vencIso;
+    cartao.pago=jaPago;
+    cartao.dataPagamento=pagoDate;
+    save();
+    renderCartoes();
+
+    console.table({layout:layout,vencimento:vencIso,fechamento:fechIso,anterior:faturaAnterior,
+      pagamentos:pagamentos,saldo:saldo,despesas:despesas,total:totalFatura,minimo:minimo,
+      transacoes:transacoes.length,pagoPreservado:jaPago});
+
+    showToast("Fatura lida ("+layout+"): R$ "+totalFatura.toLocaleString("pt-BR",{minimumFractionDigits:2}),"green");
+  }catch(ex){ showToast("Erro ao processar: "+ex.message,"red"); console.error(ex); }
+};
+
 </script>
 </body></html>
