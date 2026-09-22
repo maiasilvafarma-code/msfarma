@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #328 - push incremental: envia so as chaves alteradas -->
+<!-- Deploy #329 - falha de leitura da nuvem fica visivel -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -12108,6 +12108,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     else if(estado === 'ok') { el.textContent = '\u2705 sincronizado'; el.style.color = '#22c55e'; }
     else if(estado === 'local') { el.textContent = '\uD83D\uDCBE dados salvos localmente'; el.style.color = ''; }
     else if(estado === 'erro') { el.textContent = '\u26A0\uFE0F erro ao sincronizar'; el.style.color = '#ef4444'; }
+    else if(estado === 'erro-pull') { el.textContent = 'NUVEM NAO CARREGOU'; el.style.color = '#ef4444'; el.style.fontWeight = '700'; }
   }
 
   async function supaUpsert(chave, valor) {
@@ -12181,6 +12182,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
   }
 
   async function syncParaNuvem() {
+    window._pullErro = 0;
     setStatus('sync');
     await backupDiario();
     const meuNome = obterNomeDispositivo();
@@ -12196,6 +12198,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
           const continuar = confirm(logNuvem.device + ' sincronizou dados as ' + new Date(logNuvem.timestamp).toLocaleString('pt-BR') + ' e este computador ainda nao atualizou.\n\nOK = Atualizar este computador primeiro (recomendado)\nCancelar = Enviar meus dados mesmo assim (risco de sobrescrever)');
           if(continuar) {
             await carregarDaNuvem();
+            if(window._pullErro) { setStatus('erro-pull'); alert('NAO FOI POSSIVEL ATUALIZAR ESTE COMPUTADOR.' + String.fromCharCode(10,10) + 'A leitura da nuvem falhou (erro ' + window._pullErro + ').' + String.fromCharCode(10,10) + 'NAO envie seus dados agora: os desta maquina podem estar desatualizados.'); return false; }
             localStorage.setItem('farmacia-last-pull-ts', new Date().toISOString());
             setStatus('local');
             alert('Dados atualizados. Revise as informacoes na tela.');
@@ -12273,7 +12276,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
       const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?select=chave,valor&chave=not.like.hist:*', {
         headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
       });
-      if(!resp.ok) { return false; }
+      if(!resp.ok) { window._pullErro = resp.status; console.warn('[SYNC] carregarDaNuvem falhou:', resp.status); setStatus('erro-pull'); return false; }
       const rows = await resp.json();
       if(!rows || rows.length === 0) { return false; }
       let updated = 0;
