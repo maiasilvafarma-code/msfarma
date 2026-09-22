@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #326 - Fixas mensais (msfarma-fixas-v1) no SYNC_KEYS -->
+<!-- Deploy #327 - carregarDaNuvem filtra hist: no servidor -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -12262,7 +12262,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
 
   async function carregarDaNuvem() {
     try {
-      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?select=chave,valor', {
+      const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?select=chave,valor&chave=not.like.hist:*', {
         headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
       });
       if(!resp.ok) { return false; }
