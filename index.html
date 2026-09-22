@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #327 - carregarDaNuvem filtra hist: no servidor -->
+<!-- Deploy #328 - push incremental: envia so as chaves alteradas -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -12232,18 +12232,26 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
       }
     } catch(e) { console.warn('merge fatur-dia erro:', e); }
     let ok = true;
+    var _fp={};
+    try{_fp=JSON.parse(localStorage.getItem("msfarma-sync-fp")||"{}");}catch(e){_fp={};}
+    var _env=0,_pul=0;
     for(const key of SYNC_KEYS) {
       const val = localStorage.getItem(key);
       if(val === null) continue;
+      var _h=5381,_i=val.length;while(_i)_h=(_h*33)^val.charCodeAt(--_i);
+      var _fpk=(_h>>>0).toString(36)+":"+val.length;
+      if(_fp[key]===_fpk){_pul++;continue;}
       try {
         const parsed = JSON.parse(val);
         const result = await supaUpsert(key, parsed);
-        if(!result) ok = false;
+        if(!result) ok = false; else {_fp[key]=_fpk;_env++;}
       } catch(e) {
         const result = await supaUpsert(key, val);
-        if(!result) ok = false;
+        if(!result) ok = false; else {_fp[key]=_fpk;_env++;}
       }
     }
+    try{localStorage.setItem("msfarma-sync-fp",JSON.stringify(_fp));}catch(e){}
+    console.log("[SYNC] enviadas:",_env,"| puladas:",_pul);
     setStatus(ok ? 'ok' : 'erro');
     if(ok) { await supaUpsert('farmacia-sync-log', { device: meuNome, timestamp: new Date().toISOString() }); }
     window._supaLastSync = new Date();
