@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #330 - botao Outros das Saidas mostra todas as categorias restantes (Regulatorio, Manutencao...) -->
+<!-- Deploy #331 - modal Editar Saida com pago, data do pagamento e juros por atraso -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -5855,6 +5855,12 @@ function editSaida(id){
             <div class="field"><label>Vencimento</label><input type="date" id="es-date" value="${s.date||''}"></div>
             <div class="field"><label>Observação</label><input type="text" id="es-note" value="${s.note||''}"></div>
           </div>
+          <div class="fg fg-3" style="margin-top:10px">
+            <div class="field"><label>Pago?</label><label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="es-paid" ${s.paid?"checked":""}> Sim</label></div>
+            <div class="field"><label>Data do pagamento</label><input type="date" id="es-paiddate" value="${s.paidDate||today()}"></div>
+            <div class="field"><label>Juros/multa por atraso (R$)</label><input type="number" id="es-juros" step="0.01" min="0" placeholder="0,00" oninput="esAtualizaTotal()"></div>
+          </div>
+          <div id="es-total" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
         </div>
         <div class="modal-foot">
           <button class="btn" onclick="closeModal()">Cancelar</button>
@@ -5862,6 +5868,7 @@ function editSaida(id){
         </div>
       </div>
     </div>`;}
+function esAtualizaTotal(){var v=parseFloat(document.getElementById("es-val").value)||0;var j=parseFloat(document.getElementById("es-juros").value)||0;var el=document.getElementById("es-total");if(el)el.innerHTML=j>0?("Total pago: <b>"+fmtCur(v+j)+"</b> — os juros viram uma saída separada em Juros/Taxas Financeiras"):"";}
 function saveEditSaida(id){
   const s=D.saidas.find(x=>x.id===id);if(!s)return;
   s.desc=document.getElementById('es-desc').value.trim()||s.desc;
@@ -5869,7 +5876,7 @@ function saveEditSaida(id){
   s.val=parseFloat(document.getElementById('es-val').value)||s.val;
   s.date=document.getElementById('es-date').value||s.date;
   s.note=document.getElementById('es-note').value;
-  if(document.getElementById('es-paid')?.checked!==undefined){s.paid=document.getElementById('es-paid').checked;s.paidDate=s.paid?today():null;}
+  if(document.getElementById("es-paid")){var _jur=parseFloat(document.getElementById("es-juros").value)||0;var _pd=document.getElementById("es-paiddate").value||today();s.paid=document.getElementById("es-paid").checked||_jur>0;s.paidDate=s.paid?_pd:null;if(_jur>0){D.saidas.unshift({id:Date.now(),desc:"Juros/Multa — "+s.desc,cat:"Juros/Taxas Financeiras",val:_jur,date:_pd,note:"Atraso — total pago R$ "+(s.val+_jur).toFixed(2).replace(".",","),boletoId:null,paid:true,paidDate:_pd,fixa:false});}}
   save();_clearCache();renderSaidas();setTimeout(applyResizableToAllTables,100);closeModal();showToast('✓ Saída atualizada!','green');}
 
 function editNF(id){
