@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #332 - modal Editar Saida: caixa Pago e campos sem corte -->
+<!-- Deploy #333 - OFX: ignora dia ja importado e dia incompleto, saldo so se mais recente, cheque especial sincroniza -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -7795,10 +7795,25 @@ function importarOfxSantander(file){
         const fitid=campo(b,'FITID');
         trans.push({tipo:tipo,data:data,valor:valor,memo:memo,fitid:fitid});
       });
+      /* #333 dedup por dia: dia ja importado e ignorado; dia da geracao do arquivo (incompleto) tambem */
+      var msfAnt=null;try{msfAnt=JSON.parse(localStorage.getItem("farmacia-conciliacao-bancaria"));}catch(err){}
+      var msfDiasAnt={};((msfAnt&&msfAnt.dias)||[]).forEach(function(x){msfDiasAnt[x]=true;});
+      var msfAsOfM=txt.match(/<DTASOF>(\d{8})/);
+      var msfAsOf=msfAsOfM?(msfAsOfM[1].slice(0,4)+"-"+msfAsOfM[1].slice(4,6)+"-"+msfAsOfM[1].slice(6,8)):"";
+      var msfPulDia=0,msfPulParc=0;
+      var msfNovas=trans.filter(function(t){
+        if(msfDiasAnt[t.data]){msfPulDia++;return false;}
+        if(msfAsOf&&t.data>=msfAsOf){msfPulParc++;return false;}
+        return true;
+      });
+      trans.splice(0,trans.length);msfNovas.forEach(function(t){trans.push(t);});
+      if(trans.length===0){alert("Nada novo neste arquivo: "+msfPulDia+" transacoes de dias ja importados"+(msfPulParc?" e "+msfPulParc+" do dia em que o arquivo foi gerado (dia incompleto)":"")+". Nenhuma alteracao feita.");document.getElementById("ofx-input").value="";return;}
+      var msfDiasNovos={};trans.forEach(function(t){msfDiasNovos[t.data]=true;});
       let saldoAtualizado=false;
       const balMatch=txt.match(/<BALAMT>([^\n<]*)/);
       const dtAsOfMatch=txt.match(/<DTASOF>(\d{8})/);
-      if(balMatch){
+      var msfSaldoAntigo=!!(msfAnt&&msfAnt.saldoAsOf&&msfAsOf&&msfAsOf<msfAnt.saldoAsOf);
+      if(balMatch&&!msfSaldoAntigo){
         const saldoBanco=parseFloat(balMatch[1].trim().replace(',','.'));
         if(!isNaN(saldoBanco)){
           if(saldoBanco>=0){salvarSaldoAtual(saldoBanco);salvarChequeEsp(0);}
@@ -7847,9 +7862,11 @@ function importarOfxSantander(file){
       const fitidsAcum=Object.keys(fitidsAntigos).concat(fitidsNovos);
       if(jaImportados>0&&jaImportados===trans.length){alert('Este arquivo ja foi importado anteriormente (todas as '+trans.length+' transacoes ja existem). Nenhuma alteracao feita.');input&&(input.value='');return;}
       const dados={importadoEm:new Date().toISOString(),arquivo:arquivosAcum.join(', '),arquivos:arquivosAcum,totalTransacoes:totalTransAcum,fitids:fitidsAcum,pixRecebido:Math.round(pixRecebidoAcum*100)/100,custoFinanceiro:Math.round(custoFinanceiroAcum*100)/100,retiradas:Math.round(retiradasAcum*100)/100,confirmados:confirmadosAcum,encontrados:encontradosAcum,naoIdentificados:naoIdentAcum,outros:outros};
+      dados.dias=Object.keys(msfDiasAnt).concat(Object.keys(msfDiasNovos).filter(function(x){return !msfDiasAnt[x];})).sort();
+      dados.saldoAsOf=(saldoAtualizado&&msfAsOf)?msfAsOf:((msfAnt&&msfAnt.saldoAsOf)||"");
       localStorage.setItem('farmacia-conciliacao-bancaria',JSON.stringify(dados));
       document.getElementById('ofx-input').value='';
-      showToast('Extrato importado: '+trans.length+' transacoes'+(saldoAtualizado?' | saldo bancario atualizado':'')+' | '+encontrados.length+' boletos pagos nao marcados','green');
+      showToast('Extrato importado: '+trans.length+' transacoes'+((msfPulDia+msfPulParc)?" | ignoradas "+(msfPulDia+msfPulParc)+" (dias ja importados ou incompletos)":"")+(saldoAtualizado?' | saldo bancario atualizado':'')+' | '+encontrados.length+' boletos pagos nao marcados','green');
       renderConciliacao();
     }catch(ex){alert('Erro: '+ex.message);}
   };
@@ -12105,7 +12122,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     'msfarma-abc-hist',
     'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup','msfarma-fatur-dia',
     'ms-farma-clean-v5','farmacia-folha-v1','farmacia-caixa-v1',
-    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-agenda-marcacoes','msfarma-agenda-apagados','msfarma-fixas-v1'
+    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-cheque-esp','msfarma-agenda-marcacoes','msfarma-agenda-apagados','msfarma-fixas-v1'
   ];
 
   function setStatus(estado) {
