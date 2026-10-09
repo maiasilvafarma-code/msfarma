@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #333 - OFX: ignora dia ja importado e dia incompleto, saldo so se mais recente, cheque especial sincroniza -->
+<!-- Deploy #334 - Sync: entrada de produtos, bairros, uso continuo e carimbos de importacao. Botao Backup salva tudo -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -11790,20 +11790,14 @@ function backupGerarNome() {
 }
 
 function backupColetar() {
-  const chaves = [
-    'farmacia-fin-v2',
-    'farmacia-folha-v1',
-    'farmacia-fornecedores-extra',
-    'ms-farma-clean-v5',
-    'farmacia-caixa-v1'
-  ];
-  const dados = { _backup_data: new Date().toISOString(), _versao: '1.0' };
-  chaves.forEach(k => {
-    const val = localStorage.getItem(k);
-    if (val) {
-      try { dados[k] = JSON.parse(val); }
-      catch(e) { dados[k] = val; }
-    }
+  // Deploy #334: salva TODAS as chaves (antes eram so 5)
+  const dados = { _backup_data: new Date().toISOString(), _versao: "2.0" };
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k) dados[k] = localStorage.getItem(k);
+  }
+  (window.MSF_BIG || []).forEach(function(k){
+    if (window.MSF_CACHE && window.MSF_CACHE[k] !== undefined) dados[k] = window.MSF_CACHE[k];
   });
   return dados;
 }
@@ -12122,7 +12116,8 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     'msfarma-abc-hist',
     'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup','msfarma-fatur-dia',
     'ms-farma-clean-v5','farmacia-folha-v1','farmacia-caixa-v1',
-    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-cheque-esp','msfarma-agenda-marcacoes','msfarma-agenda-apagados','msfarma-fixas-v1'
+    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-cheque-esp','msfarma-agenda-marcacoes','msfarma-agenda-apagados','msfarma-fixas-v1',
+    'farmacia-entrada-produtos','farmacia-faturamento-bairro','farmacia-faturamento-bairro-hist','msfarma-uso-continuo','msfarma-emprestimos-pagas','msfarma-ultima-import-vendas','msfarma-ultima-import-abc'
   ];
 
   function setStatus(estado) {
