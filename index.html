@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #334 - Sync: entrada de produtos, bairros, uso continuo e carimbos de importacao. Botao Backup salva tudo -->
+<!-- Deploy #335 - Saude: despesas fixas e meta do dia 05 lidas das contas fixas reais e da Folha -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -6293,11 +6293,49 @@ function renderSaudeContent(tab){
 }
 
 // 1. RESERVA DIA 05
+// Deploy #335: despesas fixas reais (Saidas marcadas como conta fixa + ultimo mes da Folha)
+function msfDespesasFixasReais(){
+  var out={fixas:[],temp:[],totalMes:0,metaDia5:0,folhaMes:""};
+  try{
+    var porDesc={};
+    ((typeof D!=="undefined"&&D.saidas)||[]).forEach(function(x){
+      if(!x.fixa)return;
+      var k=(x.desc||"").toLowerCase().trim(); if(!k)return;
+      if(!porDesc[k]||(x.date||"")>(porDesc[k].date||""))porDesc[k]=x;
+    });
+    Object.keys(porDesc).forEach(function(k){
+      var x=porDesc[k];
+      if(/sal[aá]rio|pr[oó].?labore|folha/i.test((x.desc||"")+" "+(x.cat||"")))return;
+      var dia=parseInt((x.date||"").slice(8,10),10)||5;
+      var item={nome:x.desc+" (dia "+dia+")",val:Number(x.val)||0,dia:dia};
+      if(/multa|parcel|empr[eé]stimo|financiamento/i.test(x.desc||""))out.temp.push(item);else out.fixas.push(item);
+    });
+    var fh=[];try{fh=JSON.parse(localStorage.getItem("farmacia-folha-hist-v1")||"[]");}catch(e){}
+    var meses=fh.map(function(f){return f.mes||"";}).filter(Boolean).sort();
+    var ult=meses.length?meses[meses.length-1]:"";
+    if(ult){
+      var doMes=fh.filter(function(f){return f.mes===ult;});
+      var pro=doMes.filter(function(f){return /pr[oó].?labore/i.test(f.tipo||"");}).reduce(function(s,f){return s+(Number(f.liquido)||0);},0);
+      var clt=doMes.filter(function(f){return !/pr[oó].?labore/i.test(f.tipo||"");}).reduce(function(s,f){return s+(Number(f.liquido)||0);},0);
+      var rot=ult.slice(5,7)+"/"+ult.slice(2,4);
+      out.folhaMes=ult;
+      if(clt>0)out.fixas.push({nome:"Folha CLT + informais (ref. "+rot+", dia 5)",val:Math.round(clt*100)/100,dia:5});
+      if(pro>0)out.fixas.push({nome:"Pró-labore (ref. "+rot+", dia 15)",val:Math.round(pro*100)/100,dia:15});
+    }
+    out.fixas.sort(function(a,b){return b.val-a.val;});
+    out.temp.sort(function(a,b){return b.val-a.val;});
+    var todos=out.fixas.concat(out.temp);
+    out.totalMes=Math.round(todos.reduce(function(s,d){return s+d.val;},0)*100)/100;
+    out.metaDia5=Math.round(todos.filter(function(d){return d.dia<=5;}).reduce(function(s,d){return s+d.val;},0)*100)/100;
+  }catch(e){console.warn("msfDespesasFixasReais:",e);}
+  return out;
+}
 function renderDia5(){
+  const _msfFx=msfDespesasFixasReais();
   const hoje=new Date();
   const diaHoje=hoje.getDate();
   const diasNoMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
-  const metaDia5=27863.25;
+  const metaDia5=_msfFx.metaDia5>0?_msfFx.metaDia5:27863.25;
   const diasAteD5=diaHoje<=5?(5-diaHoje):(diasNoMes-diaHoje+5);
   const reservaDiaria=diasAteD5>0?metaDia5/diasAteD5:metaDia5;
   const savedReserva=parseFloat(localStorage.getItem('farmacia-reserva-dia5')||'0');
@@ -6306,18 +6344,10 @@ function renderDia5(){
   const barColor=savedReserva>=metaDia5?'var(--green)':savedReserva>=metaDia5*0.7?'var(--yellow)':'var(--red)';
   const statusLabel=pct>=100?'🟢 Protegido':pct>=71?'🟡 Quase lá':pct>=41?'🟠 Atenção':'🔴 Crítico';
   const statusColor=pct>=100?'var(--green)':pct>=71?'var(--yellow)':pct>=41?'#f97316':'var(--red)';
-  const custoDiario=metaDia5/30;
+  const custoDiario=(_msfFx.totalMes>0?_msfFx.totalMes:metaDia5)/30;
   const diasProtegidos=custoDiario>0?Math.floor(savedReserva/custoDiario):0;
-  const despFixas=[
-    {nome:'Folha CLT',val:8500},{nome:'Pró-labore Janaina',val:3000},
-    {nome:'Pró-labore Adriana',val:3000},{nome:'Aluguel',val:6000},
-    {nome:'VT/VA',val:800},{nome:'Marketing',val:500},
-    {nome:'Energia/Água',val:1200},{nome:'Internet/Tel',val:300}
-  ];
-  const despTemp=[
-    {nome:'Multas/Taxas CRF',val:500},{nome:'Anuidade CRF',val:400},
-    {nome:'Parcelamentos',val:3563.25}
-  ];
+  const despFixas=_msfFx.fixas;
+  const despTemp=_msfFx.temp;
   const totalFixo=despFixas.reduce(function(s,d){return s+d.val;},0);
   const totalTemp=despTemp.reduce(function(s,d){return s+d.val;},0);
   var html='';
