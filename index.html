@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #337 - Saude: Sazonalidade com os meses reais (Vendas por Itens) + mes corrente parcial -->
+<!-- Deploy #338 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -6656,7 +6656,7 @@ function renderSazonalidade(){
   // Deploy #337: meses reais (Vendas por Itens importado) + mes corrente parcial (Relacao de Vendas)
   const meses=[];
   let hist={};try{hist=JSON.parse(localStorage.getItem("farmacia-faturamento-bairro-hist")||"{}");}catch(e){}
-  Object.keys(hist).sort().forEach(function(ym){var v=Number((hist[ym]||{}).totalGeral)||0;if(v>0)meses.push({label:monthLabel(ym),val:v,ym:ym,parcial:false});});
+  Object.keys(hist).sort().forEach(function(ym){var v=Number((hist[ym]||{}).totalGeral)||0;if(v>0)meses.push({label:monthLabel(ym),val:v,ym:ym,parcial:false,antes:ym<"2026-05"});});
   const ymAtual=new Date().toISOString().slice(0,7);
   if(!meses.some(function(m){return m.ym===ymAtual;})){
     let fd={};try{fd=JSON.parse(localStorage.getItem("msfarma-fatur-dia")||"{}");}catch(e){}
@@ -6665,13 +6665,13 @@ function renderSazonalidade(){
   }
   while(meses.length>12)meses.shift();
   if(!meses.length)meses.push({label:"--",val:0,ym:"",parcial:false});
-  const fech=meses.filter(function(m){return !m.parcial&&m.val>0;});
+  const fech=meses.filter(function(m){return !m.parcial&&!m.antes&&m.val>0;});
   const max=Math.max.apply(null,meses.map(function(m){return m.val;}).concat([1]));
   const maxF=Math.max.apply(null,fech.map(function(m){return m.val;}).concat([1]));
   const media=fech.length?fech.reduce(function(s,m){return s+m.val;},0)/fech.length:0;
   const ult3=fech.slice(-3);
   const media3=ult3.length?ult3.reduce(function(s,m){return s+m.val;},0)/ult3.length:0;
-  const tituloSaz="Sazonalidade — "+meses[0].label+" a "+meses[meses.length-1].label+" (Vendas por Itens"+(meses.some(function(m){return m.parcial;})?" · * mês em andamento":"")+")";
+  const tituloSaz="Sazonalidade — "+meses[0].label+" a "+meses[meses.length-1].label+" (Vendas por Itens"+(meses.some(function(m){return m.parcial;})?" · * mês em andamento":"")+(meses.some(function(m){return m.antes;})?" · jan–abr/26 antes da organização do INFARMA, fora da média":"")+")";
   const cresc=fech.length>=2&&fech[0].val>0?((fech[fech.length-1].val/fech[0].val-1)*100):null;
   return'<div class="chart-card" style="margin-bottom:1.25rem">'
     +'<div class="chart-title"><i class="ti ti-chart-line" style="font-size:13px;color:var(--purple,#a78bfa)"></i> '+tituloSaz+'</div>'
@@ -6679,7 +6679,7 @@ function renderSazonalidade(){
     +meses.map(m=>{
       const h=m.val>0?Math.max(m.val/max*140,20):10;
       const isMax=!m.parcial&&m.val===maxF;
-      const c=isMax?'var(--green)':m.val>media?'var(--blue)':'var(--text3)';
+      const c=isMax?'var(--green)':(!m.antes&&m.val>media)?'var(--blue)':'var(--text3)';
       return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px">'
         +(isMax?'<div style="font-size:10px;color:var(--green);font-weight:700">PICO</div>':'')
         +'<div style="font-size:11px;font-weight:600;color:'+c+'">'+fmtCur(m.val).replace('R$ ','')+'</div>'
