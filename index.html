@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #335 - Saude: despesas fixas e meta do dia 05 lidas das contas fixas reais e da Folha -->
+<!-- Deploy #336 - Saude: CMV real (Curva ABC x Rentabilidade) no lugar dos 45% fixos -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -6293,6 +6293,31 @@ function renderSaudeContent(tab){
 }
 
 // 1. RESERVA DIA 05
+// Deploy #336: CMV real = Curva ABC (valor vendido) x Rentabilidade (custo/venda)
+function msfCmvReal(){
+  try{
+    var abc=JSON.parse(localStorage.getItem("farmacia-abc-produtos")||"null");
+    var ren=JSON.parse(localStorage.getItem("farmacia-margem-produtos")||"null");
+    if(!abc||!ren||!Array.isArray(ren.todos))return null;
+    var lista=Array.isArray(abc.produtos)&&abc.produtos.length?abc.produtos:[].concat(abc.top100||[],abc.sampleB||[],abc.sampleC||[]);
+    var mapa={};ren.todos.forEach(function(x){mapa[String(x.cod).trim()]=x;});
+    var sv=0,sc=0,n=0;
+    lista.forEach(function(p){
+      var cod=String(p.codigo!==undefined?p.codigo:p.cod).trim();
+      var v=Number(p.valorVenda!==undefined?p.valorVenda:p.valor)||0;
+      var x=mapa[cod];
+      if(!x||v<=0||!(x.venda>0)||!(x.custo>0))return;
+      var r=x.custo/x.venda;
+      if(r<0.05||r>1.5)return;
+      sv+=v;sc+=v*r;n++;
+    });
+    var total=Number(abc.total)||0;
+    if(sv<=0||total<=0)return null;
+    var cob=sv/total*100;
+    if(cob<30)return null;
+    return {pct:Math.round(sc/sv*100),pctExato:Math.round(sc/sv*1000)/10,cobertura:Math.round(cob),produtos:n,periodoAbc:abc.periodo||"",rentEm:(ren.importadoEm||"").slice(0,10)};
+  }catch(e){console.warn("msfCmvReal:",e);return null;}
+}
 // Deploy #335: despesas fixas reais (Saidas marcadas como conta fixa + ultimo mes da Folha)
 function msfDespesasFixasReais(){
   var out={fixas:[],temp:[],totalMes:0,metaDia5:0,folhaMes:""};
@@ -6438,7 +6463,8 @@ function renderCMV(){
   const _fatParsed=_fatRaw?JSON.parse(_fatRaw):null;
   const _fatMes=_fatParsed&&_fatParsed.dias?_fatParsed.dias.filter(function(d){return d.data.startsWith(m);}).reduce(function(s,d){return s+d.total;},0):0;
   const rec=_fatMes>0?_fatMes:D.entradas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
-  const cmvPct=45;
+  const _msfCmv=msfCmvReal();
+  const cmvPct=_msfCmv?_msfCmv.pct:45;
   const cmvVal=rec*cmvPct/100;
   const margemBruta=100-cmvPct;
   const margemBrutaVal=rec-cmvVal;
@@ -6521,7 +6547,7 @@ function renderCMV(){
     +'<span style="color:var(--red)">CMV '+cmvPct+'%</span>'
     +'<span style="color:var(--green)">Margem Bruta '+margemBruta+'%</span>'
     +'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:8px">* CMV estimado em '+cmvPct+'% baseado no mix de produtos da MS Farma.</div>';
+    +'<div style="font-size:11px;color:var(--text3);margin-top:8px">'+(_msfCmv?("* CMV de "+_msfCmv.pctExato+"% calculado com a Curva ABC ("+_msfCmv.periodoAbc+") x custo da Rentabilidade ("+_msfCmv.rentEm+"). Cobertura: "+_msfCmv.cobertura+"% da venda, "+_msfCmv.produtos+" produtos."):"* CMV de 45% e estimativa fixa: importe a Curva ABC e a Rentabilidade para calcular o real.")+'</div>';
   html+='</div>';
   // Estratégia Comercial
   html+='<div class="chart-card">';
