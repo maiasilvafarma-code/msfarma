@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #336 - Saude: CMV real (Curva ABC x Rentabilidade) no lugar dos 45% fixos -->
+<!-- Deploy #337 - Saude: Sazonalidade com os meses reais (Vendas por Itens) + mes corrente parcial -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -6653,28 +6653,38 @@ function calcPreco(){
 
 // 4. SAZONALIDADE
 function renderSazonalidade(){
+  // Deploy #337: meses reais (Vendas por Itens importado) + mes corrente parcial (Relacao de Vendas)
   const meses=[];
-  for(let i=4;i>=0;i--){
-    const d=new Date(2026,4-i,1);
-    const ym=d.toISOString().substring(0,7);
-    const r=D.entradas.filter(x=>x.date&&x.date.startsWith(ym)).reduce((s,x)=>s+x.val,0);
-    meses.push({label:monthLabel(ym),val:r,ym});
+  let hist={};try{hist=JSON.parse(localStorage.getItem("farmacia-faturamento-bairro-hist")||"{}");}catch(e){}
+  Object.keys(hist).sort().forEach(function(ym){var v=Number((hist[ym]||{}).totalGeral)||0;if(v>0)meses.push({label:monthLabel(ym),val:v,ym:ym,parcial:false});});
+  const ymAtual=new Date().toISOString().slice(0,7);
+  if(!meses.some(function(m){return m.ym===ymAtual;})){
+    let fd={};try{fd=JSON.parse(localStorage.getItem("msfarma-fatur-dia")||"{}");}catch(e){}
+    const vAt=(fd.dias||[]).filter(function(d){return (d.data||"").slice(0,7)===ymAtual;}).reduce(function(s,d){return s+(Number(d.total)||0);},0);
+    if(vAt>0)meses.push({label:monthLabel(ymAtual),val:vAt,ym:ymAtual,parcial:true});
   }
-  const max=Math.max(...meses.map(m=>m.val),1);
-  const media=meses.filter(m=>m.val>0).reduce((s,m)=>s+m.val,0)/meses.filter(m=>m.val>0).length||0;
-
+  while(meses.length>12)meses.shift();
+  if(!meses.length)meses.push({label:"--",val:0,ym:"",parcial:false});
+  const fech=meses.filter(function(m){return !m.parcial&&m.val>0;});
+  const max=Math.max.apply(null,meses.map(function(m){return m.val;}).concat([1]));
+  const maxF=Math.max.apply(null,fech.map(function(m){return m.val;}).concat([1]));
+  const media=fech.length?fech.reduce(function(s,m){return s+m.val;},0)/fech.length:0;
+  const ult3=fech.slice(-3);
+  const media3=ult3.length?ult3.reduce(function(s,m){return s+m.val;},0)/ult3.length:0;
+  const tituloSaz="Sazonalidade — "+meses[0].label+" a "+meses[meses.length-1].label+" (Vendas por Itens"+(meses.some(function(m){return m.parcial;})?" · * mês em andamento":"")+")";
+  const cresc=fech.length>=2&&fech[0].val>0?((fech[fech.length-1].val/fech[0].val-1)*100):null;
   return'<div class="chart-card" style="margin-bottom:1.25rem">'
-    +'<div class="chart-title"><i class="ti ti-chart-line" style="font-size:13px;color:var(--purple,#a78bfa)"></i> Sazonalidade — Jan a Mai/2026</div>'
+    +'<div class="chart-title"><i class="ti ti-chart-line" style="font-size:13px;color:var(--purple,#a78bfa)"></i> '+tituloSaz+'</div>'
     +'<div style="display:flex;align-items:flex-end;gap:10px;height:160px;padding:0 8px;margin-bottom:12px">'
     +meses.map(m=>{
       const h=m.val>0?Math.max(m.val/max*140,20):10;
-      const isMax=m.val===max;
+      const isMax=!m.parcial&&m.val===maxF;
       const c=isMax?'var(--green)':m.val>media?'var(--blue)':'var(--text3)';
       return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px">'
         +(isMax?'<div style="font-size:10px;color:var(--green);font-weight:700">PICO</div>':'')
         +'<div style="font-size:11px;font-weight:600;color:'+c+'">'+fmtCur(m.val).replace('R$ ','')+'</div>'
         +'<div style="width:100%;background:'+c+';border-radius:4px 4px 0 0;height:'+h+'px;transition:height .5s"></div>'
-        +'<div style="font-size:12px;font-weight:600;color:var(--text2)">'+m.label+'</div>'
+        +'<div style="font-size:12px;font-weight:600;color:var(--text2)">'+m.label+(m.parcial?"*":"")+'</div>'
         +'</div>';
     }).join('')
     +'</div>'
@@ -6686,17 +6696,17 @@ function renderSazonalidade(){
     +'<div style="font-size:11px;color:var(--green)">Melhor mês</div>'
     +'<div style="font-size:18px;font-weight:700;color:var(--green)">'+fmtCur(max)+'</div></div>'
     +'<div style="background:var(--blue-dim);border:1px solid var(--blue-border,#85b7eb);border-radius:var(--r);padding:12px;text-align:center">'
-    +'<div style="font-size:11px;color:var(--blue)">Crescimento Jan→Mai</div>'
-    +'<div style="font-size:18px;font-weight:700;color:var(--blue)">+'+(meses[0].val>0?((meses[4].val/meses[0].val-1)*100).toFixed(0):'--')+'%</div></div>'
+    +'<div style="font-size:11px;color:var(--blue)">Crescimento '+(fech.length?fech[0].label+"→"+fech[fech.length-1].label:"")+'</div>'
+    +'<div style="font-size:18px;font-weight:700;color:var(--blue)">'+(cresc===null?"--":(cresc>=0?"+":"")+cresc.toFixed(0)+"%")+'</div></div>'
     +'</div></div>'
     +'<div class="chart-card">'
     +'<div class="chart-title"><i class="ti ti-alert-triangle" style="font-size:13px;color:var(--yellow)"></i> Alertas de sazonalidade</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
     +[
       {emoji:'❄️',titulo:'Inverno (Mai–Jul) — PICO respiratório',txt:'Clenil, xaropes, antigripais explodem. Mantenha estoque 45 dias de Clenil. Não deixe faltar soro fisiológico kids.'},
-      {emoji:'☀️',titulo:'Verão (Dez–Fev) — Queda esperada',txt:'Respiratory medications slow down. Compensate with higiene/beleza, protetor solar, repelentes.'},
+      {emoji:'☀️',titulo:'Verão (Dez–Fev) — Queda esperada',txt:'Respiratórios desaceleram. Compense com higiene e beleza, protetor solar e repelentes.'},
       {emoji:'📦',titulo:'Não super-estocar no inverno',txt:'Clenil e xaropes têm validade. Compre para 45 dias, não para 90. Evite prejuízo com vencimento.'},
-      {emoji:'🎯',titulo:'Meta realista para Junho',txt:'Maio foi excepcional (R$ 107k). Junho pode ser similar ou um pouco menor. Meta conservadora: R$ 90k.'},
+      {emoji:'🎯',titulo:'Média dos últimos 3 meses fechados',txt:fmtCur(media3)+" por mês. Use como meta conservadora para o mês em andamento."},
     ].map(r=>'<div style="background:var(--surface2);border-radius:var(--r);padding:12px">'
       +'<div style="font-size:18px;margin-bottom:4px">'+r.emoji+'</div>'
       +'<div style="font-size:13px;font-weight:600;margin-bottom:4px">'+r.titulo+'</div>'
