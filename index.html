@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #338 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
+<!-- Deploy #339 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -8521,8 +8521,8 @@ function calcFolhaFunc(f,extras){
     }
 
     if(extras.outrasProvDesc&&extras.outrasProvVal>0){
-      descontos.push({desc:extras.outrasProvDesc+(extras.obsGeral?' ('+extras.obsGeral+')':''),val:extras.outrasProvVal});
-      totalDesc+=extras.outrasProvVal;
+      proventos.push({desc:extras.outrasProvDesc+(extras.obsGeral?' ('+extras.obsGeral+')':''),val:extras.outrasProvVal});
+      totalProv+=extras.outrasProvVal;
     }
     if(extras.obsGeral&&!extras.outrasProvVal){
       proventos.push({desc:'Obs: '+extras.obsGeral,val:0});
@@ -8553,7 +8553,7 @@ function calcFolhaFunc(f,extras){
   }
 
   var liquido=totalProv-totalDesc;
-  var fgts=(f.tipo==='CLT'&&!f.isentoFgts)?Math.round(totalProv*0.08*100)/100:0;
+  var fgts=(f.tipo==='CLT'&&!f.isentoFgts)?Math.round((totalProv-(f.vt>0?f.vt:0)-(f.va>0?f.va:0)-(f.salFam>0?f.salFam:0))*0.08*100)/100:0;
 
   return{proventos,descontos,totalProv,totalDesc,liquido,fgts};
 }
