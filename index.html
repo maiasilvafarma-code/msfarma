@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #339 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
+<!-- Deploy #340 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -4812,7 +4812,7 @@ function renderAnalise(){
   const diasPassados=m===curMonth()?new Date().getDate():diasNoMes;
   const mediadiaria=diasComVenda>0?totalE/diasComVenda:0;
   const projecao=mediadiaria*diasNoMes;
-  const custoFixoMensal=31039.11; // base do Excel importado
+  const custoFixoMensal=msfCustoFixoReal(); // base do Excel importado
 
   // ── KPIs ──────────────────────────────────────────
   const margemColor=margem>=30?'var(--green)':margem>=10?'var(--yellow)':'var(--red)';
@@ -6222,7 +6222,7 @@ function renderSaudeScore(){
   const rec=fatMes;
   const desp=D.saidas.filter(x=>x.date&&x.date.startsWith(m)).reduce((s,x)=>s+x.val,0);
   const bOver=D.boletos.filter(b=>statusBoleto(b)==='overdue').length;
-  const custoFixo=31039.11;
+  const custoFixo=msfCustoFixoReal();
   const margem=rec>0?(rec-desp)/rec*100:0;
   const cobertura=rec>0?rec/custoFixo:0;
 
@@ -6249,12 +6249,12 @@ function renderSaudeScore(){
   else{itens.push({ok:false,txt:diasAcima+' dia(s) acima do limite de '+fmtCur(limite)})}
   // Capital de giro
   const capGiro=parseFloat(localStorage.getItem('farmacia-capital-giro')||'0');
-  const custoFixoScore=31039.11;
+  const custoFixoScore=msfCustoFixoReal();
   const mesesCapital=capGiro/custoFixoScore;
   if(mesesCapital>=2){score+=15;itens.push({ok:true,txt:'Capital de giro excelente ('+mesesCapital.toFixed(1)+' meses protegidos)'})}
   else if(mesesCapital>=1){score+=10;itens.push({ok:true,txt:'Capital de giro saudável ('+mesesCapital.toFixed(1)+' mês protegido)'})}
   else if(mesesCapital>=0.5){score+=5;itens.push({ok:false,txt:'Capital de giro parcial ('+Math.floor(mesesCapital*30)+' dias protegidos)'})}
-  else{itens.push({ok:false,txt:'Capital de giro insuficiente — meta: R$ 31.039'})}
+  else{itens.push({ok:false,txt:'Capital de giro insuficiente — meta: '+fmtCur(msfCustoFixoReal())})}
   // Backup
   const lastBackup=localStorage.getItem('farmacia-last-backup');
   const diasSemBackup=lastBackup?Math.floor((Date.now()-parseInt(lastBackup))/86400000):999;
@@ -6718,7 +6718,7 @@ function renderSazonalidade(){
 // 5. CAPITAL DE GIRO
 function salvarCapital(){var v=parseFloat(document.getElementById('inp-capital-giro').value)||0;localStorage.setItem('farmacia-capital-giro',v);if(typeof msfarmaSync!=='undefined'&&msfarmaSync.syncParaNuvem)msfarmaSync.syncParaNuvem();renderCapitalGiro();renderSaudeScore();showToast('✓ Capital atualizado: '+fmtCur(v),'green');}
 function renderCapitalGiro(){
-  const custoFixo=31039.11;
+  const custoFixo=msfCustoFixoReal();
   const custoDiario=custoFixo/30;
   const capital=parseFloat(localStorage.getItem('farmacia-capital-giro')||'0');
   const chequeEsp=parseFloat(localStorage.getItem('msfarma-cheque-esp')||'20000');
@@ -6733,7 +6733,7 @@ function renderCapitalGiro(){
   // Níveis
   const niveis=[
     {label:'🔴 Crítico',val:10000,desc:'Risco alto',cor:'var(--red)'},
-    {label:'🟡 Sobrevivência',val:31039,desc:'1 mês protegido',cor:'var(--yellow)'},
+    {label:'🟡 Sobrevivência',val:Math.round(msfCustoFixoReal()),desc:'1 mês protegido',cor:'var(--yellow)'},
     {label:'🟢 Saudável',val:46500,desc:'1,5 mês protegido',cor:'#22c55e'},
     {label:'⭐ Excelente',val:62000,desc:'2 meses protegidos',cor:'var(--blue)'}
   ];
@@ -6742,7 +6742,7 @@ function renderCapitalGiro(){
   const fases=[
     {fase:'Fase 1',desc:'Sair do vermelho',meta:10000,cor:'var(--red)'},
     {fase:'Fase 2',desc:'Eliminar dependência bancária',meta:20000,cor:'var(--yellow)'},
-    {fase:'Fase 3',desc:'1 mês de proteção',meta:31039,cor:'#22c55e'},
+    {fase:'Fase 3',desc:'1 mês de proteção',meta:Math.round(msfCustoFixoReal()),cor:'#22c55e'},
     {fase:'Fase 4',desc:'Capital saudável',meta:46000,cor:'var(--blue)'},
     {fase:'Fase 5 ⭐',desc:'Capital estratégico — compras à vista e oportunidades',meta:62000,cor:'#a78bfa'}
   ];
@@ -7995,12 +7995,15 @@ function renderConciliacao(){
   html+='<div style="font-size:11px;color:var(--text3);margin-top:12px">'+dados.totalTransacoes+' transacoes analisadas | Arquivo: '+dados.arquivo+'</div>';
   elR.innerHTML=html;
 }
+function msfCustoFixoReal(){try{var r=msfDespesasFixasReais();var v=Number(r&&r.totalMes)||0;return v>0?Math.round(v*100)/100:31039.11;}catch(e){return 31039.11;}}
+function msfGrupoFornecedor(nome){var k=(nome||"?").trim().toUpperCase();var G=[[/CASAPHARMA|CASA DOS COMPRIMIDOS/,"CASAPHARMA"],[/IBIAPINA/,"IBIAPINA"]];for(var i=0;i<G.length;i++){if(G[i][0].test(k))return G[i][1];}return k;}
+function msfComprasReais(){var out={media:44218,meses:0,topNome:"",topPct:0};try{var h=new Date(),lim=[];for(var i=1;i<=3;i++){var d=new Date(h.getFullYear(),h.getMonth()-i,1);lim.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"));}var pm={},ps={},tot=0;((typeof D!=="undefined"&&D.nf)||[]).forEach(function(x){var m=(x.emi||x.entrada||"").slice(0,7);if(lim.indexOf(m)<0)return;var v=Number(x.val)||0;pm[m]=(pm[m]||0)+v;var k=msfGrupoFornecedor(x.sup);ps[k]=(ps[k]||0)+v;tot+=v;});var nm=Object.keys(pm).length;if(nm>0&&tot>0){out.media=Math.round(tot/nm*100)/100;out.meses=nm;var t=Object.keys(ps).sort(function(p,q){return ps[q]-ps[p];})[0];out.topNome=t;out.topPct=Math.round(ps[t]/tot*100);}}catch(e){}return out;}
 function renderPlanoCompras(){
   const limite=getLimiteDia();
   const limiteMensal=limite*30;
-  const custoFixo=31039.11;
+  const custoFixo=msfCustoFixoReal();
   const dispCompras=limiteMensal-custoFixo;
-  const mediaComprasMes=44218; // R$221.094 / 5 meses
+  const _cr=msfComprasReais(); const mediaComprasMes=_cr.media; // NFs dos 3 ultimos meses fechados
   const gap=mediaComprasMes-dispCompras;
   const gapColor=gap>0?'var(--red)':'var(--green)';
 
@@ -8022,7 +8025,7 @@ function renderPlanoCompras(){
       +'só tem <strong style="color:var(--yellow)">'+fmtCur(dispCompras)+'</strong> disponível para compras após os custos fixos.<br>'
       +'<strong>Excesso: '+fmtCur(gap)+'/mês</strong> — isso explica a pressão no caixa!'
       +'<br><br>💡 <strong>Solução:</strong> Aumentar o prazo médio dos fornecedores para distribuir os boletos por mais meses, '
-      +'e reduzir gradualmente o volume de compras da Casapharma (31% das compras).'
+      +'e reduzir gradualmente o volume de compras do maior fornecedor, '+(_cr.topNome||"")+' ('+_cr.topPct+'% das compras).'
       +'</div></div>';
   } else {
     alertEl.innerHTML='<div style="background:var(--green-dim);border:1px solid var(--green-border);border-radius:var(--rl);padding:14px 20px;font-size:13px;color:var(--green);font-weight:600">'
@@ -9523,7 +9526,7 @@ function renderProjecao(){
     tendencia=crescs.reduce((s,v)=>s+v,0)/crescs.length;
   }
   const projecaoRec=media*(1+tendencia);
-  const custoFixo=31039.11;
+  const custoFixo=msfCustoFixoReal();
   const projecaoRes=projecaoRec-custoFixo;
   const projecaoMg=projecaoRec>0?(projecaoRes/projecaoRec*100):0;
   const cenarios=[
