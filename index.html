@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #341 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
+<!-- Deploy #342 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -5982,7 +5982,7 @@ function saveDividas(dividas){
 
 function renderDividas(){
   const el=document.getElementById('saude-content');
-  const dividas=loadDividas();
+  const dividas=loadDividas().map(function(d){if(d.tipo==="Cheque Especial"){var u=parseFloat(localStorage.getItem("msfarma-cheque-esp")||"0")||0;d=Object.assign({},d,{saldo:u,status:u>0?"ativo":"quitado"});}return d;}); /* #342 cheque especial lido do OFX */
   const totalDividas=dividas.filter(d=>d.status!=='quitado').reduce((s,d)=>s+d.saldo,0);
   const totalJurosMes=dividas.filter(d=>d.status!=='quitado').reduce((s,d)=>s+(d.saldo*d.taxaMes/100),0);
 
