@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #340 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
+<!-- Deploy #341 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -6721,8 +6721,8 @@ function renderCapitalGiro(){
   const custoFixo=msfCustoFixoReal();
   const custoDiario=custoFixo/30;
   const capital=parseFloat(localStorage.getItem('farmacia-capital-giro')||'0');
-  const chequeEsp=parseFloat(localStorage.getItem('msfarma-cheque-esp')||'20000');
-  const chequeUsado=parseFloat(localStorage.getItem('msfarma-saldo-atual')||'0')<0?Math.abs(parseFloat(localStorage.getItem('msfarma-saldo-atual')||'0')):8202.35;
+  const chequeEsp=21000;
+  const chequeUsado=parseFloat(localStorage.getItem("msfarma-cheque-esp")||"0")||0;
   const capitalLiquido=capital-chequeUsado;
   const diasProtegidos=custoDiario>0?Math.floor(capital/custoDiario):0;
   const mesesProtegidos=(capital/custoFixo).toFixed(1);
@@ -6734,8 +6734,8 @@ function renderCapitalGiro(){
   const niveis=[
     {label:'🔴 Crítico',val:10000,desc:'Risco alto',cor:'var(--red)'},
     {label:'🟡 Sobrevivência',val:Math.round(msfCustoFixoReal()),desc:'1 mês protegido',cor:'var(--yellow)'},
-    {label:'🟢 Saudável',val:46500,desc:'1,5 mês protegido',cor:'#22c55e'},
-    {label:'⭐ Excelente',val:62000,desc:'2 meses protegidos',cor:'var(--blue)'}
+    {label:'🟢 Saudável',val:Math.round(msfCustoFixoReal()*1.5),desc:'1,5 mês protegido',cor:'#22c55e'},
+    {label:'⭐ Excelente',val:Math.round(msfCustoFixoReal()*2),desc:'2 meses protegidos',cor:'var(--blue)'}
   ];
   const nivelAtual=niveis.filter(function(n){return capital>=n.val;}).pop()||{label:'🔴 Crítico',cor:'var(--red)',desc:'Risco alto'};
   const pct=Math.min(capital/62000*100,100).toFixed(0);
@@ -9578,9 +9578,9 @@ function toggleNotificacoes(){
   var bol3d=D.boletos.filter(function(b){return !b.paid&&daysDiff(b.due)>=0&&daysDiff(b.due)<=3;});
   var bolHoje=D.boletos.filter(function(b){return !b.paid&&daysDiff(b.due)===0;});
   var totalVenc=bolVenc.reduce(function(s,b){return s+b.val;},0);
-  var chequeEsp=parseFloat(localStorage.getItem('msfarma-cheque-esp')||'20000');
-  var saldoAtual=parseFloat(localStorage.getItem('msfarma-saldo-atual')||'0');
-  var chequeUsado=saldoAtual<0?Math.abs(saldoAtual):8202.35;
+  var chequeEsp=21000;
+  var saldoAtual=parseFloat(localStorage.getItem("msfarma-saldo-atual")||"0");
+  var chequeUsado=parseFloat(localStorage.getItem("msfarma-cheque-esp")||"0")||0;
   var pctCheque=chequeEsp>0?(chequeUsado/chequeEsp*100).toFixed(0):0;
   var meta=parseFloat(localStorage.getItem('farmacia-meta')||'0');
   var fatRaw=localStorage.getItem('msfarma-fatur-dia');
