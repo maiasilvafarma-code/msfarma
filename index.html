@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #343 - Conciliacao: importador OFX reconhece Sicoob (756), conciliacao e saldo separados por banco, decimal ponto/virgula -->
+<!-- Deploy #344 - Conciliacao Sicoob: reconhece boleto mesmo com acento corrompido no OFX (TIT.COMPE / PAGAMENTO DE BOLETO em qualquer posicao) -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -7902,8 +7902,8 @@ function importarOfxSantander(file){
       trans.forEach(function(t){
         const m=msfNorm(t.memo);
         if(m.indexOf('PIX RECEBIDO')===0){pixRecebido+=t.valor;}
-        else if(m.indexOf('PAGAMENTO DE BOLETO')===0||m.indexOf('DEB. PAGAMENTO DE BOLETO')===0||m.indexOf('DEB.TIT.COMPE')===0){boletoPagos.push(t);}
-        else if(m.indexOf('JUROS')>=0||m.indexOf('IOF')>=0||m.indexOf('MULTA')>=0||m.indexOf('PACOTE SERVICOS')>=0){custoFinanceiro+=Math.abs(t.valor);}
+        else if(m.indexOf('PAGAMENTO DE BOLETO')===0||(msfBanco==="sicoob"&&(m.indexOf('PAGAMENTO DE BOLETO')>=0||m.indexOf('TIT.COMPE')>=0))){boletoPagos.push(t);}
+        else if(m.indexOf('JUROS')>=0||m.indexOf('IOF')>=0||m.indexOf('MULTA')>=0||m.indexOf('PACOTE SERVI')>=0){custoFinanceiro+=Math.abs(t.valor);}
         else if(m.indexOf('PIX ENVIADO')===0&&(m.indexOf('JANAINA')>=0||m.indexOf('ADRIANA')>=0)){retiradas+=Math.abs(t.valor);}
         else{outros.push(t);}
       });
