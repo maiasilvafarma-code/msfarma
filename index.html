@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #342 - Saude: Sazonalidade tira jan-abr/2026 (antes da organizacao do INFARMA) da media e do crescimento -->
+<!-- Deploy #343 - Conciliacao: importador OFX reconhece Sicoob (756), conciliacao e saldo separados por banco, decimal ponto/virgula -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -2912,8 +2912,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
     <!-- CONCILIACAO BANCARIA -->
     <div id="est-conciliacao" style="display:none">
       <div class="chart-card" style="margin-bottom:1.25rem">
-        <div class="chart-title"><i class="ti ti-building-bank" style="font-size:13px;color:var(--green)"></i> Conciliação Bancária — Extrato Santander (OFX)</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Importe o extrato OFX do Santander para conferir pagamentos de boletos, custos do cheque especial e recebimentos via Pix.</div>
+        <div class="chart-title"><i class="ti ti-building-bank" style="font-size:13px;color:var(--green)"></i> Conciliação Bancária — Extratos Santander e Sicoob (OFX)</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Importe o extrato OFX do Santander ou do Sicoob — o sistema reconhece o banco pelo arquivo. Confere boletos pagos, custos financeiros e Pix recebido.</div>
         <button class="btn btn-green" onclick="document.getElementById(&#39;ofx-input&#39;).click()">📥 Importar Extrato OFX</button>
       </div>
       <div class="metrics" id="conc-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.25rem"></div>
@@ -7841,6 +7841,12 @@ function setEstTab(tab){
   }
 }
 
+window.msfConcBanco=window.msfConcBanco||"santander";
+function msfConcKey(b){return b==="sicoob"?"farmacia-conciliacao-sicoob":"farmacia-conciliacao-bancaria";}
+function msfNum(v){var x=String(v||"").trim();if(x.indexOf(",")>=0){x=x.replace(/\./g,"").replace(",",".");}return parseFloat(x);}
+function msfNorm(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();}
+function msfConcSantander(){window.msfConcBanco="santander";renderConciliacao();}
+function msfConcSicoob(){window.msfConcBanco="sicoob";renderConciliacao();}
 function importarOfxSantander(file){
   if(!file)return;
   showToast('Lendo extrato OFX...','green');
@@ -7848,6 +7854,7 @@ function importarOfxSantander(file){
   reader.onload=function(e){
     try{
       const txt=e.target.result;
+      var msfBanco=/<(BANKID|FID)>\s*756/.test(txt)?"sicoob":"santander";var msfKey=msfConcKey(msfBanco);
       const blocos=txt.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/g)||[];
       if(blocos.length===0){alert('Nenhuma transacao encontrada no arquivo.');return;}
       function campo(bloco,tag){const m=bloco.match(new RegExp('<'+tag+'>([^\\n<]*)'));return m?m[1].trim():'';}
@@ -7856,20 +7863,21 @@ function importarOfxSantander(file){
         const tipo=campo(b,'TRNTYPE');
         const dataRaw=campo(b,'DTPOSTED').substring(0,8);
         const data=dataRaw.substring(0,4)+'-'+dataRaw.substring(4,6)+'-'+dataRaw.substring(6,8);
-        const valor=parseFloat(campo(b,'TRNAMT').replace(',','.'));
-        const memo=campo(b,'MEMO');
+        const valor=msfNum(campo(b,'TRNAMT'));
+        const memo=campo(b,'MEMO')+((msfBanco==="sicoob"&&campo(b,'NAME'))?" — "+campo(b,'NAME'):"");
         const fitid=campo(b,'FITID');
         trans.push({tipo:tipo,data:data,valor:valor,memo:memo,fitid:fitid});
       });
       /* #333 dedup por dia: dia ja importado e ignorado; dia da geracao do arquivo (incompleto) tambem */
-      var msfAnt=null;try{msfAnt=JSON.parse(localStorage.getItem("farmacia-conciliacao-bancaria"));}catch(err){}
+      var msfAnt=null;try{msfAnt=JSON.parse(localStorage.getItem(msfKey));}catch(err){}
       var msfDiasAnt={};((msfAnt&&msfAnt.dias)||[]).forEach(function(x){msfDiasAnt[x]=true;});
       var msfAsOfM=txt.match(/<DTASOF>(\d{8})/);
       var msfAsOf=msfAsOfM?(msfAsOfM[1].slice(0,4)+"-"+msfAsOfM[1].slice(4,6)+"-"+msfAsOfM[1].slice(6,8)):"";
+      var msfSrvM=txt.match(/<DTSERVER>(\d{8})/);var msfSrv=msfSrvM?(msfSrvM[1].slice(0,4)+"-"+msfSrvM[1].slice(4,6)+"-"+msfSrvM[1].slice(6,8)):"";
       var msfPulDia=0,msfPulParc=0;
       var msfNovas=trans.filter(function(t){
         if(msfDiasAnt[t.data]){msfPulDia++;return false;}
-        if(msfAsOf&&t.data>=msfAsOf){msfPulParc++;return false;}
+        if(msfBanco==="sicoob"){if(msfSrv&&t.data>=msfSrv){msfPulParc++;return false;}}else if(msfAsOf&&t.data>=msfAsOf){msfPulParc++;return false;}
         return true;
       });
       trans.splice(0,trans.length);msfNovas.forEach(function(t){trans.push(t);});
@@ -7880,9 +7888,10 @@ function importarOfxSantander(file){
       const dtAsOfMatch=txt.match(/<DTASOF>(\d{8})/);
       var msfSaldoAntigo=!!(msfAnt&&msfAnt.saldoAsOf&&msfAsOf&&msfAsOf<msfAnt.saldoAsOf);
       if(balMatch&&!msfSaldoAntigo){
-        const saldoBanco=parseFloat(balMatch[1].trim().replace(',','.'));
+        const saldoBanco=msfNum(balMatch[1]);
         if(!isNaN(saldoBanco)){
-          if(saldoBanco>=0){salvarSaldoAtual(saldoBanco);salvarChequeEsp(0);}
+          if(msfBanco==="sicoob"){try{localStorage.setItem("msfarma-saldo-sicoob",String(saldoBanco));}catch(err){alert("NAO FOI SALVO o saldo do Sicoob: "+err.message);}}
+          else if(saldoBanco>=0){salvarSaldoAtual(saldoBanco);salvarChequeEsp(0);}
           else{salvarSaldoAtual(0);salvarChequeEsp(Math.abs(saldoBanco));}
           saldoAtualizado=true;
         }
@@ -7891,10 +7900,10 @@ function importarOfxSantander(file){
       const boletoPagos=[];
       const outros=[];
       trans.forEach(function(t){
-        const m=t.memo.toUpperCase();
+        const m=msfNorm(t.memo);
         if(m.indexOf('PIX RECEBIDO')===0){pixRecebido+=t.valor;}
-        else if(m.indexOf('PAGAMENTO DE BOLETO')===0){boletoPagos.push(t);}
-        else if(m.indexOf('JUROS')>=0||m.indexOf('IOF')>=0||m.indexOf('MULTA')>=0){custoFinanceiro+=Math.abs(t.valor);}
+        else if(m.indexOf('PAGAMENTO DE BOLETO')===0||m.indexOf('DEB. PAGAMENTO DE BOLETO')===0||m.indexOf('DEB.TIT.COMPE')===0){boletoPagos.push(t);}
+        else if(m.indexOf('JUROS')>=0||m.indexOf('IOF')>=0||m.indexOf('MULTA')>=0||m.indexOf('PACOTE SERVICOS')>=0){custoFinanceiro+=Math.abs(t.valor);}
         else if(m.indexOf('PIX ENVIADO')===0&&(m.indexOf('JANAINA')>=0||m.indexOf('ADRIANA')>=0)){retiradas+=Math.abs(t.valor);}
         else{outros.push(t);}
       });
@@ -7909,7 +7918,7 @@ function importarOfxSantander(file){
         if(bPend){encontrados.push({trans:t,boleto:bPend});return;}
         naoIdentificados.push(t);
       });
-      let anteriores=null;try{anteriores=JSON.parse(localStorage.getItem('farmacia-conciliacao-bancaria'));}catch(err){}
+      let anteriores=null;try{anteriores=JSON.parse(localStorage.getItem(msfKey));}catch(err){}
       const fitidsAntigos={};
       if(anteriores&&anteriores.fitids){anteriores.fitids.forEach(function(f){fitidsAntigos[f]=true;});}
       const fitidsNovos=trans.map(function(t){return t.fitid;});
@@ -7930,9 +7939,9 @@ function importarOfxSantander(file){
       const dados={importadoEm:new Date().toISOString(),arquivo:arquivosAcum.join(', '),arquivos:arquivosAcum,totalTransacoes:totalTransAcum,fitids:fitidsAcum,pixRecebido:Math.round(pixRecebidoAcum*100)/100,custoFinanceiro:Math.round(custoFinanceiroAcum*100)/100,retiradas:Math.round(retiradasAcum*100)/100,confirmados:confirmadosAcum,encontrados:encontradosAcum,naoIdentificados:naoIdentAcum,outros:outros};
       dados.dias=Object.keys(msfDiasAnt).concat(Object.keys(msfDiasNovos).filter(function(x){return !msfDiasAnt[x];})).sort();
       dados.saldoAsOf=(saldoAtualizado&&msfAsOf)?msfAsOf:((msfAnt&&msfAnt.saldoAsOf)||"");
-      localStorage.setItem('farmacia-conciliacao-bancaria',JSON.stringify(dados));
+      dados.banco=msfBanco;localStorage.setItem(msfKey,JSON.stringify(dados));window.msfConcBanco=msfBanco;
       document.getElementById('ofx-input').value='';
-      showToast('Extrato importado: '+trans.length+' transacoes'+((msfPulDia+msfPulParc)?" | ignoradas "+(msfPulDia+msfPulParc)+" (dias ja importados ou incompletos)":"")+(saldoAtualizado?' | saldo bancario atualizado':'')+' | '+encontrados.length+' boletos pagos nao marcados','green');
+      showToast((msfBanco==="sicoob"?"Sicoob":"Santander")+' importado: '+trans.length+' transacoes'+((msfPulDia+msfPulParc)?" | ignoradas "+(msfPulDia+msfPulParc)+" (dias ja importados ou incompletos)":"")+(saldoAtualizado?' | saldo bancario atualizado':'')+' | '+encontrados.length+' boletos pagos nao marcados','green');
       renderConciliacao();
     }catch(ex){alert('Erro: '+ex.message);}
   };
@@ -7940,7 +7949,7 @@ function importarOfxSantander(file){
 }
 function confirmarBoletoPago(idx){
   let dados=null;
-  try{dados=JSON.parse(localStorage.getItem('farmacia-conciliacao-bancaria'));}catch(e){}
+  try{dados=JSON.parse(localStorage.getItem(msfConcKey(window.msfConcBanco)));}catch(e){}
   if(!dados||!dados.encontrados[idx])return;
   const item=dados.encontrados[idx];
   const b=(D.boletos||[]).find(function(x){return x.id===item.boleto.id;});
@@ -7951,7 +7960,7 @@ function confirmarBoletoPago(idx){
     save();
     dados.confirmados.push(item);
     dados.encontrados.splice(idx,1);
-    localStorage.setItem('farmacia-conciliacao-bancaria',JSON.stringify(dados));
+    localStorage.setItem(msfConcKey(window.msfConcBanco),JSON.stringify(dados));
     showToast('Boleto marcado como pago!','green');
     renderConciliacao();
     renderBoletos();
@@ -7962,17 +7971,20 @@ function renderConciliacao(){
   const elR=document.getElementById('conc-resultado');
   if(!elK||!elR)return;
   let dados=null;
-  try{const s=localStorage.getItem('farmacia-conciliacao-bancaria');if(s)dados=JSON.parse(s);}catch(e){}
+  var _bco=window.msfConcBanco==="sicoob"?"sicoob":"santander";var _bNome=_bco==="sicoob"?"Sicoob":"Santander";
+  var _tog='<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn '+(_bco==="santander"?"btn-green":"")+'" style="padding:5px 14px;font-size:12px" onclick="msfConcSantander()">Santander</button><button class="btn '+(_bco==="sicoob"?"btn-green":"")+'" style="padding:5px 14px;font-size:12px" onclick="msfConcSicoob()">Sicoob</button></div>';
+  try{const s=localStorage.getItem(msfConcKey(_bco));if(s)dados=JSON.parse(s);}catch(e){}
   if(!dados){
     elK.innerHTML='';
-    elR.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text3)">Importe um extrato OFX do Santander para conciliar.</div>';
+    elR.innerHTML=_tog+'<div style="text-align:center;padding:1.5rem;color:var(--text3)">Importe um extrato OFX do '+_bNome+' para conciliar.</div>';
     return;
   }
   var _todasT=[];['naoIdentificados','outros','confirmados','encontrados'].forEach(function(cp){if(Array.isArray(dados[cp]))dados[cp].forEach(function(t){if(t.data)_todasT.push(t.data);});});_todasT.sort();var _periodo=_todasT.length?('Acumulado '+_todasT[0].split('-').reverse().join('/').slice(0,5)+' a '+_todasT[_todasT.length-1].split('-').reverse().join('/').slice(0,5)):'Acumulado';var _nArq=(dados.arquivos||[]).length;var _subP=_periodo+(_nArq?' • '+_nArq+' extratos':'');elK.innerHTML=_kpi('Pix recebido','R$ '+dados.pixRecebido.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-qrcode','var(--green)',_subP)
     +_kpi('Juros/Multa/IOF','R$ '+dados.custoFinanceiro.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-alert-triangle','var(--red)',_subP)
     +_kpi('Retiradas sócias','R$ '+dados.retiradas.toLocaleString('pt-BR',{minimumFractionDigits:2}),'ti-arrow-up-right','var(--yellow)',_subP)
     +_kpi('Boletos pagos p/ marcar','',+dados.encontrados.length+'','ti-checklist','var(--green)');
-  let html='';
+  let html=_tog;
+  if(_bco==="sicoob"){var _ss=localStorage.getItem("msfarma-saldo-sicoob");if(_ss!==null)html+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Saldo Sicoob: <strong>R$ '+Number(_ss).toLocaleString("pt-BR",{minimumFractionDigits:2})+'</strong>'+(dados.saldoAsOf?' em '+fmtDate(dados.saldoAsOf):'')+'</div>';}
   if(dados.encontrados.length>0){
     html+='<div class="chart-title"><i class="ti ti-checklist" style="font-size:13px;color:var(--green)"></i> Boletos pagos no banco mas nao marcados no sistema</div>';
     html+='<div style="overflow-x:auto"><table class="data-table" style="margin:-1px"><thead><tr><th>Fornecedor</th><th>Nota</th><th style="text-align:right">Valor</th><th>Data pagamento</th><th></th></tr></thead><tbody>';
@@ -12185,7 +12197,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     'msfarma-abc-hist',
     'msfarma-resumo-vendas','msfarma-meta-cli','farmacia-last-backup','msfarma-fatur-dia',
     'ms-farma-clean-v5','farmacia-folha-v1','farmacia-caixa-v1',
-    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','msfarma-cheque-esp','msfarma-agenda-marcacoes','msfarma-agenda-apagados','msfarma-fixas-v1',
+    'farmacia-dividas-v1','farmacia-reserva-dia5','farmacia-lembrete-infarma','msfarma-saldo-atual','farmacia-margem-produtos','farmacia-conciliacao-bancaria','farmacia-conciliacao-sicoob','msfarma-saldo-sicoob','msfarma-cheque-esp','msfarma-agenda-marcacoes','msfarma-agenda-apagados','msfarma-fixas-v1',
     'farmacia-entrada-produtos','farmacia-faturamento-bairro','farmacia-faturamento-bairro-hist','msfarma-uso-continuo','msfarma-emprestimos-pagas','msfarma-ultima-import-vendas','msfarma-ultima-import-abc'
   ];
 
