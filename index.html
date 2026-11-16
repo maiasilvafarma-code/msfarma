@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #344 - Conciliacao Sicoob: reconhece boleto mesmo com acento corrompido no OFX (TIT.COMPE / PAGAMENTO DE BOLETO em qualquer posicao) -->
+<!-- Deploy #345 - Conciliacao: boleto pago aceita ate 3 dias de diferenca entre banco e sistema; reconcilia de novo ao abrir a tela (Santander e Sicoob) -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -7845,6 +7845,8 @@ window.msfConcBanco=window.msfConcBanco||"santander";
 function msfConcKey(b){return b==="sicoob"?"farmacia-conciliacao-sicoob":"farmacia-conciliacao-bancaria";}
 function msfNum(v){var x=String(v||"").trim();if(x.indexOf(",")>=0){x=x.replace(/\./g,"").replace(",",".");}return parseFloat(x);}
 function msfNorm(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();}
+function msfAcharBoletoPago(t,usados){var v=Math.abs(t.valor);var dt=new Date(t.data+"T12:00").getTime();var best=null,bd=99;(D.boletos||[]).forEach(function(b){if(!b.paid||!b.paidDate||(usados&&usados[b.id]))return;if(Math.abs((b.valPago||b.val)-v)>=0.02&&Math.abs(b.val-v)>=0.02)return;var d=Math.abs((new Date(b.paidDate+"T12:00").getTime()-dt)/864e5);if(d<=3&&d<bd){bd=d;best=b;}});return best;}
+function msfReconciliar(dados,key){if(!dados)return dados;var usados={};(dados.confirmados||[]).forEach(function(c){if(c.boleto)usados[c.boleto.id]=true;});var mudou=false;var nao=[];(dados.naoIdentificados||[]).forEach(function(t){var b=msfAcharBoletoPago(t,usados);if(b){usados[b.id]=true;dados.confirmados.push({trans:t,boleto:b,tolerancia:true});mudou=true;return;}var p=(D.boletos||[]).find(function(x){return !x.paid&&Math.abs(x.val-Math.abs(t.valor))<0.02;});if(p){dados.encontrados.push({trans:t,boleto:p});mudou=true;return;}nao.push(t);});dados.naoIdentificados=nao;var enc=[];(dados.encontrados||[]).forEach(function(it){var b=(D.boletos||[]).find(function(x){return x.id===it.boleto.id;});if(b&&b.paid){dados.confirmados.push(it);mudou=true;}else enc.push(it);});dados.encontrados=enc;if(mudou&&key){try{localStorage.setItem(key,JSON.stringify(dados));}catch(e){alert("NAO FOI SALVO (conciliacao): "+e.message);}}return dados;}
 function msfConcSantander(){window.msfConcBanco="santander";renderConciliacao();}
 function msfConcSicoob(){window.msfConcBanco="sicoob";renderConciliacao();}
 function importarOfxSantander(file){
@@ -7910,10 +7912,11 @@ function importarOfxSantander(file){
       const confirmados=[];
       const encontrados=[];
       const naoIdentificados=[];
+      var msfUsados={};((msfAnt&&msfAnt.confirmados)||[]).forEach(function(c){if(c.boleto)msfUsados[c.boleto.id]=true;});
       boletoPagos.forEach(function(t){
         const valorAbs=Math.abs(t.valor);
-        let bConf=(D.boletos||[]).find(function(b){return b.paid&&b.paidDate===t.data&&Math.abs((b.valPago||b.val)-valorAbs)<0.02;});
-        if(bConf){confirmados.push({trans:t,boleto:bConf});return;}
+        let bConf=msfAcharBoletoPago(t,msfUsados);
+        if(bConf){msfUsados[bConf.id]=true;confirmados.push({trans:t,boleto:bConf});return;}
         let bPend=(D.boletos||[]).find(function(b){return !b.paid&&Math.abs(b.val-valorAbs)<0.02;});
         if(bPend){encontrados.push({trans:t,boleto:bPend});return;}
         naoIdentificados.push(t);
@@ -7974,6 +7977,7 @@ function renderConciliacao(){
   var _bco=window.msfConcBanco==="sicoob"?"sicoob":"santander";var _bNome=_bco==="sicoob"?"Sicoob":"Santander";
   var _tog='<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn '+(_bco==="santander"?"btn-green":"")+'" style="padding:5px 14px;font-size:12px" onclick="msfConcSantander()">Santander</button><button class="btn '+(_bco==="sicoob"?"btn-green":"")+'" style="padding:5px 14px;font-size:12px" onclick="msfConcSicoob()">Sicoob</button></div>';
   try{const s=localStorage.getItem(msfConcKey(_bco));if(s)dados=JSON.parse(s);}catch(e){}
+  try{if(dados)dados=msfReconciliar(dados,msfConcKey(_bco));}catch(e){console.log("msfReconciliar",e);}
   if(!dados){
     elK.innerHTML='';
     elR.innerHTML=_tog+'<div style="text-align:center;padding:1.5rem;color:var(--text3)">Importe um extrato OFX do '+_bNome+' para conciliar.</div>';
