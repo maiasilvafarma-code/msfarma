@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #346 - Dashboard: Disponivel Real e Previsao de Saldo somam Santander (saldo menos cheque especial) + Sicoob, lidos do OFX -->
+<!-- Deploy #347 - Saidas: botao Pagar pergunta a data do pagamento (padrao hoje, atalho para o vencimento); today() usa data local, nao UTC -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -3076,7 +3076,7 @@ function load(){
   initRelMeses();renderAll();goTab('dashboard');setTimeout(checkAlerts,500);
 }
 function save(){localStorage.setItem(SK,JSON.stringify(D));updateCounts();}
-function today(){return new Date().toISOString().split('T')[0];}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function daysDiff(due){return Math.round((new Date(due)-new Date(today()))/86400000);}
 function curMonth(){return today().substring(0,7);}
 function monthLabel(ym){if(ym==='all')return'Todos';const[y,m]=ym.split('-');const ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return ms[parseInt(m)-1]+'/'+y.substring(2);}
@@ -4112,10 +4112,43 @@ function addSaida(auto){
 }
 function paySaida(id){
   const s=D.saidas.find(x=>x.id===id);if(!s)return;
-  s.paid=!s.paid;
-  s.paidDate=s.paid?today():null;
-  save();_clearCache();renderSaidas();setTimeout(applyResizableToAllTables,100);
-  showToast(s.paid?'✓ Saída marcada como paga!':'Pagamento desfeito.','green');
+  if(s.paid){
+    s.paid=false;s.paidDate=null;
+    save();_clearCache();renderSaidas();setTimeout(applyResizableToAllTables,100);
+    showToast('Pagamento desfeito.','green');
+    return;
+  }
+  window._msfPayVenc=s.date||today();
+  var vencBr=(s.date||'').split('-').reverse().join('/');
+  document.getElementById('modal-area').innerHTML=`
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal-box" onclick="event.stopPropagation()" style="max-width:420px">
+        <div class="modal-head" style="background:var(--green-dim);border-bottom-color:var(--green-border)">
+          <span style="font-size:20px">✓</span>
+          <div>
+            <div style="font-size:15px;font-weight:600;color:var(--green)">Confirmar pagamento</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">${s.desc} — ${fmtCur(s.val)}</div>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="field"><label>📅 Data do pagamento</label><input type="date" id="pay-s-data" value="${today()}"></div>
+          ${s.date&&s.date!==today()?`<button class="btn" style="margin-top:8px;font-size:12px;padding:5px 12px" onclick="msfPayDataVenc()">Usar a data do vencimento (${vencBr})</button>`:''}
+        </div>
+        <div class="modal-foot">
+          <button class="btn" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-green" onclick="confirmarPagSaida(${id})">✓ Confirmar pagamento</button>
+        </div>
+      </div>
+    </div>`;
+}
+function msfPayDataVenc(){var el=document.getElementById('pay-s-data');if(el&&window._msfPayVenc)el.value=window._msfPayVenc;}
+function confirmarPagSaida(id){
+  const s=D.saidas.find(x=>x.id===id);if(!s)return;
+  var el=document.getElementById('pay-s-data');var dt=(el&&el.value)||today();
+  s.paid=true;s.paidDate=dt;
+  try{save();}catch(e){alert('NAO FOI SALVO: '+e.message);return;}
+  closeModal();_clearCache();renderSaidas();setTimeout(applyResizableToAllTables,100);
+  showToast('✓ Saída paga em '+dt.split('-').reverse().join('/'),'green');
 }
 function delSaida(id){if(!confirm('Remover?'))return;D.saidas=D.saidas.filter(x=>x.id!==id);save();renderAll();}
 
