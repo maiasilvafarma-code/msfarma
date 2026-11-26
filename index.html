@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Deploy #347 - Saidas: botao Pagar pergunta a data do pagamento (padrao hoje, atalho para o vencimento); today() usa data local, nao UTC -->
+<!-- Deploy #348 - Seguranca: login Supabase (e-mail e senha) antes de sincronizar; requisicoes usam o token da sessao, nao a chave anon -->
 <script>
 (function(){
   const _set = Storage.prototype.setItem;
@@ -12228,6 +12228,67 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
 (function() {
   const SUPA_URL = 'https://aydzadpymxkcygquixgv.supabase.co';
   const SUPA_KEY = 'sb_publishable_VYdgoTKL9nVBIkmAKs2Uhw_NkcPx0e5';
+  const _origGet = localStorage.getItem.bind(localStorage);
+  const _origSet = localStorage.setItem.bind(localStorage);
+
+  // ===== Deploy #348: login Supabase (Auth REST) =====
+  const MSF_AUTH_KEY = 'msfarma-auth-sessao';
+  function msfSessao(){ try{ return JSON.parse(_origGet(MSF_AUTH_KEY)||'null'); }catch(e){ return null; } }
+  function msfGuardaSessao(j){
+    const s = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Date.now() + ((j.expires_in||3600) * 1000), email: (j.user && j.user.email) || '' };
+    try{ _origSet(MSF_AUTH_KEY, JSON.stringify(s)); }catch(e){ alert('NAO FOI SALVO o login: ' + e.message); }
+    return s;
+  }
+  let _msfRefreshing = null;
+  async function msfTok(){
+    const s = msfSessao();
+    if(!s || !s.refresh_token) return null;
+    if(s.access_token && s.expires_at - 60000 > Date.now()) return s.access_token;
+    if(_msfRefreshing) return _msfRefreshing;
+    _msfRefreshing = (async function(){
+      try{
+        const r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', { method:'POST', headers:{ 'apikey': SUPA_KEY, 'Content-Type':'application/json' }, body: JSON.stringify({ refresh_token: s.refresh_token }) });
+        if(!r.ok){ if(r.status===400||r.status===401){ localStorage.removeItem(MSF_AUTH_KEY); msfMostrarLogin(); } return null; }
+        const j = await r.json();
+        return msfGuardaSessao(j).access_token;
+      }catch(e){ return null; }
+      finally{ _msfRefreshing = null; }
+    })();
+    return _msfRefreshing;
+  }
+  function msfMostrarLogin(){
+    if(document.getElementById('msf-login')) return;
+    const d = document.createElement('div');
+    d.id = 'msf-login';
+    d.style.cssText = 'position:fixed;inset:0;background:rgba(10,10,12,.96);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+    d.innerHTML = '<div style="background:#1c1c20;border:1px solid #333;border-radius:14px;padding:24px;width:100%;max-width:340px;color:#eee;font-family:inherit">'
+      + '<div style="font-size:18px;font-weight:700;margin-bottom:4px">MS Farma — Entrar</div>'
+      + '<div style="font-size:12px;color:#999;margin-bottom:16px">Login da farmácia. Fica salvo neste aparelho.</div>'
+      + '<input id="msf-login-email" type="email" autocomplete="username" placeholder="E-mail" style="width:100%;box-sizing:border-box;height:40px;margin-bottom:10px;padding:0 12px;border-radius:8px;border:1px solid #444;background:#111;color:#eee;font-size:15px">'
+      + '<input id="msf-login-senha" type="password" autocomplete="current-password" placeholder="Senha" style="width:100%;box-sizing:border-box;height:40px;margin-bottom:12px;padding:0 12px;border-radius:8px;border:1px solid #444;background:#111;color:#eee;font-size:15px">'
+      + '<button onclick="msfLogin()" style="width:100%;height:42px;border:none;border-radius:8px;background:#1a6b3c;color:#fff;font-size:15px;font-weight:700;cursor:pointer">Entrar</button>'
+      + '<div id="msf-login-msg" style="font-size:12px;color:#ef4444;margin-top:10px;min-height:16px"></div></div>';
+    (document.body || document.documentElement).appendChild(d);
+    const sn = document.getElementById('msf-login-senha');
+    if(sn) sn.addEventListener('keydown', function(ev){ if(ev.key === 'Enter') window.msfLogin(); });
+  }
+  window.msfLogin = async function(){
+    const em = (document.getElementById('msf-login-email')||{}).value || '';
+    const pw = (document.getElementById('msf-login-senha')||{}).value || '';
+    const msg = document.getElementById('msf-login-msg');
+    if(!em || !pw){ if(msg) msg.textContent = 'Preencha e-mail e senha.'; return; }
+    if(msg){ msg.style.color = '#999'; msg.textContent = 'Entrando...'; }
+    try{
+      const r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', { method:'POST', headers:{ 'apikey': SUPA_KEY, 'Content-Type':'application/json' }, body: JSON.stringify({ email: em.trim(), password: pw }) });
+      const j = await r.json().catch(function(){ return {}; });
+      if(!r.ok || !j.access_token){ if(msg){ msg.style.color = '#ef4444'; msg.textContent = 'E-mail ou senha incorretos.'; } return; }
+      msfGuardaSessao(j);
+      location.reload();
+    }catch(e){ if(msg){ msg.style.color = '#ef4444'; msg.textContent = 'Sem conexao. Tente de novo.'; } }
+  };
+  window.msfSair = function(){ localStorage.removeItem(MSF_AUTH_KEY); location.reload(); };
+  window.msfTok = msfTok;
+  // ===== fim login =====
   
   const SYNC_KEYS = ['farmacia-boletos-previstos',
     'farmacia-fin-v2','farmacia-folha-v3','farmacia-folha-hist-v1',
@@ -12257,7 +12318,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
         method: 'POST',
         headers: {
           'apikey': SUPA_KEY,
-          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Authorization': 'Bearer ' + (await msfTok()),
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates'
         },
@@ -12281,7 +12342,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     const histKey = 'hist:' + chave + ':' + data;
     try {
       const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.' + encodeURIComponent(histKey) + '&select=valor', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (await msfTok()) }
       });
       const rows = await resp.json();
       if(!rows || !rows.length) { console.log('Backup nao encontrado:', histKey); return null; }
@@ -12292,7 +12353,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
   async function listarBackups(chave) {
     try {
       const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=like.hist:' + encodeURIComponent(chave) + ':*&select=chave&order=chave.desc', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (await msfTok()) }
       });
       const rows = await resp.json();
       return (rows||[]).map(function(r){ return r.chave.replace('hist:' + chave + ':', ''); });
@@ -12312,7 +12373,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
   async function verificarLogSync() {
     try {
       const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.farmacia-sync-log&select=valor', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (await msfTok()) }
       });
       if(!resp.ok) return null;
       const rows = await resp.json();
@@ -12322,6 +12383,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
   }
 
   async function syncParaNuvem() {
+    if(!(await msfTok())){ msfMostrarLogin(); setStatus('local'); return false; }
     window._pullErro = 0;
     setStatus('sync');
     await backupDiario();
@@ -12352,7 +12414,7 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
     // Merge desativado
     if(false) try {
       const respMerge = await fetch(SUPA_URL + '/rest/v1/farmacia_config?chave=eq.msfarma-fatur-dia&select=valor', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (await msfTok()) }
       });
       if(respMerge.ok) {
         const rowsMerge = await respMerge.json();
@@ -12412,9 +12474,10 @@ const _origRenderSaidas = typeof renderSaidas === 'function' ? renderSaidas : nu
   }
 
   async function carregarDaNuvem() {
+    if(!(await msfTok())){ msfMostrarLogin(); setStatus('local'); return false; }
     try {
       const resp = await fetch(SUPA_URL + '/rest/v1/farmacia_config?select=chave,valor&chave=not.like.hist:*', {
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (await msfTok()) }
       });
       if(!resp.ok) { window._pullErro = resp.status; console.warn('[SYNC] carregarDaNuvem falhou:', resp.status); setStatus('erro-pull'); return false; }
       const rows = await resp.json();
